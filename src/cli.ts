@@ -13,6 +13,7 @@ import { AgentSyncService } from './app/sync/agent-sync-service.js';
 import { SyncCheckService } from './app/sync-check-service.js';
 import { ScanService } from './app/scan-service.js';
 import { ProjectSyncService } from './app/sync/project-sync-service.js';
+import { shouldShowWelcome } from './app/startup.js';
 import { registerAll, type CommandContext } from './commands/index.js';
 
 // First run check
@@ -80,8 +81,7 @@ registerAll(program, ctx);
 
 // Show welcome message on first run
 const args = process.argv.slice(2);
-const hasCommand = args.length > 0 && !args[0].startsWith('-');
-if (!hasCommand && isFirstRun()) {
+if (shouldShowWelcome(args) && isFirstRun()) {
   showWelcome();
   // Exit after showing welcome message
   process.exit(0);
