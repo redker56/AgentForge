@@ -6,18 +6,41 @@ import path from 'node:path';
 const PACKAGE_NAME = '@redker56/agentforge';
 const TARBALL_PATTERN = /^redker56-agentforge-.*\.tgz$/;
 
-function getNpmExecPath() {
+function getNpmCommand() {
   const npmExecPath = process.env.npm_execpath;
 
   if (!npmExecPath) {
-    throw new Error('npm_execpath is not set. Run this script via `npm run smoke:pack`.');
+    return {
+      command: process.platform === 'win32' ? 'npm.cmd' : 'npm',
+      prefixArgs: [],
+    };
   }
 
-  return npmExecPath;
+  const extension = path.extname(npmExecPath).toLowerCase();
+  const isJavaScriptEntry = extension === '.js' || extension === '.cjs' || extension === '.mjs';
+
+  if (isJavaScriptEntry) {
+    return {
+      command: process.execPath,
+      prefixArgs: [npmExecPath],
+    };
+  }
+
+  return {
+    command: npmExecPath,
+    prefixArgs: [],
+  };
 }
 
-function runNodeCli(cliPath, args, options = {}) {
-  return execFileSync(process.execPath, [cliPath, ...args], options);
+function runCommand(command, args, options = {}) {
+  const extension = path.extname(command).toLowerCase();
+  const isWindowsCommandWrapper =
+    process.platform === 'win32' && (extension === '.cmd' || extension === '.bat');
+
+  return execFileSync(command, args, {
+    ...options,
+    shell: isWindowsCommandWrapper ? true : options.shell,
+  });
 }
 
 function getLatestTarball(cwd) {
@@ -38,17 +61,17 @@ function getLatestTarball(cwd) {
 
 function main() {
   const cwd = process.cwd();
-  const npmExecPath = getNpmExecPath();
+  const npmCommand = getNpmCommand();
   const tarballPath = getLatestTarball(cwd);
   const tempDir = mkdtempSync(path.join(os.tmpdir(), 'agentforge-smoke-'));
 
   try {
-    runNodeCli(npmExecPath, ['init', '-y'], {
+    runCommand(npmCommand.command, [...npmCommand.prefixArgs, 'init', '-y'], {
       cwd: tempDir,
       stdio: 'ignore',
     });
 
-    runNodeCli(npmExecPath, ['install', tarballPath], {
+    runCommand(npmCommand.command, [...npmCommand.prefixArgs, 'install', tarballPath], {
       cwd: tempDir,
       stdio: 'inherit',
     });
