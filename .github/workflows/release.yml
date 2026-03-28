@@ -45,7 +45,33 @@ jobs:
       - name: Smoke test packed CLI
         run: npm run smoke:pack
 
+      - name: Check whether this version is already published on npm
+        id: npm_status
+        shell: bash
+        run: |
+          PACKAGE_NAME="$(node -p "JSON.parse(require('fs').readFileSync('./package.json', 'utf8')).name")"
+          PACKAGE_VERSION="$(node -p "JSON.parse(require('fs').readFileSync('./package.json', 'utf8')).version")"
+
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "${PACKAGE_NAME}@${PACKAGE_VERSION} is already published on npm. Skipping publish."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ensure npm token is configured when publishing is required
+        if: steps.npm_status.outputs.published != 'true'
+        shell: bash
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "NPM_TOKEN secret is not configured."
+            exit 1
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish to npm
+        if: steps.npm_status.outputs.published != 'true'
         shell: bash
         run: npm publish ./redker56-agentforge-*.tgz --access public --provenance
         env:
