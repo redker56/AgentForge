@@ -9,6 +9,16 @@ import os from 'os';
 import { execa } from 'execa';
 import { git } from '../../src/infra/git.js';
 
+const TEST_GIT_USER_NAME = 'AgentForge Test';
+const TEST_GIT_USER_EMAIL = 'test@example.com';
+
+async function initTestRepo(repoDir: string): Promise<void> {
+  await fs.ensureDir(repoDir);
+  await execa('git', ['init'], { cwd: repoDir });
+  await execa('git', ['config', 'user.name', TEST_GIT_USER_NAME], { cwd: repoDir });
+  await execa('git', ['config', 'user.email', TEST_GIT_USER_EMAIL], { cwd: repoDir });
+}
+
 describe('git', () => {
   let testDir: string;
 
@@ -46,8 +56,7 @@ describe('git', () => {
   describe('isRepo', () => {
     it('returns true for Git repo', async () => {
       const repoDir = path.join(testDir, 'repo');
-      await fs.ensureDir(repoDir);
-      await execa('git', ['init'], { cwd: repoDir });
+      await initTestRepo(repoDir);
 
       expect(git.isRepo(repoDir)).toBe(true);
     });
@@ -64,8 +73,7 @@ describe('git', () => {
     it('should clone local repo', async () => {
       // Create source repo
       const srcRepo = path.join(testDir, 'src-repo');
-      await fs.ensureDir(srcRepo);
-      await execa('git', ['init'], { cwd: srcRepo });
+      await initTestRepo(srcRepo);
       await fs.writeFile(path.join(srcRepo, 'README.md'), '# Test');
       await execa('git', ['add', '.'], { cwd: srcRepo });
       await execa('git', ['commit', '-m', 'init'], { cwd: srcRepo });
@@ -81,8 +89,7 @@ describe('git', () => {
 
     it('should throw when destination exists', async () => {
       const srcRepo = path.join(testDir, 'src-repo');
-      await fs.ensureDir(srcRepo);
-      await execa('git', ['init'], { cwd: srcRepo });
+      await initTestRepo(srcRepo);
 
       const destDir = path.join(testDir, 'existing');
       await fs.ensureDir(destDir);
@@ -95,8 +102,7 @@ describe('git', () => {
     it('should pull updates', async () => {
       // Create source repo
       const srcRepo = path.join(testDir, 'src-repo');
-      await fs.ensureDir(srcRepo);
-      await execa('git', ['init'], { cwd: srcRepo });
+      await initTestRepo(srcRepo);
       await fs.writeFile(path.join(srcRepo, 'README.md'), '# v1');
       await execa('git', ['add', '.'], { cwd: srcRepo });
       await execa('git', ['commit', '-m', 'v1'], { cwd: srcRepo });
