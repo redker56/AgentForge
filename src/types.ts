@@ -117,7 +117,7 @@ export const BUILTIN_AGENTS: Agent[] = [
   },
   {
     id: 'cursor',
-    name: 'Cursor (CLI/Agent)',
+    name: 'Cursor',
     basePath: path.join(os.homedir(), '.cursor', 'skills'),
     skillsDirName: 'cursor',
   },

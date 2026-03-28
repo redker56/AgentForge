@@ -266,7 +266,7 @@ af list skills output example:
 | OpenClaw | `openclaw` | `~/.openclaw/workspace/skills` | `.agents/skills` |
 | Qoder | `qoder` | `~/.qoder/skills` | `.qoder/skills` |
 | OpenCode | `opencode` | `~/.config/opencode/skills` | `.opencode/skills` |
-| Cursor (CLI/Agent) | `cursor` | `~/.cursor/skills` | `.cursor/skills` |
+| Cursor | `cursor` | `~/.cursor/skills` | `.cursor/skills` |
 
 AgentForge treats OpenClaw project-level skills as `.agents/skills`, while user-level sync targets the default OpenClaw workspace at `~/.openclaw/workspace/skills`.
 

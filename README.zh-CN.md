@@ -266,7 +266,7 @@ af list skills 输出示例：
 | OpenClaw | `openclaw` | `~/.openclaw/workspace/skills` | `.agents/skills` |
 | Qoder | `qoder` | `~/.qoder/skills` | `.qoder/skills` |
 | OpenCode | `opencode` | `~/.config/opencode/skills` | `.opencode/skills` |
-| Cursor (CLI/Agent) | `cursor` | `~/.cursor/skills` | `.cursor/skills` |
+| Cursor | `cursor` | `~/.cursor/skills` | `.cursor/skills` |
 
 AgentForge 会把 OpenClaw 的项目级技能目录视为 `.agents/skills`，而用户级同步目标仍然是默认的 OpenClaw 工作区 `~/.openclaw/workspace/skills`。
 
