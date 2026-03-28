@@ -1,0 +1,65 @@
+{
+  "name": "@redker56/agentforge",
+  "version": "0.1.0",
+  "description": "A CLI for managing and syncing skills across Claude Code, Codex, Gemini CLI, OpenClaw, Cursor, OpenCode, Qoder, and project workspaces.",
+  "type": "module",
+  "bin": {
+    "af": "bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node ./scripts/clean-dist.mjs && tsc",
+    "check:package": "npm pack --dry-run",
+    "dev": "tsc --watch",
+    "prepack": "npm run build",
+    "postinstall": "node bin/postinstall.js",
+    "smoke:pack": "node ./scripts/smoke-pack-install.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "verify": "npm run build && npm test && npm run check:package"
+  },
+  "keywords": [
+    "ai",
+    "skills",
+    "agent",
+    "claude",
+    "codex",
+    "gemini"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/redker56/agentforge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/redker56/agentforge/issues"
+  },
+  "homepage": "https://github.com/redker56/agentforge#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "execa": "^9.6.1",
+    "fs-extra": "^11.3.3",
+    "inquirer": "^9.3.8",
+    "ora": "^9.1.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^25.0.10",
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.0"
+  }
+}

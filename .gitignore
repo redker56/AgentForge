@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+coverage/
+.vitest/
+*.tgz
+.agentforge.json
+.claude/
+.agents/
+docs/
+AGENTS.md

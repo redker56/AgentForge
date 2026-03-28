@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/redker56/agentforge/security/advisories/new
+    about: Please report security vulnerabilities privately.
+  - name: Documentation
+    url: https://github.com/redker56/agentforge/blob/main/README.md
+    about: Check the README before opening a usage question.
