@@ -4,10 +4,12 @@
  * Simplified version: test core logic without singleton dependency
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
+import { SkillService } from '../../src/app/skill-service.js';
+import { git } from '../../src/infra/git.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'agentforge-skill-test');
 
@@ -56,6 +58,30 @@ describe('SkillService core functionality', () => {
       await fs.remove(skillDir);
 
       expect(await fs.pathExists(skillDir)).toBe(false);
+    });
+  });
+
+  describe('repository discovery', () => {
+    it('should discover a root-level skill repository', async () => {
+      const cloneSpy = vi.spyOn(git, 'clone').mockImplementation(async (_repoUrl: string, dest: string) => {
+        await fs.ensureDir(dest);
+        await fs.writeFile(path.join(dest, 'SKILL.md'), '# deep-recon');
+        await fs.ensureDir(path.join(dest, 'agents'));
+        await fs.writeFile(path.join(dest, 'agents', 'explorer.md'), 'agent');
+      });
+
+      try {
+        const storage = {
+          getSkillsDir: () => TEST_DIR,
+        } as never;
+        const service = new SkillService(storage);
+
+        await expect(service.discoverSkillsInRepo('https://github.com/kvarnelis/deep-recon'))
+          .resolves
+          .toEqual([{ name: 'deep-recon', subPath: '' }]);
+      } finally {
+        cloneSpy.mockRestore();
+      }
     });
   });
 });

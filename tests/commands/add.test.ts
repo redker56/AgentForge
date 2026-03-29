@@ -43,4 +43,49 @@ describe('add command', () => {
 
     expect(resolveAndRecordSyncLinks).toHaveBeenCalledWith('demo-skill');
   });
+
+  it('reuses the scanned repository when installing a discovered root-level skill', async () => {
+    const resolveAndRecordSyncLinks = vi.fn().mockResolvedValue([]);
+    const cloneRepoToTemp = vi.fn().mockResolvedValue('C:/temp/repo');
+    const discoverSkillsInDirectory = vi.fn().mockReturnValue([{ name: 'deep-recon', subPath: '' }]);
+    const installFromDirectory = vi.fn().mockResolvedValue('deep-recon');
+    const removeTempRepo = vi.fn().mockResolvedValue(undefined);
+    const program = new Command();
+
+    register(program, {
+      skills: {
+        cloneRepoToTemp,
+        discoverSkillsInDirectory,
+        installFromDirectory,
+        removeTempRepo,
+      },
+      syncCheck: {
+        resolveAndRecordSyncLinks,
+      },
+      storage: {
+        getAgent: vi.fn(),
+      },
+    } as never);
+
+    await program.parseAsync(
+      ['add', 'skills', 'https://github.com/kvarnelis/deep-recon'],
+      { from: 'user' }
+    );
+
+    expect(cloneRepoToTemp).toHaveBeenCalledWith('https://github.com/kvarnelis/deep-recon');
+    expect(detectSkillsCalls(discoverSkillsInDirectory)).toEqual([
+      ['C:/temp/repo', 'https://github.com/kvarnelis/deep-recon'],
+    ]);
+    expect(installFromDirectory).toHaveBeenCalledWith(
+      'https://github.com/kvarnelis/deep-recon',
+      'deep-recon',
+      'C:/temp/repo'
+    );
+    expect(removeTempRepo).toHaveBeenCalledWith('C:/temp/repo');
+    expect(resolveAndRecordSyncLinks).toHaveBeenCalledWith('deep-recon');
+  });
 });
+
+function detectSkillsCalls(mockFn: ReturnType<typeof vi.fn>): unknown[][] {
+  return mockFn.mock.calls;
+}

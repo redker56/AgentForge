@@ -12,52 +12,65 @@ import type { Skill, SkillMeta } from '../types.js';
 export class SkillService {
   constructor(private readonly storage: Storage) {}
 
-  /**
-   * Discover all skills in a repository
-   */
-  async discoverSkillsInRepo(repoUrl: string): Promise<Array<{ name: string; subPath: string }>> {
+  async cloneRepoToTemp(repoUrl: string): Promise<string> {
     const tempDir = path.join(this.storage.getSkillsDir(), `._temp_discover_${Date.now()}`);
+    await git.clone(repoUrl, tempDir);
+    return tempDir;
+  }
+
+  discoverSkillsInDirectory(repoDir: string, repoUrl: string): Array<{ name: string; subPath: string }> {
+    const skills: Array<{ name: string; subPath: string }> = [];
+
+    const rootSkillMdPath = path.join(repoDir, 'SKILL.md');
+    const rootSkillMdPathLower = path.join(repoDir, 'skill.md');
+    if (fs.existsSync(rootSkillMdPath) || fs.existsSync(rootSkillMdPathLower)) {
+      skills.push({
+        name: git.parseRepoName(repoUrl),
+        subPath: '',
+      });
+    }
+
+    const scanDir = (dir: string, basePath: string = ''): void => {
+      const items = fs.readdirSync(dir);
+      for (const item of items) {
+        if (item.startsWith('.') || item === 'node_modules') continue;
+
+        const itemPath = path.join(dir, item);
+        const relativePath = basePath ? path.join(basePath, item) : item;
+        const stat = fs.statSync(itemPath);
+
+        if (!stat.isDirectory()) continue;
+
+        const skillMdPath = path.join(itemPath, 'SKILL.md');
+        const skillMdPathLower = path.join(itemPath, 'skill.md');
+        if (fs.existsSync(skillMdPath) || fs.existsSync(skillMdPathLower)) {
+          skills.push({
+            name: item,
+            subPath: relativePath.replace(/\\/g, '/'),
+          });
+        } else {
+          scanDir(itemPath, relativePath);
+        }
+      }
+    };
+
+    scanDir(repoDir);
+    return skills;
+  }
+
+  async discoverSkillsInRepo(repoUrl: string): Promise<Array<{ name: string; subPath: string }>> {
+    const tempDir = await this.cloneRepoToTemp(repoUrl);
 
     try {
-      await git.clone(repoUrl, tempDir);
-
-      // Scan temp directory for subdirectories containing SKILL.md
-      const skills: Array<{ name: string; subPath: string }> = [];
-
-      const scanDir = (dir: string, basePath: string = ''): void => {
-        const items = fs.readdirSync(dir);
-        for (const item of items) {
-          if (item.startsWith('.') || item === 'node_modules') continue;
-
-          const itemPath = path.join(dir, item);
-          const relativePath = basePath ? path.join(basePath, item) : item;
-
-          const stat = fs.statSync(itemPath);
-          if (stat.isDirectory()) {
-            // Check if this is a skill directory (contains SKILL.md)
-            const skillMdPath = path.join(itemPath, 'SKILL.md');
-            const skillMdPathLower = path.join(itemPath, 'skill.md');
-            if (fs.existsSync(skillMdPath) || fs.existsSync(skillMdPathLower)) {
-              skills.push({
-                name: item,
-                subPath: relativePath.replace(/\\/g, '/'),
-              });
-            } else {
-              // Recursively scan subdirectories
-              scanDir(itemPath, relativePath);
-            }
-          }
-        }
-      };
-
-      scanDir(tempDir);
-
-      return skills;
+      return this.discoverSkillsInDirectory(tempDir, repoUrl);
     } finally {
-      // Clean up temp directory
-      if (fs.existsSync(tempDir)) {
-        await files.remove(tempDir);
-      }
+      await this.removeTempRepo(tempDir);
+    }
+  }
+
+  async removeTempRepo(tempDir: string): Promise<void> {
+    if (fs.existsSync(tempDir)) {
+      await files.remove(tempDir);
     }
   }
 
@@ -80,12 +93,10 @@ export class SkillService {
   }
 
   async install(url: string, name?: string, subPath?: string): Promise<string> {
-    // Parse URL, handle subdirectory (e.g., GitHub /tree/ URLs)
     let repoUrl = url;
     let resolvedSubPath = subPath || '';
 
     if (!subPath && url.includes('/tree/')) {
-      // https://github.com/user/repo/tree/branch/subdir
       const match = url.match(/(https?:\/\/[^\/]+\/[^\/]+\/[^\/]+)\/tree\/[^\/]+\/(.+)/);
       if (match) {
         repoUrl = match[1];
@@ -101,7 +112,6 @@ export class SkillService {
     }
 
     if (resolvedSubPath) {
-      // Clone subdirectory: clone entire repo to temp, then copy subdirectory
       const tempDir = path.join(this.storage.getSkillsDir(), `._temp_${Date.now()}`);
       await git.clone(repoUrl, tempDir);
 
@@ -112,12 +122,24 @@ export class SkillService {
       await git.clone(url, skillPath);
     }
 
-    // Clean up unnecessary files
     await files.cleanupSkillDir(skillPath);
-
     this.storage.saveSkill(skillName, { type: 'git', url });
 
     return skillName;
+  }
+
+  async installFromDirectory(url: string, name: string, sourceDir: string): Promise<string> {
+    const skillPath = this.storage.getSkillPath(name);
+
+    if (files.exists(skillPath)) {
+      throw new Error(`Skill already exists: ${name}`);
+    }
+
+    await files.copy(sourceDir, skillPath);
+    await files.cleanupSkillDir(skillPath);
+    this.storage.saveSkill(name, { type: 'git', url });
+
+    return name;
   }
 
   async update(name: string): Promise<boolean> {

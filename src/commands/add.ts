@@ -20,7 +20,6 @@ export function register(program: Command, ctx: CommandContext): void {
     .command('add')
     .description('Add resources (skills/agents/projects)');
 
-  // Show help when no subcommand provided
   addCmd.action(() => {
     console.log(chalk.dim('Usage: af add <target> [arguments]'));
     console.log(chalk.dim('Targets: skills, agents, projects'));
@@ -30,7 +29,6 @@ export function register(program: Command, ctx: CommandContext): void {
     console.log(chalk.dim('  af add projects'));
   });
 
-  // skills subcommand
   addCmd
     .command('skills <url> [name]')
     .description('Install skills from a Git repository')
@@ -38,7 +36,6 @@ export function register(program: Command, ctx: CommandContext): void {
       await addSkill(ctx, url, name);
     });
 
-  // agents subcommand
   addCmd
     .command('agents [id]')
     .description('Add a custom Agent configuration')
@@ -46,7 +43,6 @@ export function register(program: Command, ctx: CommandContext): void {
       await addAgent(ctx, id);
     });
 
-  // projects subcommand
   addCmd
     .command('projects [id] [path]')
     .description('Add a project')
@@ -55,11 +51,8 @@ export function register(program: Command, ctx: CommandContext): void {
     });
 }
 
-// ========== Skills Installation Logic ==========
-
 async function addSkill(ctx: CommandContext, url: string, name?: string): Promise<void> {
   try {
-    // If user specified name, install directly
     if (name) {
       const spinner = ora('Installing...').start();
       try {
@@ -73,12 +66,10 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
       return;
     }
 
-    // No name specified, scan repository for skills
     const spinner = ora('Scanning repository...').start();
     let repoUrl = url;
     let explicitSubPath = '';
 
-    // Handle /tree/ URLs
     if (url.includes('/tree/')) {
       const match = url.match(/(https?:\/\/[^\/]+\/[^\/]+\/[^\/]+)\/tree\/[^\/]+\/(.+)/);
       if (match) {
@@ -88,14 +79,17 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
     }
 
     if (explicitSubPath) {
-      // URL already specifies subdirectory, install directly
       spinner.text = 'Installing...';
       const skillName = await ctx.skills.install(url, explicitSubPath);
       spinner.succeed(`Installed: ${skillName}`);
       await postInstall(ctx, skillName);
-    } else {
-      // Scan repository for all skills
-      const skills = await ctx.skills.discoverSkillsInRepo(repoUrl);
+      return;
+    }
+
+    const tempRepoPath = await ctx.skills.cloneRepoToTemp(repoUrl);
+
+    try {
+      const skills = ctx.skills.discoverSkillsInDirectory(tempRepoPath, repoUrl);
       spinner.stop();
 
       if (skills.length === 0) {
@@ -104,42 +98,45 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
       }
 
       if (skills.length === 1) {
-        // Only one skill, install directly
         const spinner2 = ora('Installing...').start();
-        const skillName = await ctx.skills.install(repoUrl, skills[0].name, skills[0].subPath);
+        const sourceDir = skills[0].subPath ? path.join(tempRepoPath, skills[0].subPath) : tempRepoPath;
+        const skillName = await ctx.skills.installFromDirectory(repoUrl, skills[0].name, sourceDir);
         spinner2.succeed(`Installed: ${skillName}`);
         await postInstall(ctx, skillName);
-      } else {
-        // Multiple skills, let user select
-        const { selected } = await inquirer.prompt([{
-          type: 'checkbox',
-          name: 'selected',
-          message: 'Multiple skills found, select to install:',
-          choices: skills.map(s => ({ name: s.name, value: s })),
-          pageSize: 15,
-        }]);
+        return;
+      }
 
-        if (selected.length === 0) {
-          console.log(chalk.yellow('No skills selected'));
-          return;
-        }
+      const { selected } = await inquirer.prompt([{
+        type: 'checkbox',
+        name: 'selected',
+        message: 'Multiple skills found, select to install:',
+        choices: skills.map(s => ({ name: s.name, value: s })),
+        pageSize: 15,
+      }]);
 
-        const spinner2 = ora('Installing...').start();
-        const results: string[] = [];
-        for (const skill of selected) {
-          try {
-            const installed = await ctx.skills.install(repoUrl, skill.name, skill.subPath);
-            results.push(installed);
-          } catch (e: any) {
-            console.log(chalk.red(`  ✗ ${skill.name}: ${e.message}`));
-          }
-        }
-        spinner2.succeed(`Installed ${results.length} skills`);
+      if (selected.length === 0) {
+        console.log(chalk.yellow('No skills selected'));
+        return;
+      }
 
-        for (const skillName of results) {
-          await postInstall(ctx, skillName, false);
+      const spinner2 = ora('Installing...').start();
+      const results: string[] = [];
+      for (const skill of selected) {
+        try {
+          const sourceDir = skill.subPath ? path.join(tempRepoPath, skill.subPath) : tempRepoPath;
+          const installed = await ctx.skills.installFromDirectory(repoUrl, skill.name, sourceDir);
+          results.push(installed);
+        } catch (e: any) {
+          console.log(chalk.red(`  Failed ${skill.name}: ${e.message}`));
         }
       }
+      spinner2.succeed(`Installed ${results.length} skills`);
+
+      for (const skillName of results) {
+        await postInstall(ctx, skillName, false);
+      }
+    } finally {
+      await ctx.skills.removeTempRepo(tempRepoPath);
     }
   } catch (e: any) {
     console.error(chalk.red(e.message));
@@ -148,10 +145,9 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
 }
 
 async function postInstall(ctx: CommandContext, skillName: string, showHint = true): Promise<void> {
-  // Check if same-name skill exists in Agent directories
   const syncedAgents = await ctx.syncCheck.resolveAndRecordSyncLinks(skillName);
   if (syncedAgents.length > 0) {
-    console.log(chalk.dim(`\nFound same-name skill in the following Agents, auto-linked:`));
+    console.log(chalk.dim('\nFound same-name skill in the following Agents, auto-linked:'));
     for (const agentId of syncedAgents) {
       const agent = ctx.storage.getAgent(agentId);
       console.log(chalk.dim(`  - ${agent?.name || agentId}`));
@@ -163,12 +159,9 @@ async function postInstall(ctx: CommandContext, skillName: string, showHint = tr
   }
 }
 
-// ========== Agents Add Logic ==========
-
 async function addAgent(ctx: CommandContext, idArg?: string): Promise<void> {
   console.log(chalk.cyan('\nAdd Custom Agent Configuration\n'));
 
-  // Built-in Agent IDs cannot be overwritten
   const builtinIds = BUILTIN_AGENTS.map(a => a.id);
 
   const answers = await inquirer.prompt([
@@ -208,10 +201,8 @@ async function addAgent(ctx: CommandContext, idArg?: string): Promise<void> {
     },
   ]);
 
-  // Expand ~ in path
   const basePath = answers.basePath.replace(/^~/, os.homedir());
 
-  // Check if path exists, ask to create if not
   if (!fs.existsSync(basePath)) {
     const { create } = await inquirer.prompt([{
       type: 'confirm',
@@ -232,16 +223,13 @@ async function addAgent(ctx: CommandContext, idArg?: string): Promise<void> {
     answers.skillsDirName?.trim() || undefined
   );
 
-  console.log(chalk.green(`\n✓ Agent added: ${answers.id} (${answers.name})`));
+  console.log(chalk.green(`\nAgent added: ${answers.id} (${answers.name})`));
   console.log(chalk.dim(`  Path: ${basePath}`));
 }
-
-// ========== Projects Add Logic ==========
 
 async function addProject(ctx: CommandContext, idArg?: string, pathArg?: string): Promise<void> {
   console.log(chalk.cyan('\nAdd Project\n'));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const questions: any[] = [];
 
   if (!idArg) {
@@ -283,7 +271,7 @@ async function addProject(ctx: CommandContext, idArg?: string, pathArg?: string)
 
   ctx.storage.addProject(finalId.trim(), finalPath);
 
-  console.log(chalk.green(`\n✓ Project added: ${finalId}`));
+  console.log(chalk.green(`\nProject added: ${finalId}`));
   console.log(chalk.dim(`  Path: ${finalPath}`));
   console.log(chalk.dim(`\nTip: Run "af import projects ${finalId}" to import skills from the project`));
 }

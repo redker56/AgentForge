@@ -108,6 +108,7 @@ af add projects my-project /path/to/project
 #### af add skills Features
 
 - **Single-skill repository**: Auto-detect and install directly
+- **Root-level skill repository**: Supports repositories whose `SKILL.md` lives at the repository root
 - **Multi-skill repository**: Auto-scan and list all directories containing `SKILL.md`, interactive multi-select installation
 - **Specified subdirectory**: Supports `/tree/` URL format, directly install skill from specified subdirectory
 - **Post-install detection**: If same-name skill exists in Agent directory, auto-link or prompt for handling
