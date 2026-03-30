@@ -2,9 +2,11 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import packageJson from '../package.json' with { type: 'json' };
 
 const PACKAGE_NAME = '@redker56/agentforge';
-const TARBALL_PATTERN = /^redker56-agentforge-.*\.tgz$/;
+const PACKAGE_VERSION = packageJson.version;
+const TARBALL_NAME = `redker56-agentforge-${PACKAGE_VERSION}.tgz`;
 
 function getNpmCommand() {
   const npmExecPath = process.env.npm_execpath;
@@ -43,26 +45,34 @@ function runCommand(command, args, options = {}) {
   });
 }
 
-function getLatestTarball(cwd) {
-  const tarballs = readdirSync(cwd)
-    .filter(name => TARBALL_PATTERN.test(name))
-    .map(name => ({
-      name,
-      mtimeMs: statSync(path.join(cwd, name)).mtimeMs,
-    }))
-    .sort((a, b) => b.mtimeMs - a.mtimeMs);
+function getCurrentVersionTarball(cwd) {
+  const tarballPath = path.join(cwd, TARBALL_NAME);
 
-  if (tarballs.length === 0) {
-    throw new Error('No redker56-agentforge-*.tgz tarball found. Run npm pack first.');
+  if (!existsSync(tarballPath)) {
+    const availableTarballs = readdirSync(cwd)
+      .filter(name => /^redker56-agentforge-.*\.tgz$/.test(name))
+      .map(name => ({
+        name,
+        mtimeMs: statSync(path.join(cwd, name)).mtimeMs,
+      }))
+      .sort((a, b) => b.mtimeMs - a.mtimeMs)
+      .map(entry => entry.name);
+
+    const availableTarballsText =
+      availableTarballs.length > 0 ? ` Available tarballs: ${availableTarballs.join(', ')}` : '';
+
+    throw new Error(
+      `No tarball found for the current package version (${TARBALL_NAME}). Run npm pack first.${availableTarballsText}`,
+    );
   }
 
-  return path.join(cwd, tarballs[0].name);
+  return tarballPath;
 }
 
 function main() {
   const cwd = process.cwd();
   const npmCommand = getNpmCommand();
-  const tarballPath = getLatestTarball(cwd);
+  const tarballPath = getCurrentVersionTarball(cwd);
   const tempDir = mkdtempSync(path.join(os.tmpdir(), 'agentforge-smoke-'));
 
   try {

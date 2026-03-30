@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning as closely as practical during `0.x`.
 
+## [0.1.1] - 2026-03-30
+
+### Fixed
+
+- reuse the scanned temporary clone during `af add skills` so installing a discovered skill does not reclone the same repository
+- detect repositories with a root-level `SKILL.md` and install them correctly as single-skill repositories
+- make the packed CLI smoke test validate the tarball for the current package version instead of reusing an older archive
+
+### Changed
+
+- clarify release wording and built-in agent naming copy in the docs
+- document root-level skill repository support in the installation guide
+
 ## [0.1.0] - 2026-03-28
 
 ### Added

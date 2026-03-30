@@ -67,7 +67,7 @@ const program = new Command();
 program
   .name('af')
   .description('Manage and sync skills across AI agents and project workspaces')
-  .version('0.1.0')
+  .version('0.1.1')
   .addHelpText(
     'after',
     '\nNext steps:\n' +
