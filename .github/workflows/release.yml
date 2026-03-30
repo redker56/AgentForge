@@ -20,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
 
@@ -59,23 +59,32 @@ jobs:
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Ensure npm token is configured when publishing is required
+      - name: Select npm publish auth mode
+        id: npm_auth
         if: steps.npm_status.outputs.published != 'true'
         shell: bash
         run: |
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "NPM_TOKEN secret is not configured."
-            exit 1
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            echo "mode=token" >> "$GITHUB_OUTPUT"
+            echo "Using NPM_TOKEN for npm publish."
+          else
+            echo "mode=trusted" >> "$GITHUB_OUTPUT"
+            echo "NPM_TOKEN is not configured. Falling back to npm trusted publishing."
           fi
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish to npm
-        if: steps.npm_status.outputs.published != 'true'
+      - name: Publish to npm with token auth
+        if: steps.npm_status.outputs.published != 'true' && steps.npm_auth.outputs.mode == 'token'
         shell: bash
         run: npm publish ./redker56-agentforge-*.tgz --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npm with trusted publishing
+        if: steps.npm_status.outputs.published != 'true' && steps.npm_auth.outputs.mode == 'trusted'
+        shell: bash
+        run: npm publish ./redker56-agentforge-*.tgz --access public
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

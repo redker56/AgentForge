@@ -35,12 +35,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/redker56/agentforge.git"
+    "url": "git+https://github.com/redker56/AgentForge.git"
   },
   "bugs": {
-    "url": "https://github.com/redker56/agentforge/issues"
+    "url": "https://github.com/redker56/AgentForge/issues"
   },
-  "homepage": "https://github.com/redker56/agentforge#readme",
+  "homepage": "https://github.com/redker56/AgentForge#readme",
   "publishConfig": {
     "access": "public"
   },

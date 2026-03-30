@@ -16,6 +16,8 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 - clarify release wording and built-in agent naming copy in the docs
 - document root-level skill repository support in the installation guide
+- let the release workflow fall back to npm trusted publishing when `NPM_TOKEN` is not configured
+- align package repository metadata with the exact GitHub repository casing used for release provenance
 
 ## [0.1.0] - 2026-03-28
 
