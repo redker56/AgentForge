@@ -15,7 +15,6 @@ Describe the change in 1-3 sentences.
 ## Documentation
 
 - [ ] README updated if behavior changed
-- [ ] AGENTS.md updated if architecture or conventions changed
 
 ## Notes
 
