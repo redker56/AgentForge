@@ -19,6 +19,12 @@ interface ImportResult {
   syncedAgents?: string[];
 }
 
+interface InteractiveSkillChoice {
+  name: string;
+  value: string;
+  disabled?: string;
+}
+
 export function register(program: Command, ctx: CommandContext): void {
   program
     .command('import <source> [id] [name]')
@@ -67,6 +73,16 @@ function printImportResults(results: ImportResult[]): void {
       console.log(chalk.red(`  [FAIL] ${result.name}: ${result.error}`));
     }
   }
+}
+
+function buildInteractiveSkillChoices(
+  skills: Array<{ name: string; labelSuffix?: string; alreadyExists: boolean }>
+): InteractiveSkillChoice[] {
+  return skills.map(skill => ({
+    name: `${skill.name}${skill.labelSuffix ? ` ${skill.labelSuffix}` : ''}`,
+    value: skill.name,
+    disabled: skill.alreadyExists ? 'already in AgentForge' : undefined,
+  }));
 }
 
 async function importFromProject(ctx: CommandContext, projectId?: string, skillName?: string): Promise<void> {
@@ -118,14 +134,21 @@ async function importFromProject(ctx: CommandContext, projectId?: string, skillN
     }
     toImport = [skillName];
   } else if (process.stdin.isTTY) {
+    const choices = buildInteractiveSkillChoices(skills.map(skill => ({
+      name: skill.name,
+      alreadyExists: ctx.skills.exists(skill.name),
+    })));
+
+    if (choices.every(choice => choice.disabled)) {
+      console.log(chalk.yellow(`All skills from project ${projectId} are already in AgentForge`));
+      return;
+    }
+
     const { selected } = await inquirer.prompt([{
       type: 'checkbox',
       name: 'selected',
       message: 'Select skills to import:',
-      choices: skills.map(s => ({
-        name: s.name,
-        value: s.name,
-      })),
+      choices,
       pageSize: 15,
     }]);
     toImport = selected;
@@ -239,19 +262,28 @@ async function importFromAgent(ctx: CommandContext, agentId?: string, skillName?
     }
     toImport = [skillName];
   } else if (process.stdin.isTTY) {
+    const choices = buildInteractiveSkillChoices(skillDirs.map(skill => {
+      const skillPath = path.join(agent.basePath, skill);
+      const hasSkillMd = fs.existsSync(path.join(skillPath, 'SKILL.md'))
+        || fs.existsSync(path.join(skillPath, 'skill.md'));
+
+      return {
+        name: skill,
+        labelSuffix: hasSkillMd ? undefined : '(no SKILL.md)',
+        alreadyExists: ctx.skills.exists(skill),
+      };
+    }));
+
+    if (choices.every(choice => choice.disabled)) {
+      console.log(chalk.yellow(`${agent.name} (${agent.id}) has no new skills to import`));
+      return;
+    }
+
     const { selected } = await inquirer.prompt([{
       type: 'checkbox',
       name: 'selected',
       message: 'Select skills to import:',
-      choices: skillDirs.map(skill => {
-        const skillPath = path.join(agent.basePath, skill);
-        const hasSkillMd = fs.existsSync(path.join(skillPath, 'SKILL.md'))
-          || fs.existsSync(path.join(skillPath, 'skill.md'));
-        return {
-          name: `${skill}${hasSkillMd ? '' : ' (no SKILL.md)'}`,
-          value: skill,
-        };
-      }),
+      choices,
       pageSize: 15,
     }]);
     toImport = selected;

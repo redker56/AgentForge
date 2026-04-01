@@ -76,10 +76,12 @@ export class SkillService {
 
   list(): Array<SkillMeta & { exists: boolean }> {
     const skills = this.storage.listSkills();
-    return skills.map(s => ({
-      ...s,
-      exists: files.exists(this.storage.getSkillPath(s.name)),
-    }));
+    return skills
+      .map(s => ({
+        ...s,
+        exists: files.exists(this.storage.getSkillPath(s.name)),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
   }
 
   get(name: string): Skill | null {
