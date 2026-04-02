@@ -174,7 +174,9 @@ async function listProjects(ctx: CommandContext): Promise<void> {
 }
 
 async function listSkills(ctx: CommandContext): Promise<void> {
-  const list = ctx.skills.list();
+  const list = ctx.skills.list()
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 
   if (list.length === 0) {
     console.log(chalk.yellow('\nNo skills yet'));
