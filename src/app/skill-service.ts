@@ -12,6 +12,10 @@ import type { Skill, SkillMeta } from '../types.js';
 export class SkillService {
   constructor(private readonly storage: Storage) {}
 
+  private getSkillNameFromSubPath(subPath: string): string {
+    return path.posix.basename(subPath.replace(/\\/g, '/'));
+  }
+
   async cloneRepoToTemp(repoUrl: string): Promise<string> {
     const tempDir = path.join(this.storage.getSkillsDir(), `._temp_discover_${Date.now()}`);
     await git.clone(repoUrl, tempDir);
@@ -106,7 +110,8 @@ export class SkillService {
       }
     }
 
-    const skillName = name || (resolvedSubPath ? path.basename(resolvedSubPath) : git.parseRepoName(url));
+    const skillName = name
+      || (resolvedSubPath ? this.getSkillNameFromSubPath(resolvedSubPath) : git.parseRepoName(url));
     const skillPath = this.storage.getSkillPath(skillName);
 
     if (files.exists(skillPath)) {

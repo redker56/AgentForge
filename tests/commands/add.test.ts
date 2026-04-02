@@ -84,6 +84,36 @@ describe('add command', () => {
     expect(removeTempRepo).toHaveBeenCalledWith('C:/temp/repo');
     expect(resolveAndRecordSyncLinks).toHaveBeenCalledWith('deep-recon');
   });
+
+  it('passes tree URL subdirectories as subPath instead of skill name', async () => {
+    const resolveAndRecordSyncLinks = vi.fn().mockResolvedValue([]);
+    const install = vi.fn().mockResolvedValue('glmv-stock-analyst');
+    const program = new Command();
+
+    register(program, {
+      skills: {
+        install,
+      },
+      syncCheck: {
+        resolveAndRecordSyncLinks,
+      },
+      storage: {
+        getAgent: vi.fn(),
+      },
+    } as never);
+
+    await program.parseAsync(
+      ['add', 'skills', 'https://github.com/zai-org/GLM-skills/tree/main/skills/glmv-stock-analyst'],
+      { from: 'user' }
+    );
+
+    expect(install).toHaveBeenCalledWith(
+      'https://github.com/zai-org/GLM-skills',
+      undefined,
+      'skills/glmv-stock-analyst'
+    );
+    expect(resolveAndRecordSyncLinks).toHaveBeenCalledWith('glmv-stock-analyst');
+  });
 });
 
 function detectSkillsCalls(mockFn: ReturnType<typeof vi.fn>): unknown[][] {

@@ -80,7 +80,7 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
 
     if (explicitSubPath) {
       spinner.text = 'Installing...';
-      const skillName = await ctx.skills.install(url, explicitSubPath);
+      const skillName = await ctx.skills.install(repoUrl, undefined, explicitSubPath);
       spinner.succeed(`Installed: ${skillName}`);
       await postInstall(ctx, skillName);
       return;

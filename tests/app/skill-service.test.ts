@@ -83,5 +83,31 @@ describe('SkillService core functionality', () => {
         cloneSpy.mockRestore();
       }
     });
+
+    it('uses the final path segment as the skill name for tree subdirectories', async () => {
+      const cloneSpy = vi.spyOn(git, 'clone').mockImplementation(async (_repoUrl: string, dest: string) => {
+        await fs.ensureDir(path.join(dest, 'skills', 'glmv-stock-analyst'));
+        await fs.writeFile(path.join(dest, 'skills', 'glmv-stock-analyst', 'SKILL.md'), '# GLMV Stock Analyst');
+      });
+
+      try {
+        const storage = {
+          getSkillsDir: () => TEST_DIR,
+          getSkillPath: (name: string) => path.join(TEST_DIR, 'skills', name),
+          saveSkill: vi.fn(),
+        } as never;
+        const service = new SkillService(storage);
+
+        await expect(
+          service.install(
+            'https://github.com/zai-org/GLM-skills',
+            undefined,
+            'skills/glmv-stock-analyst',
+          ),
+        ).resolves.toBe('glmv-stock-analyst');
+      } finally {
+        cloneSpy.mockRestore();
+      }
+    });
   });
 });
