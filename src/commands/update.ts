@@ -3,7 +3,6 @@
  */
 
 import chalk from 'chalk';
-import ora from 'ora';
 import type { Command } from 'commander';
 import type { CommandContext } from './index.js';
 
@@ -23,10 +22,10 @@ export function register(program: Command, ctx: CommandContext): void {
           return;
         }
 
-        const spinner = ora(`Updating ${name}...`).start();
+        console.log(chalk.cyan(`Updating ${name}...`));
         await ctx.skills.update(name);
         await ctx.sync.resync(name);
-        spinner.succeed('Update complete');
+        console.log(chalk.green(`Updated ${name}`));
       } else {
         const list = ctx.skills.list().filter(s => s.source.type === 'git');
 
@@ -36,10 +35,10 @@ export function register(program: Command, ctx: CommandContext): void {
         }
 
         for (const s of list) {
-          const spinner = ora(`Updating ${s.name}...`).start();
+          console.log(chalk.cyan(`Updating ${s.name}...`));
           await ctx.skills.update(s.name);
           await ctx.sync.resync(s.name);
-          spinner.succeed(`Updated ${s.name}`);
+          console.log(chalk.green(`Updated ${s.name}`));
         }
       }
     });

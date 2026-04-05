@@ -3,7 +3,6 @@
  */
 
 import chalk from 'chalk';
-import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import type { Command } from 'commander';
@@ -35,7 +34,7 @@ export function register(program: Command, ctx: CommandContext): void {
       const script = generateCompletion(targetShell);
 
       if (options?.install) {
-        installCompletion(targetShell, script);
+        installCompletion(targetShell, script, ctx);
       } else {
         console.log(script);
         console.log(chalk.dim('\nTip: Use --install to auto-install to shell config'));
@@ -172,7 +171,7 @@ function upsertCompletionBlock(
   };
 }
 
-function installCompletion(shell: string, script: string): void {
+function installCompletion(shell: string, script: string, ctx: CommandContext): void {
   const configPath = getShellConfigPath(shell);
 
   if (!configPath) {
@@ -188,36 +187,38 @@ function installCompletion(shell: string, script: string): void {
     if (shell === 'fish') {
       // Fish uses a separate completions directory
       const dir = path.dirname(configPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      if (!ctx.fileOps.pathExists(dir)) {
+        ctx.fileOps.mkdirSync(dir);
       }
-      fs.writeFileSync(configPath, completionBlock + '\n', 'utf-8');
+      ctx.fileOps.writeFileSync(configPath, completionBlock + '\n');
       console.log(chalk.green(`\n✓ Completion installed to: ${configPath}`));
     } else if (shell === 'powershell') {
       // PowerShell profile
       const dir = path.dirname(configPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      if (!ctx.fileOps.pathExists(dir)) {
+        ctx.fileOps.mkdirSync(dir);
       }
 
       let content = '';
-      if (fs.existsSync(configPath)) {
-        content = fs.readFileSync(configPath, 'utf-8');
+      const existingContent = ctx.fileOps.readFileSync(configPath);
+      if (existingContent) {
+        content = existingContent;
       }
 
       const result = upsertCompletionBlock(content, completionBlock, shell, startMarker, endMarker);
-      fs.writeFileSync(configPath, result.content, 'utf-8');
+      ctx.fileOps.writeFileSync(configPath, result.content);
       console.log(chalk.green(`\n✓ Completion ${result.replaced ? 'updated' : 'installed'} to: ${configPath}`));
       console.log(chalk.dim('\nRestart PowerShell or run: . $PROFILE'));
     } else {
       // Bash / Zsh
       let content = '';
-      if (fs.existsSync(configPath)) {
-        content = fs.readFileSync(configPath, 'utf-8');
+      const existingContent = ctx.fileOps.readFileSync(configPath);
+      if (existingContent) {
+        content = existingContent;
       }
 
       const result = upsertCompletionBlock(content, completionBlock, shell, startMarker, endMarker);
-      fs.writeFileSync(configPath, result.content, 'utf-8');
+      ctx.fileOps.writeFileSync(configPath, result.content);
       console.log(chalk.green(`\n✓ Completion ${result.replaced ? 'updated' : 'installed'} to: ${configPath}`));
       console.log(chalk.dim(`\nRestart terminal or run: source ${configPath}`));
     }

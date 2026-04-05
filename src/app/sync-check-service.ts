@@ -1,12 +1,29 @@
 /**
  * Sync Status Check Service - Used during add/import to detect same-name skills
+ *
+ * Refactored to separate conflict detection (returns data) from conflict
+ * resolution (requires user input). This enables both CLI and TUI code paths.
+ *
+ * detectConflicts() is synchronous and pure -- no side effects, no I/O.
+ * resolveConflicts() is synchronous and pure -- only reads the resolutions map.
+ * resolveAndRecordSyncLinks() remains the CLI entry point with interactive prompts.
  */
 
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import { select } from '@inquirer/prompts';
 import { Storage } from '../infra/storage.js';
 import { AgentSyncService } from './sync/agent-sync-service.js';
 import type { SyncRecord } from '../types.js';
+
+// --- Exported types for conflict data ---
+
+export interface SyncConflict {
+  agentId: string;
+  agentName: string;
+  sameContent: boolean;
+}
+
+export type ConflictResolution = 'link' | 'skip' | 'cancel';
 
 export class SyncCheckService {
   constructor(
@@ -14,13 +31,110 @@ export class SyncCheckService {
     private readonly sync: AgentSyncService
   ) {}
 
+  /**
+   * Detect same-name skill conflicts without prompting.
+   * Returns conflict information for the caller to present to the user.
+   * Pure synchronous function -- no side effects, no I/O.
+   *
+   * Note: checkSyncStatus is inherited by AgentSyncService from BaseSyncService.
+   */
+  detectConflicts(skillName: string): SyncConflict[] {
+    const results = this.sync.checkSyncStatus(skillName);
+    const conflicts = results.filter(r => r.exists);
+
+    return conflicts.map(conflict => {
+      const agentId = conflict.target;
+      const agent = this.storage.getAgent(agentId);
+      const agentName = agent?.name || agentId;
+      return {
+        agentId,
+        agentName,
+        sameContent: conflict.sameContent ?? false,
+      };
+    });
+  }
+
+  /**
+   * Apply conflict resolutions chosen by the caller.
+   * Returns list of agent IDs to mark as synced.
+   * Pure synchronous function -- only reads the resolutions map.
+   *
+   * Throws an error if any resolution is 'cancel' (caller should handle
+   * cancellation before calling this method, but the throw is a safety net).
+   */
+  resolveConflicts(skillName: string, resolutions: Map<string, ConflictResolution>): string[] {
+    const toMarkAsSynced: string[] = [];
+
+    for (const [agentId, resolution] of resolutions) {
+      if (resolution === 'cancel') {
+        throw new Error('Operation cancelled');
+      }
+      if (resolution === 'link') {
+        toMarkAsSynced.push(agentId);
+      }
+      // 'skip' -- do nothing
+    }
+
+    return toMarkAsSynced;
+  }
+
+  /**
+   * CLI entry point: detect conflicts, prompt user via @inquirer/prompts,
+   * apply resolutions, and update storage.
+   */
   async resolveAndRecordSyncLinks(skillName: string, seedAgentIds: string[] = []): Promise<string[]> {
     const skill = this.storage.getSkill(skillName);
     if (!skill) {
       throw new Error(`Skill not found: ${skillName}`);
     }
 
-    const linkedAgentIds = await this.checkAndHandleConflicts(skillName);
+    // Use detect + @inquirer/prompts resolution for CLI mode
+    const conflicts = this.detectConflicts(skillName);
+    const resolutions = new Map<string, ConflictResolution>();
+
+    if (conflicts.length > 0) {
+      console.log(chalk.yellow(`\nDetected ${conflicts.length} Agent(s) with same-name skill "${skillName}":\n`));
+    }
+
+    for (const conflict of conflicts) {
+      if (conflict.sameContent) {
+        // Same content, auto-mark as synced
+        console.log(chalk.dim(`  ${conflict.agentName} (${conflict.agentId})`));
+        console.log(chalk.green(`    \u2713 Same content, auto-linked as synced`));
+        resolutions.set(conflict.agentId, 'link');
+      } else {
+        // Different content, ask user
+        console.log(chalk.dim(`  ${conflict.agentName} (${conflict.agentId})`));
+        console.log(chalk.yellow(`    \u26A0 Different content`));
+
+        try {
+          const action = await select({
+            message: `How to handle same-name skill for ${conflict.agentName}?`,
+            choices: [
+              { name: 'Link as synced (keep Agent version)', value: 'link' },
+              { name: 'Skip (do not link, manually sync later to overwrite)', value: 'skip' },
+              { name: 'Cancel entire operation', value: 'cancel' },
+            ],
+          });
+          resolutions.set(conflict.agentId, action as ConflictResolution);
+        } catch {
+          // User pressed Ctrl+C -- treat as cancel
+          console.log(chalk.yellow('\nOperation cancelled'));
+          process.exit(0);
+        }
+      }
+    }
+
+    // Apply resolutions (may throw on 'cancel', caught above)
+    let linkedAgentIds: string[];
+    try {
+      linkedAgentIds = this.resolveConflicts(skillName, resolutions);
+    } catch {
+      console.log(chalk.yellow('\nOperation cancelled'));
+      process.exit(0);
+    }
+
+    // Merge with existing records + seed agents
     const merged = new Map<string, SyncRecord>();
 
     for (const record of skill.syncedTo) {
@@ -34,61 +148,5 @@ export class SyncCheckService {
     const records = Array.from(merged.values());
     this.storage.updateSkillSync(skillName, records);
     return records.map(record => record.agentId);
-  }
-
-  /**
-   * Detect and handle same-name skill conflicts
-   * Returns list of Agents that need to be marked as synced
-   */
-  private async checkAndHandleConflicts(skillName: string): Promise<string[]> {
-    const results = this.sync.checkSyncStatus(skillName);
-    const conflicts = results.filter(r => r.exists);
-    const toMarkAsSynced: string[] = [];
-
-    if (conflicts.length === 0) {
-      return toMarkAsSynced;
-    }
-
-    console.log(chalk.yellow(`\nDetected ${conflicts.length} Agent(s) with same-name skill "${skillName}":\n`));
-
-    for (const conflict of conflicts) {
-      // target is the agentId
-      const agentId = conflict.target;
-      const agent = this.storage.getAgent(agentId);
-      const agentName = agent?.name || agentId;
-
-      if (conflict.sameContent) {
-        // Same content, auto-mark as synced
-        console.log(chalk.dim(`  ${agentName} (${agentId})`));
-        console.log(chalk.green(`    ✓ Same content, auto-linked as synced`));
-        toMarkAsSynced.push(agentId);
-      } else {
-        // Different content, ask user
-        console.log(chalk.dim(`  ${agentName} (${agentId})`));
-        console.log(chalk.yellow(`    ⚠ Different content`));
-
-        const { action } = await inquirer.prompt([
-          {
-            type: 'list',
-            name: 'action',
-            message: `How to handle same-name skill for ${agentName}?`,
-            choices: [
-              { name: 'Link as synced (keep Agent version)', value: 'link' },
-              { name: 'Skip (do not link, manually sync later to overwrite)', value: 'skip' },
-              { name: 'Cancel entire operation', value: 'cancel' },
-            ],
-          },
-        ]);
-
-        if (action === 'cancel') {
-          console.log(chalk.yellow('\nOperation cancelled'));
-          process.exit(0);
-        } else if (action === 'link') {
-          toMarkAsSynced.push(agentId);
-        }
-      }
-    }
-
-    return toMarkAsSynced;
   }
 }

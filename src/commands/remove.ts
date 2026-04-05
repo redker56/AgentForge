@@ -6,7 +6,7 @@
  */
 
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import { confirm } from '@inquirer/prompts';
 import type { Command } from 'commander';
 import type { CommandContext } from './index.js';
 import { BUILTIN_AGENTS, type Agent, type SkillMeta } from '../types.js';
@@ -95,12 +95,10 @@ export async function removeSkill(ctx: CommandContext, skillName: string, option
 
   // Confirm deletion
   if (!options.yes && process.stdin.isTTY) {
-    const { confirmed } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'confirmed',
+    const confirmed = await confirm({
       message: `Delete skill "${skillName}" from AgentForge? This will remove ${agentSyncCount} user-level sync(s) and ${projectSyncCount} recorded project sync(s).`,
       default: false,
-    }]);
+    });
     if (!confirmed) {
       console.log(chalk.yellow('Cancelled'));
       return;
@@ -130,12 +128,10 @@ export async function removeProject(ctx: CommandContext, projectId: string, opti
     console.log(chalk.dim(`\nProject: ${projectId}`));
     console.log(chalk.dim(`Path: ${project.path}`));
 
-    const { confirmed } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'confirmed',
+    const confirmed = await confirm({
       message: 'Remove this project from AgentForge? Project files stay on disk; AgentForge will just forget the project and its recorded sync references.',
       default: false,
-    }]);
+    });
 
     if (!confirmed) {
       console.log(chalk.yellow('Cancelled'));
@@ -186,12 +182,10 @@ export async function removeAgent(ctx: CommandContext, agentId: string, options:
       console.log(chalk.yellow(`Project sync references: ${projectSyncCount}`));
     }
 
-    const { confirmed } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'confirmed',
+    const confirmed = await confirm({
       message: 'Remove this custom Agent configuration? Files stay on disk; AgentForge will just forget sync references tied to this Agent.',
       default: false,
-    }]);
+    });
 
     if (!confirmed) {
       console.log(chalk.yellow('Cancelled'));

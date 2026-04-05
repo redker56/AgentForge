@@ -8,6 +8,7 @@ import type { AgentSyncService } from '../app/sync/agent-sync-service.js';
 import type { SyncCheckService } from '../app/sync-check-service.js';
 import type { ScanService } from '../app/scan-service.js';
 import type { ProjectSyncService } from '../app/sync/project-sync-service.js';
+import type { FileOperationsService } from '../app/file-operations.js';
 
 // Command context
 export interface CommandContext {
@@ -17,6 +18,7 @@ export interface CommandContext {
   storage: Storage;
   scan: ScanService;
   projectSync: ProjectSyncService;
+  fileOps: FileOperationsService;
 }
 
 // Command module interface

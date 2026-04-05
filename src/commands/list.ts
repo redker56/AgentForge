@@ -4,14 +4,11 @@
  */
 
 import chalk from 'chalk';
-import fs from 'fs-extra';
 import path from 'path';
 import type { Command } from 'commander';
 import type { CommandContext } from './index.js';
 import { getAgentProjectSkillsDir, type Agent } from '../types.js';
-import { formatAgentProjectSkillGroups } from '../app/formatters/project-formatter.js';
-import { formatSourceLabel, formatAgentList, sortAgentNamesByPriority } from '../app/formatters/skill-formatter.js';
-import { files } from '../infra/files.js';
+import { formatAgentProjectSkillGroups, formatSourceLabel, formatAgentList, sortAgentNamesByPriority } from '../app/cli-formatting.js';
 
 /**
  * Check if user-level skill matches Agent directory skill content
@@ -19,20 +16,20 @@ import { files } from '../infra/files.js';
 async function checkUserSkillSyncStatus(
   skillName: string,
   agentId: string,
-  storage: CommandContext['storage']
+  ctx: CommandContext
 ): Promise<'synced' | 'different' | 'missing'> {
-  const agent = storage.getAgent(agentId);
+  const agent = ctx.storage.getAgent(agentId);
   if (!agent) return 'missing';
 
   const agentSkillPath = path.join(agent.basePath, skillName);
-  if (!fs.existsSync(agentSkillPath)) return 'missing';
+  if (!ctx.fileOps.pathExists(agentSkillPath)) return 'missing';
 
-  const importedSkillPath = storage.getSkillPath(skillName);
-  if (!fs.existsSync(importedSkillPath)) return 'missing';
+  const importedSkillPath = ctx.storage.getSkillPath(skillName);
+  if (!ctx.fileOps.pathExists(importedSkillPath)) return 'missing';
 
   const [agentHash, importedHash] = await Promise.all([
-    files.getDirectoryHash(agentSkillPath),
-    files.getDirectoryHash(importedSkillPath),
+    ctx.fileOps.getDirectoryHash(agentSkillPath),
+    ctx.fileOps.getDirectoryHash(importedSkillPath),
   ]);
 
   if (agentHash !== null && importedHash !== null && agentHash === importedHash) {
@@ -66,7 +63,7 @@ async function listAgents(ctx: CommandContext): Promise<void> {
     const differentSkills: string[] = [];
 
     for (const skill of userSkillRecords) {
-      const status = await checkUserSkillSyncStatus(skill.name, a.id, ctx.storage);
+      const status = await checkUserSkillSyncStatus(skill.name, a.id, ctx);
       if (status === 'synced') {
         syncedSkills.push(skill.name);
       } else if (status === 'different') {
@@ -82,20 +79,9 @@ async function listAgents(ctx: CommandContext): Promise<void> {
 
     for (const project of ctx.storage.listProjects()) {
       const projectSkillsPath = getAgentProjectSkillsDir(project.path, a);
-      if (fs.existsSync(projectSkillsPath)) {
-        const skills = fs.readdirSync(projectSkillsPath).filter(f => {
-          const p = path.join(projectSkillsPath, f);
-          try {
-            if (!fs.statSync(p).isDirectory() || f.startsWith('.')) return false;
-            const files = fs.readdirSync(p);
-            return files.some(file => file.toLowerCase() === 'skill.md');
-          } catch {
-            return false;
-          }
-        });
-        if (skills.length > 0) {
-          projectSkillsByProject.set(project.id, skills);
-        }
+      const skills = ctx.fileOps.scanSkillsInDirectory(projectSkillsPath);
+      if (skills.length > 0) {
+        projectSkillsByProject.set(project.id, skills);
       }
     }
 
@@ -207,7 +193,7 @@ async function listSkills(ctx: CommandContext): Promise<void> {
       const differentAgents: string[] = [];
 
       for (const r of syncedTo) {
-        const status = await checkUserSkillSyncStatus(s.name, r.agentId, ctx.storage);
+        const status = await checkUserSkillSyncStatus(s.name, r.agentId, ctx);
         const agent = ctx.storage.getAgent(r.agentId);
         if (status === 'synced' && agent) {
           syncedAgents.push(agent);

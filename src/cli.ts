@@ -13,7 +13,7 @@ import { AgentSyncService } from './app/sync/agent-sync-service.js';
 import { SyncCheckService } from './app/sync-check-service.js';
 import { ScanService } from './app/scan-service.js';
 import { ProjectSyncService } from './app/sync/project-sync-service.js';
-import { shouldShowWelcome } from './app/startup.js';
+import { FileOperationsService } from './app/file-operations.js';
 import { registerAll, type CommandContext } from './commands/index.js';
 
 // First run check
@@ -50,41 +50,43 @@ function showWelcome(): void {
   console.log();
 }
 
-// Initialize services
-const storage = Storage.getInstance();
-const skills = new SkillService(storage);
-const sync = new AgentSyncService(storage);
-const syncCheck = new SyncCheckService(storage, sync);
-const scan = new ScanService(storage);
-const projectSync = new ProjectSyncService(storage);
+export function launchCLI(): void {
+  // Initialize services
+  const storage = Storage.getInstance();
+  const skills = new SkillService(storage);
+  const sync = new AgentSyncService(storage);
+  const syncCheck = new SyncCheckService(storage, sync);
+  const scan = new ScanService(storage);
+  const projectSync = new ProjectSyncService(storage);
+  const fileOps = new FileOperationsService();
 
-// Command context
-const ctx: CommandContext = { skills, sync, syncCheck, storage, scan, projectSync };
+  // Command context
+  const ctx: CommandContext = { skills, sync, syncCheck, storage, scan, projectSync, fileOps };
 
-// Create CLI
-const program = new Command();
+  // Create CLI
+  const program = new Command();
 
-program
-  .name('af')
-  .description('Manage and sync skills across AI agents and project workspaces')
-  .version('0.1.1')
-  .addHelpText(
-    'after',
-    '\nNext steps:\n' +
-      '  af completion --install     Enable shell completion\n' +
-      '  af add skills <repo-url>    Install your first skill\n' +
-      '  af add agents               Add a custom agent\n',
-  );
+  program
+    .name('af')
+    .description('Manage and sync skills across AI agents and project workspaces')
+    .version('0.1.1')
+    .addHelpText(
+      'after',
+      '\nNext steps:\n' +
+        '  af completion --install     Enable shell completion\n' +
+        '  af add skills <repo-url>    Install your first skill\n' +
+        '  af add agents               Add a custom agent\n',
+    );
 
-// Register all commands
-registerAll(program, ctx);
+  // Register all commands
+  registerAll(program, ctx);
 
-// Show welcome message on first run
-const args = process.argv.slice(2);
-if (shouldShowWelcome(args) && isFirstRun()) {
-  showWelcome();
-  // Exit after showing welcome message
-  process.exit(0);
+  // Inline startup detection: args.length === 0 means no CLI command was specified
+  const args = process.argv.slice(2);
+  if (args.length === 0 && isFirstRun()) {
+    showWelcome();
+    process.exit(0);
+  }
+
+  program.parse();
 }
-
-program.parse();

@@ -5,8 +5,7 @@
  */
 
 import chalk from 'chalk';
-import inquirer from 'inquirer';
-import ora from 'ora';
+import { checkbox, select } from '@inquirer/prompts';
 import type { Command } from 'commander';
 import type { CommandContext } from './index.js';
 import type { AgentId } from '../types.js';
@@ -43,13 +42,10 @@ async function unsyncFromAgents(ctx: CommandContext, name: string, agentIds: str
       console.log(chalk.yellow('No skills synced to Agents'));
       return;
     }
-    const { selected } = await inquirer.prompt([{
-      type: 'list',
-      name: 'selected',
+    name = await select({
       message: 'Select skill to unsync:',
       choices: skills.map(s => ({ name: s.name, value: s.name })),
-    }]);
-    name = selected;
+    });
   }
 
   const skill = ctx.skills.get(name);
@@ -67,9 +63,7 @@ async function unsyncFromAgents(ctx: CommandContext, name: string, agentIds: str
 
   // Interactive selection
   if (agentIds.length === 0 && process.stdin.isTTY) {
-    const { selected } = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'selected',
+    const selected = await checkbox({
       message: 'Select Agents to unsync:',
       choices: syncedAgents.map(r => {
         const agent = ctx.storage.getAgent(r.agentId);
@@ -78,7 +72,7 @@ async function unsyncFromAgents(ctx: CommandContext, name: string, agentIds: str
           value: r.agentId,
         };
       }),
-    }]);
+    });
     agentIds = selected;
   }
 
@@ -119,16 +113,13 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
       return;
     }
 
-    const { selected } = await inquirer.prompt([{
-      type: 'list',
-      name: 'selected',
+    name = await select({
       message: 'Select skill to unsync:',
       choices: skillsWithProjectDist.map(s => ({
         name: `${s.name} (${s.distribution.length} projects)`,
         value: s.name,
       })),
-    }]);
-    name = selected;
+    });
   }
 
   const skill = ctx.skills.get(name);
@@ -180,9 +171,7 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
 
   // Interactive selection
   if (projectIds.length === 0 && process.stdin.isTTY) {
-    const { selected } = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'selected',
+    const selected = await checkbox({
       message: 'Select projects to unsync:',
       choices: allTargets.map(t => {
         const project = ctx.storage.getProject(t.projectId);
@@ -191,18 +180,17 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
           : `${t.projectId} (${t.agentType}${t.mode !== 'unknown' ? `, ${t.mode}` : ''}) [project deleted]`;
         return { name: displayName, value: `${t.projectId}:${t.agentType}` };
       }),
-    }]);
+    });
     // Extract projectId from "projectId:agentType"
     projectIds = [...new Set((selected as string[]).map(s => s.split(':')[0]))];
     // If selection made, use full selection list
     if (selected.length > 0) {
       const targets = selected as string[];
-      const spinner = ora('Removing sync...').start();
       try {
         await ctx.projectSync.unsync(name, targets);
-        spinner.succeed('Sync removed');
-      } catch (e: any) {
-        spinner.fail(e.message);
+        console.log(chalk.green('Sync removed'));
+      } catch (e: unknown) {
+        console.log(chalk.red(e instanceof Error ? e.message : String(e)));
         process.exit(1);
       }
       return;
@@ -240,13 +228,12 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
 
   // If there are targets with colon, use unsync directly
   if (targets.length > 0) {
-    const spinner = ora('Removing sync...').start();
     try {
       await ctx.projectSync.unsync(name, targets);
-      spinner.succeed('Sync removed');
+      console.log(chalk.green('Sync removed'));
       return;
-    } catch (e: any) {
-      spinner.fail(e.message);
+    } catch (e: unknown) {
+      console.log(chalk.red(e instanceof Error ? e.message : String(e)));
       process.exit(1);
     }
   }
@@ -256,16 +243,13 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
     return;
   }
 
-  const agentTypes = options.agentTypes as AgentId[] | undefined;
-  const spinner = ora('Removing sync...').start();
-
   try {
     for (const projectId of plainProjectIds) {
-      await ctx.projectSync.unsyncFromProject(name, projectId, agentTypes);
+      await ctx.projectSync.unsyncFromProject(name, projectId, options.agentTypes as AgentId[] | undefined);
     }
-    spinner.succeed('Sync removed');
-  } catch (e: any) {
-    spinner.fail(e.message);
+    console.log(chalk.green('Sync removed'));
+  } catch (e: unknown) {
+    console.log(chalk.red(e instanceof Error ? e.message : String(e)));
     process.exit(1);
   }
 }

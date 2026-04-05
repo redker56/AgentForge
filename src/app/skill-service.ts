@@ -7,7 +7,7 @@ import fs from 'fs-extra';
 import { Storage } from '../infra/storage.js';
 import { git } from '../infra/git.js';
 import { files } from '../infra/files.js';
-import type { Skill, SkillMeta } from '../types.js';
+import type { Skill, SkillMeta, SkillSource } from '../types.js';
 
 export class SkillService {
   constructor(private readonly storage: Storage) {}
@@ -178,5 +178,20 @@ export class SkillService {
 
   exists(name: string): boolean {
     return files.exists(this.storage.getSkillPath(name));
+  }
+
+  /**
+   * Import skill from a directory path
+   */
+  async importFromPath(sourcePath: string, name: string, source: SkillSource): Promise<void> {
+    const skillPath = this.storage.getSkillPath(name);
+
+    if (files.exists(skillPath)) {
+      throw new Error(`Skill already exists: ${name}`);
+    }
+
+    await files.copy(sourcePath, skillPath);
+    await files.cleanupSkillDir(skillPath);
+    this.storage.saveSkill(name, source);
   }
 }

@@ -63,6 +63,16 @@ export class Storage {
     this.persist();
   }
 
+  /**
+   * Write a full SkillMeta to the registry, preserving all fields.
+   * Used by the undo restore system to re-add a skill entry with its
+   * original createdAt, syncedTo, and syncedProjects values.
+   */
+  saveSkillMeta(name: string, meta: SkillMeta): void {
+    this.data.skills[name] = meta;
+    this.persist();
+  }
+
   deleteSkill(name: string): void {
     delete this.data.skills[name];
     this.persist();
@@ -160,11 +170,11 @@ export class Storage {
     return this.data.projects[id];
   }
 
-  addProject(id: string, projectPath: string): void {
+  addProject(id: string, projectPath: string, addedAt?: string): void {
     this.data.projects[id] = {
       id,
       path: projectPath,
-      addedAt: new Date().toISOString(),
+      addedAt: addedAt ?? new Date().toISOString(),
     };
     this.persist();
   }

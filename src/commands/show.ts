@@ -4,12 +4,10 @@
  */
 
 import chalk from 'chalk';
-import fs from 'fs-extra';
 import path from 'path';
 import type { Command } from 'commander';
 import type { CommandContext } from './index.js';
-import { formatProjectSkillList } from '../app/formatters/project-formatter.js';
-import { formatSourceLabel } from '../app/formatters/skill-formatter.js';
+import { formatProjectSkillList, formatSourceLabel } from '../app/cli-formatting.js';
 
 async function showAgent(ctx: CommandContext, agentId: string): Promise<void> {
   const agent = ctx.storage.getAgent(agentId);
@@ -23,19 +21,7 @@ async function showAgent(ctx: CommandContext, agentId: string): Promise<void> {
   console.log(chalk.dim(`Path: ${agent.basePath}`));
 
   // List user-level skills (in Agent directory)
-  let skillDirs: string[] = [];
-  try {
-    skillDirs = fs.readdirSync(agent.basePath).filter(f => {
-      try {
-        const p = path.join(agent.basePath, f);
-        return fs.statSync(p).isDirectory() && !f.startsWith('.');
-      } catch {
-        return false;
-      }
-    });
-  } catch {
-    skillDirs = [];
-  }
+  const skillDirs = ctx.fileOps.listSubdirectories(agent.basePath);
 
   console.log(chalk.dim(`\nUser-level skills (${skillDirs.length}):\n`));
   if (skillDirs.length === 0) {
@@ -43,8 +29,8 @@ async function showAgent(ctx: CommandContext, agentId: string): Promise<void> {
   } else {
     for (const skill of skillDirs) {
       const skillPath = path.join(agent.basePath, skill);
-      const hasSkillMd = fs.existsSync(path.join(skillPath, 'SKILL.md')) ||
-                        fs.existsSync(path.join(skillPath, 'skill.md'));
+      const hasSkillMd = ctx.fileOps.fileExists(path.join(skillPath, 'SKILL.md')) ||
+                        ctx.fileOps.fileExists(path.join(skillPath, 'skill.md'));
       const icon = hasSkillMd ? '📦' : '📁';
       console.log(`  ${icon} ${chalk.cyan(skill)}`);
     }
@@ -155,8 +141,8 @@ function showSkill(ctx: CommandContext, skillName: string): void {
 
   // SKILL.md preview
   const skillMdPath = path.join(skill.path, 'SKILL.md');
-  if (fs.existsSync(skillMdPath)) {
-    const content = fs.readFileSync(skillMdPath, 'utf-8');
+  const content = ctx.fileOps.readFile(skillMdPath);
+  if (content) {
     const preview = content.split('\n').slice(0, 5).join('\n');
     console.log(chalk.dim('\nSKILL.md preview:'));
     console.log(chalk.dim(preview));
@@ -187,6 +173,7 @@ export function register(program: Command, ctx: CommandContext): void {
           console.error(chalk.red(`Invalid target: ${target}`));
           console.log(chalk.dim('Available targets: agents, projects, skills'));
           console.log(chalk.dim('Example: af show agents claude'));
+          process.exit(1);
       }
     });
 }

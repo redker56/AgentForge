@@ -5,9 +5,7 @@
  */
 
 import chalk from 'chalk';
-import inquirer from 'inquirer';
-import ora from 'ora';
-import fs from 'fs-extra';
+import { checkbox, select } from '@inquirer/prompts';
 import path from 'path';
 import type { Command } from 'commander';
 import type { CommandContext } from './index.js';
@@ -95,16 +93,13 @@ async function importFromProject(ctx: CommandContext, projectId?: string, skillN
   }
 
   if (!projectId && process.stdin.isTTY) {
-    const { selected } = await inquirer.prompt([{
-      type: 'list',
-      name: 'selected',
+    projectId = await select({
       message: 'Select project:',
       choices: projects.map(p => ({
         name: `${p.id} (${p.path})`,
         value: p.id,
       })),
-    }]);
-    projectId = selected;
+    });
   }
 
   const project = ctx.storage.getProject(projectId!);
@@ -144,14 +139,10 @@ async function importFromProject(ctx: CommandContext, projectId?: string, skillN
       return;
     }
 
-    const { selected } = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'selected',
+    toImport = await checkbox({
       message: 'Select skills to import:',
       choices,
-      pageSize: 15,
-    }]);
-    toImport = selected;
+    });
   } else {
     console.error(chalk.red('Skill name must be specified in non-interactive mode'));
     process.exit(1);
@@ -162,13 +153,12 @@ async function importFromProject(ctx: CommandContext, projectId?: string, skillN
     return;
   }
 
-  const spinner = ora('Importing...').start();
+  console.log(chalk.cyan('Importing...'));
   const results: ImportResult[] = [];
 
   for (const name of toImport) {
     const skillInfo = skills.find(s => s.name === name)!;
     const srcPath = skillInfo.path;
-    const destPath = ctx.storage.getSkillPath(name);
 
     try {
       if (ctx.skills.exists(name)) {
@@ -176,21 +166,14 @@ async function importFromProject(ctx: CommandContext, projectId?: string, skillN
         continue;
       }
 
-      await fs.copy(srcPath, destPath, {
-        filter: (src) => {
-          const basename = path.basename(src);
-          return !basename.startsWith('.');
-        },
-      });
-
-      ctx.storage.saveSkill(name, { type: 'project', projectId: projectId! });
+      await ctx.skills.importFromPath(srcPath, name, { type: 'project', projectId: projectId! });
       results.push({ name, success: true });
     } catch (err) {
       results.push({ name, success: false, error: (err as Error).message });
     }
   }
 
-  spinner.stop();
+  console.log(chalk.dim(''));
 
   for (const result of results) {
     await finalizeImport(ctx, result);
@@ -211,16 +194,13 @@ async function importFromAgent(ctx: CommandContext, agentId?: string, skillName?
   }
 
   if (!agentId && process.stdin.isTTY) {
-    const { selected } = await inquirer.prompt([{
-      type: 'list',
-      name: 'selected',
+    agentId = await select({
       message: 'Select Agent:',
       choices: agents.map(agent => ({
         name: `${agent.name} (${agent.id})`,
         value: agent.id,
       })),
-    }]);
-    agentId = selected;
+    });
   }
 
   const agent = ctx.storage.getAgent(agentId!);
@@ -230,19 +210,7 @@ async function importFromAgent(ctx: CommandContext, agentId?: string, skillName?
     process.exit(1);
   }
 
-  let skillDirs: string[] = [];
-  try {
-    skillDirs = fs.readdirSync(agent.basePath).filter(entry => {
-      try {
-        const fullPath = path.join(agent.basePath, entry);
-        return fs.statSync(fullPath).isDirectory() && !entry.startsWith('.');
-      } catch {
-        return false;
-      }
-    });
-  } catch {
-    skillDirs = [];
-  }
+  const skillDirs = ctx.fileOps.listSubdirectories(agent.basePath);
 
   if (skillDirs.length === 0) {
     console.log(chalk.yellow(`${agent.name} (${agent.id}) has no skills installed`));
@@ -264,8 +232,8 @@ async function importFromAgent(ctx: CommandContext, agentId?: string, skillName?
   } else if (process.stdin.isTTY) {
     const choices = buildInteractiveSkillChoices(skillDirs.map(skill => {
       const skillPath = path.join(agent.basePath, skill);
-      const hasSkillMd = fs.existsSync(path.join(skillPath, 'SKILL.md'))
-        || fs.existsSync(path.join(skillPath, 'skill.md'));
+      const hasSkillMd = ctx.fileOps.fileExists(path.join(skillPath, 'SKILL.md'))
+        || ctx.fileOps.fileExists(path.join(skillPath, 'skill.md'));
 
       return {
         name: skill,
@@ -279,14 +247,10 @@ async function importFromAgent(ctx: CommandContext, agentId?: string, skillName?
       return;
     }
 
-    const { selected } = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'selected',
+    toImport = await checkbox({
       message: 'Select skills to import:',
       choices,
-      pageSize: 15,
-    }]);
-    toImport = selected;
+    });
   } else {
     console.error(chalk.red('Skill name must be specified in non-interactive mode'));
     process.exit(1);
@@ -303,7 +267,6 @@ async function importFromAgent(ctx: CommandContext, agentId?: string, skillName?
 
   for (const skill of toImport) {
     const srcPath = path.join(agent.basePath, skill);
-    const destPath = ctx.storage.getSkillPath(skill);
 
     try {
       if (ctx.skills.exists(skill)) {
@@ -311,14 +274,7 @@ async function importFromAgent(ctx: CommandContext, agentId?: string, skillName?
         continue;
       }
 
-      await fs.copy(srcPath, destPath, {
-        filter: (src) => {
-          const basename = path.basename(src);
-          return !basename.startsWith('.');
-        },
-      });
-
-      ctx.storage.saveSkill(skill, {
+      await ctx.skills.importFromPath(srcPath, skill, {
         type: 'local',
         importedFrom: { agent: agent.id, path: srcPath },
       });

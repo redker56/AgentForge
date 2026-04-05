@@ -6,9 +6,7 @@
  */
 
 import chalk from 'chalk';
-import ora from 'ora';
-import inquirer from 'inquirer';
-import fs from 'fs-extra';
+import { input, confirm, checkbox } from '@inquirer/prompts';
 import path from 'path';
 import os from 'os';
 import type { Command } from 'commander';
@@ -54,19 +52,19 @@ export function register(program: Command, ctx: CommandContext): void {
 async function addSkill(ctx: CommandContext, url: string, name?: string): Promise<void> {
   try {
     if (name) {
-      const spinner = ora('Installing...').start();
       try {
+        console.log(chalk.cyan('Installing...'));
         const skillName = await ctx.skills.install(url, name);
-        spinner.succeed(`Installed: ${skillName}`);
+        console.log(chalk.green(`Installed: ${skillName}`));
         await postInstall(ctx, skillName);
-      } catch (e: any) {
-        spinner.fail(e.message);
+      } catch (e: unknown) {
+        console.log(chalk.red(e instanceof Error ? e.message : String(e)));
         process.exit(1);
       }
       return;
     }
 
-    const spinner = ora('Scanning repository...').start();
+    console.log(chalk.cyan('Scanning repository...'));
     let repoUrl = url;
     let explicitSubPath = '';
 
@@ -79,9 +77,9 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
     }
 
     if (explicitSubPath) {
-      spinner.text = 'Installing...';
+      console.log(chalk.cyan('Installing...'));
       const skillName = await ctx.skills.install(repoUrl, undefined, explicitSubPath);
-      spinner.succeed(`Installed: ${skillName}`);
+      console.log(chalk.green(`Installed: ${skillName}`));
       await postInstall(ctx, skillName);
       return;
     }
@@ -90,7 +88,6 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
 
     try {
       const skills = ctx.skills.discoverSkillsInDirectory(tempRepoPath, repoUrl);
-      spinner.stop();
 
       if (skills.length === 0) {
         console.log(chalk.yellow('No skills found in repository (directories containing SKILL.md)'));
@@ -98,39 +95,35 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
       }
 
       if (skills.length === 1) {
-        const spinner2 = ora('Installing...').start();
+        console.log(chalk.cyan('Installing...'));
         const sourceDir = skills[0].subPath ? path.join(tempRepoPath, skills[0].subPath) : tempRepoPath;
         const skillName = await ctx.skills.installFromDirectory(repoUrl, skills[0].name, sourceDir);
-        spinner2.succeed(`Installed: ${skillName}`);
+        console.log(chalk.green(`Installed: ${skillName}`));
         await postInstall(ctx, skillName);
         return;
       }
 
-      const { selected } = await inquirer.prompt([{
-        type: 'checkbox',
-        name: 'selected',
+      const selected = await checkbox({
         message: 'Multiple skills found, select to install:',
         choices: skills.map(s => ({ name: s.name, value: s })),
-        pageSize: 15,
-      }]);
+      });
 
       if (selected.length === 0) {
         console.log(chalk.yellow('No skills selected'));
         return;
       }
 
-      const spinner2 = ora('Installing...').start();
       const results: string[] = [];
       for (const skill of selected) {
         try {
           const sourceDir = skill.subPath ? path.join(tempRepoPath, skill.subPath) : tempRepoPath;
           const installed = await ctx.skills.installFromDirectory(repoUrl, skill.name, sourceDir);
           results.push(installed);
-        } catch (e: any) {
-          console.log(chalk.red(`  Failed ${skill.name}: ${e.message}`));
+        } catch (e: unknown) {
+          console.log(chalk.red(`  Failed ${skill.name}: ${e instanceof Error ? e.message : String(e)}`));
         }
       }
-      spinner2.succeed(`Installed ${results.length} skills`);
+      console.log(chalk.green(`Installed ${results.length} skills`));
 
       for (const skillName of results) {
         await postInstall(ctx, skillName, false);
@@ -138,8 +131,8 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
     } finally {
       await ctx.skills.removeTempRepo(tempRepoPath);
     }
-  } catch (e: any) {
-    console.error(chalk.red(e.message));
+  } catch (e: unknown) {
+    console.error(chalk.red(e instanceof Error ? e.message : String(e)));
     process.exit(1);
   }
 }
@@ -164,81 +157,71 @@ async function addAgent(ctx: CommandContext, idArg?: string): Promise<void> {
 
   const builtinIds = BUILTIN_AGENTS.map(a => a.id);
 
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'id',
-      message: 'Agent ID (e.g., my-agent):',
-      default: idArg,
-      validate: (input: string) => {
-        const trimmed = input.trim();
-        if (!trimmed) return 'Agent ID cannot be empty';
-        if (!/^[a-zA-Z0-9-_]+$/.test(trimmed)) return 'ID can only contain letters, numbers, hyphens, and underscores';
-        if (builtinIds.includes(trimmed)) return 'Cannot use built-in Agent ID';
-        if (ctx.storage.getAgent(trimmed)) return 'Agent ID already exists';
-        return true;
-      },
+  const agentId = await input({
+    message: 'Agent ID (e.g., my-agent):',
+    default: idArg,
+    validate: (value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) return 'Agent ID cannot be empty';
+      if (!/^[a-zA-Z0-9-_]+$/.test(trimmed)) return 'ID can only contain letters, numbers, hyphens, and underscores';
+      if (builtinIds.includes(trimmed)) return 'Cannot use built-in Agent ID';
+      if (ctx.storage.getAgent(trimmed)) return 'Agent ID already exists';
+      return true;
     },
-    {
-      type: 'input',
-      name: 'name',
-      message: 'Display name:',
-      validate: (input: string) => input.trim() ? true : 'Name cannot be empty',
-    },
-    {
-      type: 'input',
-      name: 'basePath',
-      message: 'Skills storage path (e.g., ~/.myagent/skills):',
-      validate: (input: string) => {
-        if (!input.trim()) return 'Path cannot be empty';
-        return true;
-      },
-    },
-    {
-      type: 'input',
-      name: 'skillsDirName',
-      message: 'Skills directory name in projects (optional, leave empty to use ID):',
-    },
-  ]);
+  });
 
-  const basePath = answers.basePath.replace(/^~/, os.homedir());
+  const name = await input({
+    message: 'Display name:',
+    validate: (value: string) => value.trim() ? true : 'Name cannot be empty',
+  });
 
-  if (!fs.existsSync(basePath)) {
-    const { create } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'create',
+  const basePathInput = await input({
+    message: 'Skills storage path (e.g., ~/.myagent/skills):',
+    validate: (value: string) => {
+      if (!value.trim()) return 'Path cannot be empty';
+      return true;
+    },
+  });
+
+  const skillsDirName = await input({
+    message: 'Skills directory name in projects (optional, leave empty to use ID):',
+  });
+
+  const basePath = basePathInput.replace(/^~/, os.homedir());
+
+  if (!ctx.fileOps.pathExists(basePath)) {
+    const shouldCreate = await confirm({
       message: `Path "${basePath}" does not exist, create it?`,
       default: true,
-    }]);
+    });
 
-    if (create) {
-      await fs.ensureDir(basePath);
+    if (shouldCreate) {
+      await ctx.fileOps.ensureDir(basePath);
     }
   }
 
   ctx.storage.addAgent(
-    answers.id.trim(),
-    answers.name.trim(),
+    agentId.trim(),
+    name.trim(),
     basePath,
-    answers.skillsDirName?.trim() || undefined
+    skillsDirName?.trim() || undefined
   );
 
-  console.log(chalk.green(`\nAgent added: ${answers.id} (${answers.name})`));
+  console.log(chalk.green(`\nAgent added: ${agentId} (${name})`));
   console.log(chalk.dim(`  Path: ${basePath}`));
 }
 
 async function addProject(ctx: CommandContext, idArg?: string, pathArg?: string): Promise<void> {
   console.log(chalk.cyan('\nAdd Project\n'));
 
-  const questions: any[] = [];
+  let finalId = idArg;
+  let finalPath = pathArg;
 
-  if (!idArg) {
-    questions.push({
-      type: 'input',
-      name: 'id',
+  if (!finalId) {
+    finalId = await input({
       message: 'Project ID (alias, e.g., my-project):',
-      validate: (input: string) => {
-        const trimmed = input.trim();
+      validate: (value: string) => {
+        const trimmed = value.trim();
         if (!trimmed) return 'Project ID cannot be empty';
         if (!/^[a-zA-Z0-9-_]+$/.test(trimmed)) return 'ID can only contain letters, numbers, hyphens, and underscores';
         if (ctx.storage.getProject(trimmed)) return 'Project ID already exists';
@@ -247,31 +230,23 @@ async function addProject(ctx: CommandContext, idArg?: string, pathArg?: string)
     });
   }
 
-  if (!pathArg) {
-    questions.push({
-      type: 'input',
-      name: 'path',
+  if (!finalPath) {
+    finalPath = await input({
       message: 'Project path:',
-      validate: (input: string) => {
-        if (!input.trim()) return 'Path cannot be empty';
-        const expanded = input.replace(/^~/, os.homedir());
-        if (!fs.existsSync(expanded)) return 'Path does not exist';
+      validate: (value: string) => {
+        if (!value.trim()) return 'Path cannot be empty';
+        const expanded = value.replace(/^~/, os.homedir());
+        if (!ctx.fileOps.pathExists(expanded)) return 'Path does not exist';
         return true;
       },
     });
   }
 
-  let answers: { id?: string; path?: string } = {};
-  if (questions.length > 0) {
-    answers = await inquirer.prompt(questions);
-  }
+  const expandedPath = finalPath.replace(/^~/, os.homedir());
 
-  const finalId = idArg || answers.id!;
-  const finalPath = (pathArg || answers.path!).replace(/^~/, os.homedir());
-
-  ctx.storage.addProject(finalId.trim(), finalPath);
+  ctx.storage.addProject(finalId.trim(), expandedPath);
 
   console.log(chalk.green(`\nProject added: ${finalId}`));
-  console.log(chalk.dim(`  Path: ${finalPath}`));
+  console.log(chalk.dim(`  Path: ${expandedPath}`));
   console.log(chalk.dim(`\nTip: Run "af import projects ${finalId}" to import skills from the project`));
 }

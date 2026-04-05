@@ -5,9 +5,7 @@
  */
 
 import chalk from 'chalk';
-import inquirer from 'inquirer';
-import ora from 'ora';
-import fs from 'fs-extra';
+import { checkbox, select } from '@inquirer/prompts';
 import type { Command } from 'commander';
 import type { CommandContext } from './index.js';
 import type { SyncMode, AgentId } from '../types.js';
@@ -15,8 +13,11 @@ import type { SyncMode, AgentId } from '../types.js';
 /**
  * Filter Agents that have existing directories
  */
-function filterExistingAgents(agents: Array<{ id: string; name: string; basePath: string }>): Array<{ id: string; name: string; basePath: string }> {
-  return agents.filter(agent => fs.existsSync(agent.basePath));
+function filterExistingAgents(
+  agents: Array<{ id: string; name: string; basePath: string }>,
+  fileOps: CommandContext['fileOps']
+): Array<{ id: string; name: string; basePath: string }> {
+  return agents.filter(agent => fileOps.pathExists(agent.basePath));
 }
 
 function validateExistingAgentTypes(ctx: CommandContext, agentTypes: AgentId[]): void {
@@ -64,13 +65,10 @@ async function syncToAgents(ctx: CommandContext, name: string, agentIds: string[
       console.log(chalk.yellow('No skills available'));
       return;
     }
-    const { selected } = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'selected',
+    skillNames = await checkbox({
       message: 'Select skills to sync:',
       choices: skills.map(s => ({ name: s.name, value: s.name })),
-    }]);
-    skillNames = selected;
+    });
   } else {
     skillNames = [name];
   }
@@ -91,15 +89,13 @@ async function syncToAgents(ctx: CommandContext, name: string, agentIds: string[
   // Interactive Agent selection
   if (agentIds.length === 0 && process.stdin.isTTY) {
     const agents = ctx.storage.listAgents();
-    const { selected } = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'selected',
+    const selected = await checkbox({
       message: 'Select Agents to sync to:',
       choices: agents.map((a: { id: string; name: string }) => ({
         name: `${a.name} (${a.id})`,
         value: a.id,
       })),
-    }]);
+    });
     agentIds = selected;
   }
 
@@ -117,40 +113,35 @@ async function syncToAgents(ctx: CommandContext, name: string, agentIds: string[
     }
     mode = options.mode;
   } else if (process.stdin.isTTY) {
-    const { selectedMode } = await inquirer.prompt([{
-      type: 'list',
-      name: 'selectedMode',
+    mode = await select({
       message: 'Select sync mode:',
       choices: [
         { name: 'Copy - Independent copy, stable and reliable', value: 'copy' },
         { name: 'Symlink - Link to source, updates automatically', value: 'symlink' },
       ],
-      default: 'copy',
-    }]);
-    mode = selectedMode;
+    }) as SyncMode;
   }
 
   const agents = ctx.storage.listAgents().filter(a => agentIds.includes(a.id));
 
   for (const skillName of skillNames) {
     console.log(chalk.bold(`\nSyncing ${skillName}:`));
-    const spinner = ora(`Syncing (${mode})...`).start();
+    console.log(chalk.dim(`Mode: ${mode}`));
 
     try {
       const results = await ctx.sync.sync(skillName, agents, mode);
-      spinner.stop();
 
       for (const r of results) {
         if (r.success) {
-          const modeIcon = r.mode === 'symlink' ? '🔗' : '📦';
+          const modeIcon = r.mode === 'symlink' ? '\uD83D\uDD17' : '\uD83D\uDCE6';
           const modeText = r.mode === 'symlink' ? '(symlink)' : '(copy)';
-          console.log(chalk.green(`  ✓ ${r.target}: ${r.path} ${modeIcon} ${modeText}`));
+          console.log(chalk.green(`  \u2713 ${r.target}: ${r.path} ${modeIcon} ${modeText}`));
         } else {
-          console.log(chalk.red(`  ✗ ${r.target}: Failed - ${r.error}`));
+          console.log(chalk.red(`  \u2717 ${r.target}: Failed - ${r.error}`));
         }
       }
-    } catch (e: any) {
-      spinner.fail(e.message);
+    } catch (e: unknown) {
+      console.log(chalk.red(`Sync failed: ${e instanceof Error ? e.message : String(e)}`));
       process.exit(1);
     }
   }
@@ -169,13 +160,10 @@ async function syncToProjects(ctx: CommandContext, name: string, projectIds: str
       console.log(chalk.yellow('No skills available'));
       return;
     }
-    const { selected } = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'selected',
+    skillNames = await checkbox({
       message: 'Select skills to sync:',
       choices: skills.map(s => ({ name: s.name, value: s.name })),
-    }]);
-    skillNames = selected;
+    });
   } else {
     skillNames = [name];
   }
@@ -197,15 +185,13 @@ async function syncToProjects(ctx: CommandContext, name: string, projectIds: str
 
   // Interactive project selection
   if (projectIds.length === 0 && process.stdin.isTTY) {
-    const { selected } = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'selected',
+    const selected = await checkbox({
       message: 'Select projects to sync to:',
       choices: projects.map(p => ({
         name: `${p.id} (${p.path})`,
         value: p.id,
       })),
-    }]);
+    });
     projectIds = selected;
   }
 
@@ -223,17 +209,13 @@ async function syncToProjects(ctx: CommandContext, name: string, projectIds: str
     }
     mode = options.mode as SyncMode;
   } else if (process.stdin.isTTY) {
-    const { selectedMode } = await inquirer.prompt([{
-      type: 'list',
-      name: 'selectedMode',
+    mode = await select({
       message: 'Select sync mode:',
       choices: [
         { name: 'Copy - Independent copy, stable and reliable', value: 'copy' },
         { name: 'Symlink - Link to source, updates automatically', value: 'symlink' },
       ],
-      default: 'copy',
-    }]);
-    mode = selectedMode;
+    }) as SyncMode;
   }
 
   // Agent types
@@ -242,57 +224,47 @@ async function syncToProjects(ctx: CommandContext, name: string, projectIds: str
     agentTypes = options.agentTypes as AgentId[];
     validateExistingAgentTypes(ctx, agentTypes);
   } else if (process.stdin.isTTY) {
-    const allAgents = filterExistingAgents(ctx.storage.listAgents());
+    const allAgents = filterExistingAgents(ctx.storage.listAgents(), ctx.fileOps);
     if (allAgents.length === 0) {
       console.log(chalk.yellow('No Agents available (directories do not exist)'));
       return;
     }
-    const { selectedTypes } = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'selectedTypes',
+    const selectedTypes = await checkbox({
       message: 'Select Agent types to sync (leave empty to auto-detect existing project structure):',
       choices: allAgents.map(a => ({
         name: `${a.name} (${a.id})`,
         value: a.id,
       })),
-    }]);
+    });
     agentTypes = selectedTypes.length > 0 ? selectedTypes : undefined;
   }
 
   for (const skillName of skillNames) {
     console.log(chalk.bold(`\nSyncing ${skillName}:`));
-    const spinner = ora('Syncing...').start();
 
-    try {
-      const results: Array<{ projectId: string; results: any[] }> = [];
+    const results: Array<{ projectId: string; results: unknown[] }> = [];
 
-      for (const projectId of projectIds) {
-        try {
-          const projectResults = await ctx.projectSync.syncToProject(skillName, projectId, agentTypes, mode);
-          results.push({ projectId, results: projectResults });
-        } catch (e: any) {
-          spinner.fail(e.message);
-          process.exit(1);
+    for (const projectId of projectIds) {
+      try {
+        const projectResults = await ctx.projectSync.syncToProject(skillName, projectId, agentTypes, mode);
+        results.push({ projectId, results: projectResults });
+      } catch (e: unknown) {
+        console.log(chalk.red(`  Failed for project ${projectId}: ${e instanceof Error ? e.message : String(e)}`));
+        process.exit(1);
+      }
+    }
+
+    for (const { projectId, results: projectResults } of results) {
+      console.log(chalk.bold(`  Project ${projectId}:`));
+      for (const r of projectResults as Array<{ success: boolean; target: string; path: string; mode: string; error?: string }>) {
+        if (r.success) {
+          const icon = r.mode === 'symlink' ? '\uD83D\uDD17' : '\uD83D\uDCE6';
+          const agentType = r.target.split(':')[1];
+          console.log(chalk.green(`    \u2713 ${agentType}: ${r.path} ${icon}`));
+        } else {
+          console.log(chalk.red(`    \u2717 ${r.target}: Failed - ${r.error}`));
         }
       }
-
-      spinner.stop();
-
-      for (const { projectId, results: projectResults } of results) {
-        console.log(chalk.bold(`  Project ${projectId}:`));
-        for (const r of projectResults) {
-          if (r.success) {
-            const icon = r.mode === 'symlink' ? '🔗' : '📦';
-            const agentType = r.target.split(':')[1];
-            console.log(chalk.green(`    ✓ ${agentType}: ${r.path} ${icon}`));
-          } else {
-            console.log(chalk.red(`    ✗ ${r.target}: Failed - ${r.error}`));
-          }
-        }
-      }
-    } catch (e: any) {
-      spinner.fail(e.message);
-      process.exit(1);
     }
   }
 }
