@@ -5,12 +5,7 @@
  * Returns an empty array when no overlay/form/step is active (zero height cost).
  */
 
-import type {
-  TabId,
-  SyncFormStep,
-  ImportFormTabStep,
-  FormType,
-} from '../store/uiSlice.js';
+import type { TabId, SyncFormStep, ImportFormTabStep, FormType } from '../store/uiSlice.js';
 
 export interface BreadcrumbState {
   activeTab: TabId;
@@ -47,18 +42,18 @@ const SYNC_STEP_LABELS: Record<SyncFormStep, string> = {
   'select-targets': 'Select Targets',
   'select-agent-types': 'Select Agent Types',
   'select-mode': 'Select Mode',
-  'confirm': 'Confirm',
-  'executing': 'Executing',
-  'results': 'Results',
+  confirm: 'Confirm',
+  executing: 'Executing',
+  results: 'Results',
 };
 
 const IMPORT_STEP_LABELS: Record<ImportFormTabStep, string> = {
   'select-source-type': '',
   'select-source': 'Select Source',
   'select-skills': 'Select Skills',
-  'confirm': 'Confirm',
-  'executing': 'Executing',
-  'results': 'Results',
+  confirm: 'Confirm',
+  executing: 'Executing',
+  results: 'Results',
 };
 
 export function deriveBreadcrumbs(state: BreadcrumbState): string[] {

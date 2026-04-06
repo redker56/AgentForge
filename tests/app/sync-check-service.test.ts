@@ -3,6 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { SyncCheckService } from '../../src/app/sync-check-service.js';
 import type { SkillMeta, SyncRecord } from '../../src/types.js';
 
@@ -29,7 +30,7 @@ describe('SyncCheckService', () => {
       skill.syncedTo = [...records];
     });
     const storage = {
-      getSkill: (name: string) => name === skill.name ? skill : undefined,
+      getSkill: (name: string) => (name === skill.name ? skill : undefined),
       getAgent: (agentId: string) => ({ id: agentId, name: agentId, basePath: '' }),
       updateSkillSync,
     };

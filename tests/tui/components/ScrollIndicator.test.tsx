@@ -3,9 +3,9 @@
  * Verifies rendering of "^ N more" / "v N more" scroll edge indicators.
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import React from 'react';
 import { render, cleanup } from 'ink-testing-library';
+import React from 'react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 describe('ScrollIndicator', () => {
   beforeEach(() => {

@@ -1,10 +1,21 @@
 /**
- * User-level Agent sync service
+ * @module App/AgentSyncService
+ * @layer app
+ * @allowed-imports infra/, types
+ * @responsibility User-level skill sync to agent directories (e.g. `~/.claude/skills/`).
+ *
+ * Extends BaseSyncService with Agent-specific target resolution and record persistence.
+ * Syncs skills from the AgentForge master store into each agent's top-level skills directory.
+ *
+ * @architecture Inherits the Template Method from BaseSyncService and specializes
+ * for the Agent domain (Agent objects as targets, SyncRecord as records).
  */
 
 import path from 'path';
+
+import type { Agent, SyncRecord } from '../../types.js';
+
 import { BaseSyncService, SyncResult } from './base-sync-service.js';
-import type { Agent, SyncRecord, SyncMode } from '../../types.js';
 
 export class AgentSyncService extends BaseSyncService<Agent, SyncRecord> {
   getAvailableTargets(): Agent[] {
@@ -36,12 +47,12 @@ export class AgentSyncService extends BaseSyncService<Agent, SyncRecord> {
   protected updateRecords(skillName: string, results: SyncResult[]): void {
     const existing = this.getSyncRecords(skillName);
     const newRecords: SyncRecord[] = results
-      .filter(r => r.success)
-      .map(r => ({ agentId: r.target, mode: r.mode }));
+      .filter((r) => r.success)
+      .map((r) => ({ agentId: r.target, mode: r.mode }));
 
     const merged = new Map<string, SyncRecord>();
-    existing.forEach(r => merged.set(r.agentId, r));
-    newRecords.forEach(r => merged.set(r.agentId, r));
+    existing.forEach((r) => merged.set(r.agentId, r));
+    newRecords.forEach((r) => merged.set(r.agentId, r));
 
     this.saveSyncRecords(skillName, Array.from(merged.values()));
   }
@@ -66,7 +77,7 @@ export class AgentSyncService extends BaseSyncService<Agent, SyncRecord> {
   getSyncedAgents(skillName: string): Agent[] {
     const records = this.getSyncRecords(skillName);
     return records
-      .map(r => this.storage.getAgent(r.agentId))
+      .map((r) => this.storage.getAgent(r.agentId))
       .filter((a): a is Agent => a !== undefined);
   }
 }

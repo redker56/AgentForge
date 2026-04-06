@@ -4,10 +4,12 @@
  * Simplified version: test core logic without singleton dependency
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import fs from 'fs-extra';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
+import fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import { SkillService } from '../../src/app/skill-service.js';
 import { git } from '../../src/infra/git.js';
 
@@ -63,12 +65,14 @@ describe('SkillService core functionality', () => {
 
   describe('repository discovery', () => {
     it('should discover a root-level skill repository', async () => {
-      const cloneSpy = vi.spyOn(git, 'clone').mockImplementation(async (_repoUrl: string, dest: string) => {
-        await fs.ensureDir(dest);
-        await fs.writeFile(path.join(dest, 'SKILL.md'), '# deep-recon');
-        await fs.ensureDir(path.join(dest, 'agents'));
-        await fs.writeFile(path.join(dest, 'agents', 'explorer.md'), 'agent');
-      });
+      const cloneSpy = vi
+        .spyOn(git, 'clone')
+        .mockImplementation(async (_repoUrl: string, dest: string) => {
+          await fs.ensureDir(dest);
+          await fs.writeFile(path.join(dest, 'SKILL.md'), '# deep-recon');
+          await fs.ensureDir(path.join(dest, 'agents'));
+          await fs.writeFile(path.join(dest, 'agents', 'explorer.md'), 'agent');
+        });
 
       try {
         const storage = {
@@ -76,19 +80,24 @@ describe('SkillService core functionality', () => {
         } as never;
         const service = new SkillService(storage);
 
-        await expect(service.discoverSkillsInRepo('https://github.com/kvarnelis/deep-recon'))
-          .resolves
-          .toEqual([{ name: 'deep-recon', subPath: '' }]);
+        await expect(
+          service.discoverSkillsInRepo('https://github.com/kvarnelis/deep-recon')
+        ).resolves.toEqual([{ name: 'deep-recon', subPath: '' }]);
       } finally {
         cloneSpy.mockRestore();
       }
     });
 
     it('uses the final path segment as the skill name for tree subdirectories', async () => {
-      const cloneSpy = vi.spyOn(git, 'clone').mockImplementation(async (_repoUrl: string, dest: string) => {
-        await fs.ensureDir(path.join(dest, 'skills', 'glmv-stock-analyst'));
-        await fs.writeFile(path.join(dest, 'skills', 'glmv-stock-analyst', 'SKILL.md'), '# GLMV Stock Analyst');
-      });
+      const cloneSpy = vi
+        .spyOn(git, 'clone')
+        .mockImplementation(async (_repoUrl: string, dest: string) => {
+          await fs.ensureDir(path.join(dest, 'skills', 'glmv-stock-analyst'));
+          await fs.writeFile(
+            path.join(dest, 'skills', 'glmv-stock-analyst', 'SKILL.md'),
+            '# GLMV Stock Analyst'
+          );
+        });
 
       try {
         const storage = {
@@ -102,8 +111,8 @@ describe('SkillService core functionality', () => {
           service.install(
             'https://github.com/zai-org/GLM-skills',
             undefined,
-            'skills/glmv-stock-analyst',
-          ),
+            'skills/glmv-stock-analyst'
+          )
         ).resolves.toBe('glmv-stock-analyst');
       } finally {
         cloneSpy.mockRestore();

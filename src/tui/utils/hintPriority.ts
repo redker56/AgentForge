@@ -77,14 +77,14 @@ export function rankAndTruncateHints(
   // Build global hints
   const selectedGlobal: HintSpec[] = [];
   if (includeSearch) {
-    const searchHint = GLOBAL_CONTEXT_HINTS.find(h => h.key === '/');
+    const searchHint = GLOBAL_CONTEXT_HINTS.find((h) => h.key === '/');
     if (searchHint) selectedGlobal.push(searchHint);
   }
   if (includeHelp) {
-    const helpHint = GLOBAL_CONTEXT_HINTS.find(h => h.key === '?');
+    const helpHint = GLOBAL_CONTEXT_HINTS.find((h) => h.key === '?');
     if (helpHint) selectedGlobal.push(helpHint);
   }
-  const quitHint = GLOBAL_CONTEXT_HINTS.find(h => h.key === 'q');
+  const quitHint = GLOBAL_CONTEXT_HINTS.find((h) => h.key === 'q');
   if (quitHint) selectedGlobal.push(quitHint);
 
   // Combine: context hints first, then global hints
@@ -111,7 +111,7 @@ export function rankAndTruncateHints(
   }
 
   // Convert to segments with colors
-  const segments: HintSegment[] = finalHints.map(hint => ({
+  const segments: HintSegment[] = finalHints.map((hint) => ({
     key: hint.key,
     label: hint.label,
     color: defaultSegmentColor(hint),

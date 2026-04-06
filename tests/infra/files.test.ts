@@ -2,10 +2,12 @@
  * File operations tests
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import fs from 'fs-extra';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
+import fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { files } from '../../src/infra/files.js';
 
 describe('files', () => {

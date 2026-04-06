@@ -2,13 +2,14 @@
  * Agents tab content -- wraps AgentTable with padding and detail loading.
  */
 
-import React, { useEffect } from 'react';
 import { Box } from 'ink';
+import React, { useEffect } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
-import type { AppStore } from '../store/index.js';
+
 import { AgentTable } from '../components/AgentTable.js';
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
+import type { AppStore } from '../store/index.js';
 
 interface AgentsScreenProps {
   store: StoreApi<AppStore>;
@@ -30,7 +31,7 @@ export function AgentsScreen({ store, band, columns }: AgentsScreenProps): React
     if (focusedAgent) {
       const detail = store.getState().agentDetails[focusedAgent.id];
       if (!detail) {
-        store.getState().loadAgentDetail(focusedAgent.id);
+        void store.getState().loadAgentDetail(focusedAgent.id);
       }
     }
   }, [focusedAgentIndex, agents, store]);

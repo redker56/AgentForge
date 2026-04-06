@@ -4,6 +4,7 @@
 
 import chalk from 'chalk';
 import type { Command } from 'commander';
+
 import type { CommandContext } from './index.js';
 
 export function register(program: Command, ctx: CommandContext): void {
@@ -27,7 +28,7 @@ export function register(program: Command, ctx: CommandContext): void {
         await ctx.sync.resync(name);
         console.log(chalk.green(`Updated ${name}`));
       } else {
-        const list = ctx.skills.list().filter(s => s.source.type === 'git');
+        const list = ctx.skills.list().filter((s) => s.source.type === 'git');
 
         if (list.length === 0) {
           console.log(chalk.dim('No skills from Git sources'));

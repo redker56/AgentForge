@@ -1,10 +1,20 @@
 /**
- * Git Operations
+ * @module Infra/Git
+ * @layer infra
+ * @allowed-imports types
+ * @responsibility Git operations wrapper — clone, pull, repo detection, and URL parsing.
+ *
+ * Thin wrapper around the `git` CLI via `execa`. All operations delegate to
+ * external git commands and return structured results.
+ *
+ * @architecture Infrastructure layer — must only import from `types.ts` (currently
+ * imports none, which is the correct pattern for pure infra modules).
  */
+
+import path from 'path';
 
 import { execa } from 'execa';
 import fs from 'fs-extra';
-import path from 'path';
 
 export const git = {
   async clone(url: string, dest: string): Promise<void> {
@@ -24,7 +34,7 @@ export const git = {
 
   parseRepoName(url: string): string {
     const parts = url.split('/');
-    let name = parts[parts.length - 1] || parts[parts.length - 2];
+    const name = parts[parts.length - 1] || parts[parts.length - 2];
     return name?.replace(/\.git$/, '') || 'unknown';
   },
 };

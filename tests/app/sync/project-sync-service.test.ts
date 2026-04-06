@@ -2,10 +2,12 @@
  * ProjectSyncService Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import fs from 'fs-extra';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
+import fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import { ProjectSyncService } from '../../../src/app/sync/project-sync-service.js';
 import type { Agent, ProjectSyncRecord, SkillMeta } from '../../../src/types.js';
 
@@ -23,11 +25,24 @@ interface StorageMock {
   updateSkillProjectSync: ReturnType<typeof vi.fn>;
 }
 
-function createStorageMock(projectPath: string, syncedProjects: ProjectSyncRecord[] = []): StorageMock {
+function createStorageMock(
+  projectPath: string,
+  syncedProjects: ProjectSyncRecord[] = []
+): StorageMock {
   const project = { id: PROJECT_ID, path: projectPath, addedAt: new Date().toISOString() };
   const agents: Agent[] = [
-    { id: 'claude', name: 'Claude Code', basePath: path.join(TEST_DIR, '.claude', 'skills'), skillsDirName: 'claude' },
-    { id: 'codex', name: 'Codex', basePath: path.join(TEST_DIR, '.codex', 'skills'), skillsDirName: 'agents' },
+    {
+      id: 'claude',
+      name: 'Claude Code',
+      basePath: path.join(TEST_DIR, '.claude', 'skills'),
+      skillsDirName: 'claude',
+    },
+    {
+      id: 'codex',
+      name: 'Codex',
+      basePath: path.join(TEST_DIR, '.codex', 'skills'),
+      skillsDirName: 'agents',
+    },
   ];
   const skillMeta: SkillMeta = {
     name: SKILL_NAME,
@@ -38,9 +53,9 @@ function createStorageMock(projectPath: string, syncedProjects: ProjectSyncRecor
   };
 
   return {
-    getSkill: (name: string) => name === SKILL_NAME ? skillMeta : undefined,
+    getSkill: (name: string) => (name === SKILL_NAME ? skillMeta : undefined),
     getSkillPath: (name: string) => path.join(TEST_DIR, '.agentforge', 'skills', name),
-    getProject: (id: string) => id === PROJECT_ID ? project : undefined,
+    getProject: (id: string) => (id === PROJECT_ID ? project : undefined),
     listAgents: () => agents,
     listAllDefinedAgents: () => agents,
     listProjects: () => [project],
@@ -60,7 +75,10 @@ describe('ProjectSyncService', () => {
     projectPath = path.join(TEST_DIR, PROJECT_ID);
     await fs.ensureDir(projectPath);
     await fs.ensureDir(path.join(TEST_DIR, '.agentforge', 'skills', SKILL_NAME));
-    await fs.writeFile(path.join(TEST_DIR, '.agentforge', 'skills', SKILL_NAME, 'SKILL.md'), '# Demo Skill');
+    await fs.writeFile(
+      path.join(TEST_DIR, '.agentforge', 'skills', SKILL_NAME, 'SKILL.md'),
+      '# Demo Skill'
+    );
   });
 
   afterEach(async () => {
@@ -94,8 +112,12 @@ describe('ProjectSyncService', () => {
 
     await service.syncToProject(SKILL_NAME, PROJECT_ID, ['codex']);
 
-    expect(await fs.pathExists(path.join(projectPath, '.agents', 'skills', SKILL_NAME, 'SKILL.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(projectPath, '.claude', 'skills', SKILL_NAME))).toBe(false);
+    expect(
+      await fs.pathExists(path.join(projectPath, '.agents', 'skills', SKILL_NAME, 'SKILL.md'))
+    ).toBe(true);
+    expect(await fs.pathExists(path.join(projectPath, '.claude', 'skills', SKILL_NAME))).toBe(
+      false
+    );
   });
 
   it('removes detected on-disk project syncs even when no registry record exists', async () => {

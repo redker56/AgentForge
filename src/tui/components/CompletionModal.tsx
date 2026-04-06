@@ -2,10 +2,11 @@
  * Completion setup modal -- prompts user to run shell completion setup
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
+
 import type { AppStore } from '../store/index.js';
 
 interface CompletionModalProps {

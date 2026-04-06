@@ -5,13 +5,15 @@
  * Navigation is via local useInput (isActive gated to sync tab + no overlays).
  */
 
-import React from 'react';
 import { Box, Text, useInput } from 'ink';
+import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
+
+import type { SyncMode } from '../../types.js';
 import type { AppStore } from '../store/index.js';
 import type { SyncOperation } from '../store/uiSlice.js';
-import type { SyncMode } from '../../types.js';
+
 import { ProgressBar } from './ProgressBar.js';
 import { StepIndicator } from './StepIndicator.js';
 

@@ -2,10 +2,12 @@
  * completion command - Generate shell auto-completion scripts
  */
 
-import chalk from 'chalk';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
+import chalk from 'chalk';
 import type { Command } from 'commander';
+
 import type { CommandContext } from './index.js';
 
 export function register(program: Command, ctx: CommandContext): void {
@@ -18,14 +20,16 @@ export function register(program: Command, ctx: CommandContext): void {
       '\nExamples:\n' +
         '  af completion --install\n' +
         '  af completion powershell --install\n' +
-        '  af completion bash\n',
+        '  af completion bash\n'
     )
     .action((shell?: string, options?: { install?: boolean }) => {
       // Auto-detect current shell by default
       const targetShell = shell || detectShell();
 
       if (!targetShell) {
-        console.error(chalk.red('Cannot detect current shell, please specify: bash, zsh, fish or powershell'));
+        console.error(
+          chalk.red('Cannot detect current shell, please specify: bash, zsh, fish or powershell')
+        );
         console.log(chalk.dim('\nUsage: af completion <shell>'));
         console.log(chalk.dim('Supported shells: bash, zsh, fish, powershell'));
         process.exit(1);
@@ -62,11 +66,12 @@ function getShellConfigPath(shell: string): string | null {
       return path.join(home, '.zshrc');
     case 'fish':
       return path.join(home, '.config', 'fish', 'completions', 'af.fish');
-    case 'powershell':
+    case 'powershell': {
       // Try to get PowerShell profile path
       const psProfile = process.env.PROFILE;
       if (psProfile) return psProfile;
       return path.join(home, 'Documents', 'WindowsPowerShell', 'Microsoft.PowerShell_profile.ps1');
+    }
     default:
       return null;
   }
@@ -82,8 +87,8 @@ function buildCompletionBlock(script: string, startMarker: string, endMarker: st
 
 function joinCompletionSections(...sections: string[]): string {
   const normalized = sections
-    .map(section => section.trim())
-    .filter(section => section.length > 0);
+    .map((section) => section.trim())
+    .filter((section) => section.length > 0);
 
   if (normalized.length === 0) {
     return '';
@@ -98,7 +103,10 @@ function findLineEnd(content: string, startIndex: number): number {
 }
 
 function findLegacyPowerShellBlockEnd(content: string, startIndex: number): number {
-  const scriptStart = content.indexOf('Register-ArgumentCompleter -Native -CommandName af -ScriptBlock', startIndex);
+  const scriptStart = content.indexOf(
+    'Register-ArgumentCompleter -Native -CommandName af -ScriptBlock',
+    startIndex
+  );
   if (scriptStart === -1) {
     return content.length;
   }
@@ -159,9 +167,10 @@ function upsertCompletionBlock(
   }
 
   const endMarkerIndex = content.indexOf(endMarker, startIndex);
-  const endIndex = endMarkerIndex === -1
-    ? findLegacyBlockEnd(content, shell, startIndex)
-    : endMarkerIndex + endMarker.length;
+  const endIndex =
+    endMarkerIndex === -1
+      ? findLegacyBlockEnd(content, shell, startIndex)
+      : endMarkerIndex + endMarker.length;
   const before = content.slice(0, startIndex);
   const after = trimLeadingBlankLines(content.slice(endIndex));
 
@@ -207,7 +216,9 @@ function installCompletion(shell: string, script: string, ctx: CommandContext): 
 
       const result = upsertCompletionBlock(content, completionBlock, shell, startMarker, endMarker);
       ctx.fileOps.writeFileSync(configPath, result.content);
-      console.log(chalk.green(`\n✓ Completion ${result.replaced ? 'updated' : 'installed'} to: ${configPath}`));
+      console.log(
+        chalk.green(`\n✓ Completion ${result.replaced ? 'updated' : 'installed'} to: ${configPath}`)
+      );
       console.log(chalk.dim('\nRestart PowerShell or run: . $PROFILE'));
     } else {
       // Bash / Zsh
@@ -219,7 +230,9 @@ function installCompletion(shell: string, script: string, ctx: CommandContext): 
 
       const result = upsertCompletionBlock(content, completionBlock, shell, startMarker, endMarker);
       ctx.fileOps.writeFileSync(configPath, result.content);
-      console.log(chalk.green(`\n✓ Completion ${result.replaced ? 'updated' : 'installed'} to: ${configPath}`));
+      console.log(
+        chalk.green(`\n✓ Completion ${result.replaced ? 'updated' : 'installed'} to: ${configPath}`)
+      );
       console.log(chalk.dim(`\nRestart terminal or run: source ${configPath}`));
     }
   } catch (err) {
@@ -608,11 +621,11 @@ complete -c af -n '__fish_seen_subcommand_from sync; and __fish_seen_subcommand_
 
 # unsync agents - synced skills, then synced Agents
 complete -c af -n '__fish_seen_subcommand_from unsync; and __fish_seen_subcommand_from agents; and test (count (commandline -opc)) -eq 3' -a '(af __complete synced-skills 2>/dev/null)'
-complete -c af -n '__fish_seen_subcommand_from unsync; and __fish_seen_subcommand_from agents; and test (count (commandline -opc)) -ge 4' -a '(af __complete "synced-agents:(commandline -opc | string split \' \' | select 3)" 2>/dev/null)'
+complete -c af -n '__fish_seen_subcommand_from unsync; and __fish_seen_subcommand_from agents; and test (count (commandline -opc)) -ge 4' -a '(af __complete "synced-agents:(commandline -opc | string split ' ' | select 3)" 2>/dev/null)'
 
 # unsync projects - skills synced to projects, then synced projects
 complete -c af -n '__fish_seen_subcommand_from unsync; and __fish_seen_subcommand_from projects; and test (count (commandline -opc)) -eq 3' -a '(af __complete synced-projects-skills 2>/dev/null)'
-complete -c af -n '__fish_seen_subcommand_from unsync; and __fish_seen_subcommand_from projects; and test (count (commandline -opc)) -ge 4' -a '(af __complete "synced-projects:(commandline -opc | string split \' \' | select 3)" 2>/dev/null)'
+complete -c af -n '__fish_seen_subcommand_from unsync; and __fish_seen_subcommand_from projects; and test (count (commandline -opc)) -ge 4' -a '(af __complete "synced-projects:(commandline -opc | string split ' ' | select 3)" 2>/dev/null)'
 
 # update
 complete -c af -n '__fish_seen_subcommand_from update' -a '(af __complete skills 2>/dev/null)'
@@ -822,4 +835,3 @@ Register-ArgumentCompleter -Native -CommandName af -ScriptBlock {
 }
 `;
 }
-

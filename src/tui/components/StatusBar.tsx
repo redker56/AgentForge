@@ -3,14 +3,15 @@
  * Modern Claude Code aesthetic with subtle visual hierarchy.
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
-import type { AppStore, TabId } from '../store/index.js';
+
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
-import { rankAndTruncateHints, type HintSpec } from '../utils/hintPriority.js';
+import type { AppStore, TabId } from '../store/index.js';
 import { inkColors } from '../theme.js';
+import { rankAndTruncateHints, type HintSpec } from '../utils/hintPriority.js';
 
 interface StatusBarProps {
   store: StoreApi<AppStore>;

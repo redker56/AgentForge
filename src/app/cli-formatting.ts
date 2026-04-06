@@ -1,10 +1,15 @@
 /**
- * CLI mode formatting utilities (extracted from deleted formatters/)
+ * CLI mode formatting utilities
+ *
+ * Pure functions that turn domain data into `chalk`-styled strings suitable
+ * for `console.log` output. These are used exclusively by the command layer.
  */
 
 import chalk from 'chalk';
+
 import type { SkillSource, Agent } from '../types.js';
 import { BUILTIN_AGENTS } from '../types.js';
+
 import type { ProjectSkillStatus } from './scan-service.js';
 
 export interface AgentProjectSkillGroup {
@@ -40,7 +45,7 @@ export function formatAgentList(agents: Agent[]): string {
     const bPriority = priorityOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER;
     return aPriority - bPriority;
   });
-  return sorted.map(a => a.name).join(', ');
+  return sorted.map((a) => a.name).join(', ');
 }
 
 function getSkillStatus(skill: ProjectSkillStatus): { icon: string; text: string } {

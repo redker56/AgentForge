@@ -1,11 +1,21 @@
 /**
- * Scan service - Scan and import skills from projects
+ * @module App/ScanService
+ * @layer app
+ * @allowed-imports infra/, types
+ * @responsibility Project scanning and skill import — discovers skills in project directories.
+ *
+ * Discovers skills inside project directories by walking Agent-specific
+ * skill directories (e.g. `.claude/skills/`, `.agents/skills/`). Also
+ * computes version status by comparing directory hashes against the
+ * AgentForge master copy.
  */
 
 import path from 'path';
+
 import fs from 'fs-extra';
-import { Storage } from '../infra/storage.js';
+
 import { files } from '../infra/files.js';
+import { Storage } from '../infra/storage.js';
 import {
   getAgentProjectSkillsDir,
   getAgentProjectSkillsRelativePath,
@@ -58,17 +68,19 @@ export interface ProjectSkillStatus {
 export class ScanService {
   constructor(private readonly storage: Storage) {}
 
-  /**
-   * Get all Agents that can participate in project-level scanning.
-   */
+  /** Return built-in and custom agents that are relevant for project-level scanning. */
   private getProjectAwareAgents(): Agent[] {
     return this.storage.listAgents();
   }
 
   /**
-   * Scan skills in project path
-   * Dynamically scans all Agent skill directories
-   * Only keeps first discovered skill with the same name
+   * Scan a project directory for skills across all known agent types.
+   *
+   * Walks every agent's skill sub-directory inside the project and returns
+   * the first occurrence of each unique skill name.
+   *
+   * @param projectPath - Absolute path to the project root.
+   * @returns De-duplicated list of discovered skills.
    */
   scanProject(projectPath: string): DiscoveredSkill[] {
     const skills: DiscoveredSkill[] = [];
@@ -92,9 +104,7 @@ export class ScanService {
     return skills;
   }
 
-  /**
-   * Scan all skills in the specified directory
-   */
+  /** Recursively scan a directory for skill folders containing `SKILL.md`. */
   private scanDirectory(
     dir: string,
     agentId: string,
@@ -161,9 +171,7 @@ export class ScanService {
     await files.copy(skillPath, targetPath);
 
     // Save metadata
-    const source: SkillSource = projectId
-      ? { type: 'project', projectId }
-      : { type: 'local' };
+    const source: SkillSource = projectId ? { type: 'project', projectId } : { type: 'local' };
     this.storage.saveSkill(skillName, source);
 
     return skillName;
@@ -182,8 +190,12 @@ export class ScanService {
       try {
         await this.importSkill(skill.path, skill.name, projectId);
         results.push({ name: skill.name, success: true });
-      } catch (e: any) {
-        results.push({ name: skill.name, success: false, error: e.message });
+      } catch (e: unknown) {
+        results.push({
+          name: skill.name,
+          success: false,
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     }
 
@@ -212,7 +224,10 @@ export class ScanService {
       const projectMatches: Array<{ id: string; name: string; isDifferentVersion: boolean }> = [];
 
       for (const agent of projectAgents) {
-        const resolvedSkillPath = path.join(getAgentProjectSkillsDir(project.path, agent), skillName);
+        const resolvedSkillPath = path.join(
+          getAgentProjectSkillsDir(project.path, agent),
+          skillName
+        );
         if (this.isValidSkillDir(resolvedSkillPath)) {
           let isDifferent = false;
           if (hasImportedSkill && importedHash) {
@@ -240,7 +255,7 @@ export class ScanService {
         return false;
       }
       const files = fs.readdirSync(dirPath);
-      return files.some(f => f.toLowerCase() === 'skill.md');
+      return files.some((f) => f.toLowerCase() === 'skill.md');
     } catch {
       return false;
     }
@@ -259,7 +274,10 @@ export class ScanService {
       const projectMatches: Array<{ id: string; name: string }> = [];
 
       for (const agent of projectAgents) {
-        const resolvedSkillPath = path.join(getAgentProjectSkillsDir(project.path, agent), skillName);
+        const resolvedSkillPath = path.join(
+          getAgentProjectSkillsDir(project.path, agent),
+          skillName
+        );
         if (this.isValidSkillDir(resolvedSkillPath)) {
           projectMatches.push({ id: agent.id, name: agent.name });
         }
@@ -281,7 +299,7 @@ export class ScanService {
     if (!project) return [];
 
     const skills: ProjectSkillStatus[] = [];
-    const importedSkills = this.storage.listSkills().map(s => s.name);
+    const importedSkills = this.storage.listSkills().map((s) => s.name);
     const agents = this.getProjectAwareAgents();
 
     for (const agent of agents) {
@@ -312,11 +330,11 @@ export class ScanService {
    */
   async getAgentProjectSkills(agentId: string): Promise<ProjectSkillStatus[]> {
     const projects = this.storage.listProjects();
-    const agent = this.getProjectAwareAgents().find(candidate => candidate.id === agentId);
+    const agent = this.getProjectAwareAgents().find((candidate) => candidate.id === agentId);
     if (!agent) return [];
 
     const skills: ProjectSkillStatus[] = [];
-    const importedSkills = this.storage.listSkills().map(s => s.name);
+    const importedSkills = this.storage.listSkills().map((s) => s.name);
     const subPath = getAgentProjectSkillsRelativePath(agent);
 
     for (const project of projects) {

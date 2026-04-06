@@ -3,9 +3,10 @@
  * Verifies the key bindings in useInput.ts
  */
 
-import { describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+
+import { describe, expect, it } from 'vitest';
 
 describe('useInput global key handlers', () => {
   const useInputPath = path.join(
@@ -67,7 +68,7 @@ describe('useInput global key handlers', () => {
 
   // Sprint 2: search overlay manages its own input
   it('search overlay input is delegated to component', () => {
-    expect(source).toMatch(/showSearch.*\n.*escape/);
+    expect(source).toMatch(/showSearch.*\r?\n.*escape/);
   });
 
   // Sprint 3: Agent remove pushes undo + toast

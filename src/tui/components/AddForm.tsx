@@ -3,17 +3,20 @@
  * Context-aware based on formState.formType.
  */
 
-import React, { useState, useCallback } from 'react';
 import { Box, Text, useInput } from 'ink';
+import Spinner from 'ink-spinner';
+import TextInput from 'ink-text-input';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
-import TextInput from 'ink-text-input';
-import Spinner from 'ink-spinner';
-import type { AppStore, TabId } from '../store/index.js';
+
 import { BUILTIN_AGENTS } from '../../types.js';
-import { ErrorMessage } from './ErrorMessage.js';
-import { BlurValidatedInput } from './BlurValidatedInput.js';
+import type { AppStore } from '../store/index.js';
 import { validateUrl, validateSkillName, validateAgentId, validateNonEmpty } from '../utils/validators.js';
+
+import { BlurValidatedInput } from './BlurValidatedInput.js';
+import { ErrorMessage } from './ErrorMessage.js';
+
 
 interface AddFormProps {
   store: StoreApi<AppStore>;
@@ -40,7 +43,7 @@ const SKILL_FIELDS: FieldConfig[] = [
 ];
 
 const AGENT_FIELDS: FieldConfig[] = [
-  { key: 'id', label: 'Agent ID', placeholder: 'my-agent', validate: (v: string) => {
+  { key: 'id', label: 'Agent ID', placeholder: 'my-agent', validate: (v: string): string | null => {
     const base = validateAgentId(v);
     if (base) return base;
     if (BUILTIN_AGENTS.some(a => a.id === v.trim())) return 'Cannot use built-in agent ID';
@@ -148,7 +151,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
   const title = FORM_TITLES[formType] || 'Add';
 
   // Handle discovery phase from skillActions (multi-skill selection)
-  React.useEffect(() => {
+  useEffect(() => {
     if (formState.data.phase === 'discover' && formState.data.discoveredSkills) {
       setPhase('discover');
     } else if (formState.data.error) {
@@ -252,7 +255,6 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
           {fields.map((field, i) => {
             const fieldHasFocus = i === focusedField;
             const hasValidator = !!field.validate;
-            const validation = fieldValidation[field.key];
 
             if (hasValidator) {
               return (
@@ -270,16 +272,18 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
                         setFieldValues(prev => ({ ...prev, [field.key]: value }));
                         if (fieldErrors[field.key]) {
                           const next = { ...fieldErrors };
+                          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
                           delete next[field.key];
                           setFieldErrors(next);
                         }
                         if (fieldValidation[field.key]?.error) {
                           const next = { ...fieldValidation };
+                          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
                           delete next[field.key];
                           setFieldValidation(next);
                         }
                       }}
-                      validate={field.validate!}
+                      validate={field.validate ?? ((v: string): string | null => v.trim() ? null : 'Required')}
                       placeholder={field.placeholder}
                       label=""
                       hasFocus={fieldHasFocus}
@@ -312,6 +316,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
                       setFieldValues(prev => ({ ...prev, [field.key]: value }));
                       if (fieldErrors[field.key]) {
                         const next = { ...fieldErrors };
+                        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
                         delete next[field.key];
                         setFieldErrors(next);
                       }
@@ -356,7 +361,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
         </>
       )}
 
-      {phase === 'discover' && (() => {
+      {phase === 'discover' && ((): React.ReactElement => {
         const state = store.getState();
         const discovered: Array<{ name: string; subPath: string }> = JSON.parse(
           state.formState?.data.discoveredSkills || '[]'

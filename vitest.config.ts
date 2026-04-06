@@ -14,6 +14,8 @@ export default defineConfig({
         'dist/**',
         'tests/**',
         'bin/**',
+        'scripts/**',
+        'eslint-rules/**',
       ],
     },
     // Compile before running tests

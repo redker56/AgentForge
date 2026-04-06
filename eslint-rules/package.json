@@ -1,0 +1,5 @@
+{
+  "name": "eslint-plugin-layer-rules",
+  "version": "1.0.0",
+  "main": "index.cjs"
+}

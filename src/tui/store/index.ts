@@ -9,14 +9,16 @@
 
 import { create } from 'zustand';
 import type { StoreApi } from 'zustand';
+
 import type { SkillMeta } from '../../types.js';
-import { createUISlice, type UISlice, type TabId } from './uiSlice.js';
-import { createDataSlice, type DataSlice, type ServiceContext } from './dataSlice.js';
-import { createSkillActions, type SkillActions } from './actions/skillActions.js';
-import { createImportActions, type ImportActions } from './actions/importActions.js';
+
 import { createAgentActions, type AgentActions } from './actions/agentActions.js';
+import { createImportActions, type ImportActions } from './actions/importActions.js';
 import { createProjectActions, type ProjectActions } from './actions/projectActions.js';
+import { createSkillActions, type SkillActions } from './actions/skillActions.js';
 import { createSyncActions, type SyncActions } from './actions/syncActions.js';
+import { createDataSlice, type DataSlice, type ServiceContext } from './dataSlice.js';
+import { createUISlice, type UISlice, type TabId } from './uiSlice.js';
 
 // SkillListItem extends SkillMeta with the 'exists' flag from SkillService.list()
 export type SkillListItem = SkillMeta & {
@@ -24,7 +26,13 @@ export type SkillListItem = SkillMeta & {
 };
 
 // Full store type is the union of both slices plus action interfaces
-export type AppStore = UISlice & DataSlice & SkillActions & ImportActions & AgentActions & ProjectActions & SyncActions;
+export type AppStore = UISlice &
+  DataSlice &
+  SkillActions &
+  ImportActions &
+  AgentActions &
+  ProjectActions &
+  SyncActions;
 
 // Re-export for use in slice files that need a placeholder for the full store type
 export type StoreState = AppStore;
@@ -43,27 +51,32 @@ export function createAppStore(ctx: ServiceContext): StoreApi<AppStore> {
     ...createDataSlice(ctx)(...a),
     // Placeholder functions -- will be overwritten by Object.assign below.
     // This satisfies the type checker during store creation.
-    addSkillFromUrl: async () => {},
-    addSkillFromDiscovery: async () => {},
-    removeSkill: async () => {},
-    importFromProject: async () => {},
-    importFromAgent: async () => {},
-    scanProjectSkills: () => [],
-    scanAgentSkills: () => [],
-    addAgent: async () => {},
-    removeAgent: async () => {},
-    addProject: async () => {},
-    removeProject: async () => {},
-    syncSkillsToAgents: async () => {},
-    syncSkillsToProjects: async () => {},
-    unsyncFromAgents: async () => {},
-    unsyncFromProjects: async () => {},
-    updateSkill: async () => {},
-    updateAllSkills: async () => {},
+    addSkillFromUrl: async (): Promise<void> => {},
+    addSkillFromDiscovery: async (): Promise<void> => {},
+    removeSkill: async (): Promise<void> => {},
+    importFromProject: async (): Promise<void> => {},
+    importFromAgent: async (): Promise<void> => {},
+    scanProjectSkills: (): Array<{ name: string; path: string; alreadyExists: boolean }> => [],
+    scanAgentSkills: (): Array<{
+      name: string;
+      path: string;
+      alreadyExists: boolean;
+      hasSkillMd: boolean;
+    }> => [],
+    addAgent: async (): Promise<void> => {},
+    removeAgent: async (): Promise<void> => {},
+    addProject: async (): Promise<void> => {},
+    removeProject: async (): Promise<void> => {},
+    syncSkillsToAgents: async (): Promise<void> => {},
+    syncSkillsToProjects: async (): Promise<void> => {},
+    unsyncFromAgents: async (): Promise<void> => {},
+    unsyncFromProjects: async (): Promise<void> => {},
+    updateSkill: async (): Promise<void> => {},
+    updateAllSkills: async (): Promise<void> => {},
     // Sprint 3: Restore actions (placeholders for undo system)
-    restoreSkill: () => {},
-    restoreAgent: () => {},
-    restoreProject: () => {},
+    restoreSkill: (): void => {},
+    restoreAgent: (): void => {},
+    restoreProject: (): void => {},
   }));
 
   // Overwrite placeholders with real action creators bound to store + context

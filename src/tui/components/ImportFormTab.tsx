@@ -6,17 +6,19 @@
  * setFormState or use Sprint 3 overlay action creators for execution.
  */
 
-import React from 'react';
 import { Box, Text, useInput } from 'ink';
+import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
+
+import { doImportFromProject, doImportFromAgent } from '../store/actions/syncActions.js';
+import type { ServiceContext } from '../store/dataSlice.js';
 import type { AppStore } from '../store/index.js';
 import type { OperationResult } from '../store/uiSlice.js';
-import type { ServiceContext } from '../store/dataSlice.js';
-import { ProgressBar } from './ProgressBar.js';
-import { doImportFromProject, doImportFromAgent } from '../store/actions/syncActions.js';
-import { StepIndicator } from './StepIndicator.js';
+
 import { ImportChecklist } from './ImportChecklist.js';
+import { ProgressBar } from './ProgressBar.js';
+import { StepIndicator } from './StepIndicator.js';
 
 interface ImportFormTabProps {
   store: StoreApi<AppStore>;
@@ -375,51 +377,6 @@ function SelectSource({
       <Text dimColor>Up/Down to select, Enter to continue</Text>
     </Box>
   );
-}
-
-function SelectSkills({
-  discovered,
-  selected,
-  focusedIndex,
-}: {
-  discovered: Array<{ name: string; path: string; alreadyExists: boolean; hasSkillMd?: boolean }>;
-  selected: Set<string>;
-  focusedIndex: number;
-}): React.ReactElement {
-  return (
-    <Box flexDirection="column">
-      <Text bold color="cyan">Discovered skills</Text>
-      <Text> </Text>
-      {discovered.map((skill, i) => {
-        const isSelected = selected.has(skill.name);
-        const isFocused = i === focusedIndex;
-        if (skill.alreadyExists) {
-          return (
-            <Text key={skill.name} dimColor>
-              {isFocused ? '  > ' : '    '} [IMPORTED] {skill.name}
-              {skill.hasSkillMd === false ? <Text> (no SKILL.md)</Text> : null}
-            </Text>
-          );
-        }
-        return (
-          <Text key={skill.name}>
-            {isFocused ? '  > ' : '    '}
-            <Text color={isSelected ? 'cyan' : undefined}>{isSelected ? '[x]' : '[ ]'}</Text>{' '}
-            {skill.name}
-            {hasSkillMdLabel(skill.hasSkillMd)}
-          </Text>
-        );
-      })}
-      {discovered.length === 0 && <Text dimColor>No skills discovered</Text>}
-      <Text> </Text>
-      <Text dimColor>Up/Down to navigate, Space to toggle, Enter to continue</Text>
-    </Box>
-  );
-}
-
-function hasSkillMdLabel(hasSkillMd?: boolean): React.ReactElement {
-  if (hasSkillMd === false) return <Text dimColor> (no SKILL.md)</Text>;
-  return <Text dimColor> (SKILL.md)</Text>;
 }
 
 function ConfirmStep({

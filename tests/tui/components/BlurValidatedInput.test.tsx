@@ -2,9 +2,10 @@
  * BlurValidatedInput component tests — actual ink-testing-library render tests.
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import React from 'react';
 import { render } from 'ink-testing-library';
+import React from 'react';
+import { describe, it, expect, vi } from 'vitest';
+
 import { BlurValidatedInput } from '../../../src/tui/components/BlurValidatedInput.js';
 
 describe('BlurValidatedInput', () => {

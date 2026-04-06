@@ -7,14 +7,13 @@
  * Modern Claude Code aesthetic with coral accent color.
  */
 
+import { Box, Text , useInput } from 'ink';
 import React, { useState, useMemo } from 'react';
-import { Box, Text } from 'ink';
-import { useInput } from 'ink';
-import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
+
 import type { AppStore } from '../store/index.js';
-import { fuzzyMatch } from '../utils/fuzzy.js';
 import { inkColors } from '../theme.js';
+import { fuzzyMatch } from '../utils/fuzzy.js';
 
 interface CommandEntry {
   id: string;
@@ -62,11 +61,11 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
         state.setConfirmState({
           title: `Delete ${name}`,
           message: 'This will remove all sync references. Files on disk will be deleted.',
-          onConfirm: async () => {
-            await store.getState().removeSkill(name);
+          onConfirm: () => {
+            void store.getState().removeSkill(name);
             store.getState().setConfirmState(null);
             store.getState().clearSelection();
-            await store.getState().refreshSkills();
+            void store.getState().refreshSkills();
           },
         });
       }
@@ -79,8 +78,8 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
         state.setConfirmState({
           title: `Remove Agent "${agent.name}"`,
           message: 'Files stay on disk. AgentForge will forget sync references tied to this Agent.',
-          onConfirm: async () => {
-            await store.getState().removeAgent(agent.id);
+          onConfirm: () => {
+            void store.getState().removeAgent(agent.id);
             store.getState().setConfirmState(null);
           },
         });
@@ -94,8 +93,8 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
         state.setConfirmState({
           title: `Remove Project "${project.id}"`,
           message: 'Files stay on disk. AgentForge will forget the project and its recorded sync references.',
-          onConfirm: async () => {
-            await store.getState().removeProject(project.id);
+          onConfirm: () => {
+            void store.getState().removeProject(project.id);
             store.getState().setConfirmState(null);
           },
         });
@@ -157,7 +156,7 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
       break;
     }
     case 'update-all':
-      store.getState().updateAllSkills();
+      void store.getState().updateAllSkills();
       state.setShowCommandPalette(false);
       break;
     case 'import-skills':

@@ -3,8 +3,8 @@
  * debounce and computes a width band (compact / standard / widescreen).
  */
 
-import { useState, useEffect, useMemo } from 'react';
 import { useStdout } from 'ink';
+import { useState, useEffect, useMemo } from 'react';
 
 export type WidthBand = 'compact' | 'standard' | 'widescreen';
 
@@ -44,7 +44,7 @@ export function useTerminalDimensions(): TerminalDimensions {
 
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const onResize = () => {
+    const onResize = (): void => {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         const cols = stdout.columns ?? 120;
@@ -76,7 +76,7 @@ export function useTerminalDimensions(): TerminalDimensions {
 
     stdout.on('resize', onResize);
 
-    return () => {
+    return (): void => {
       if (debounceTimer) clearTimeout(debounceTimer);
       stdout.removeListener('resize', onResize);
     };

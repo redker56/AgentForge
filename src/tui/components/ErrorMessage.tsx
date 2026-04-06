@@ -2,8 +2,8 @@
  * Inline error message component with red text styling
  */
 
-import React from 'react';
 import { Text } from 'ink';
+import React from 'react';
 
 interface ErrorMessageProps {
   message: string;

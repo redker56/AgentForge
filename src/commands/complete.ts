@@ -4,6 +4,7 @@
  */
 
 import type { Command } from 'commander';
+
 import type { CommandContext } from './index.js';
 
 export function register(program: Command, ctx: CommandContext): void {
@@ -11,7 +12,7 @@ export function register(program: Command, ctx: CommandContext): void {
     .command('__complete <type>')
     .argument('[target]', 'Target type (for synced-agents/synced-projects filtering)')
     .description('') // Empty description
-    .action((type: string, target?: string) => {
+    .action((type: string, _target?: string) => {
       switch (type) {
         case 'commands':
           // First level commands
@@ -53,29 +54,31 @@ export function register(program: Command, ctx: CommandContext): void {
           break;
 
         case 'skills':
-          ctx.skills.list().forEach(s => console.log(s.name));
+          ctx.skills.list().forEach((s) => console.log(s.name));
           break;
 
         case 'synced-skills':
           // Only show skills synced to Agents
-          ctx.skills.list()
-            .filter(s => (s.syncedTo || []).length > 0)
-            .forEach(s => console.log(s.name));
+          ctx.skills
+            .list()
+            .filter((s) => (s.syncedTo || []).length > 0)
+            .forEach((s) => console.log(s.name));
           break;
 
         case 'synced-projects-skills':
           // Only show skills synced to projects
-          ctx.skills.list()
-            .filter(s => (s.syncedProjects || []).length > 0)
-            .forEach(s => console.log(s.name));
+          ctx.skills
+            .list()
+            .filter((s) => (s.syncedProjects || []).length > 0)
+            .forEach((s) => console.log(s.name));
           break;
 
         case 'agents':
-          ctx.storage.listAgents().forEach(a => console.log(a.id));
+          ctx.storage.listAgents().forEach((a) => console.log(a.id));
           break;
 
         case 'projects':
-          ctx.storage.listProjects().forEach(p => console.log(p.id));
+          ctx.storage.listProjects().forEach((p) => console.log(p.id));
           break;
 
         default:
@@ -84,14 +87,14 @@ export function register(program: Command, ctx: CommandContext): void {
             const skillName = type.substring('synced-agents:'.length);
             const skill = ctx.skills.get(skillName);
             if (skill && skill.syncedTo) {
-              skill.syncedTo.forEach(r => console.log(r.agentId));
+              skill.syncedTo.forEach((r) => console.log(r.agentId));
             }
           } else if (type.startsWith('synced-projects:')) {
             const skillName = type.substring('synced-projects:'.length);
             const skill = ctx.skills.get(skillName);
             if (skill && skill.syncedProjects) {
               // Output projectId:agentType format
-              skill.syncedProjects.forEach(r => console.log(`${r.projectId}:${r.agentType}`));
+              skill.syncedProjects.forEach((r) => console.log(`${r.projectId}:${r.agentType}`));
             }
           }
           break;

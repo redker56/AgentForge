@@ -2,8 +2,8 @@
  * SearchOverlay component test
  */
 
-import { describe, expect, it } from 'vitest';
 import React from 'react';
+import { describe, expect, it } from 'vitest';
 
 describe('SearchOverlay', () => {
   it('exports SearchOverlay component', async () => {

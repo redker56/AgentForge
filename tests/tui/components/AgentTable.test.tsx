@@ -3,9 +3,9 @@
  * Verifies dynamic column widths, focus highlight, separator length.
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import React from 'react';
 import { render, cleanup } from 'ink-testing-library';
+import React from 'react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 describe('AgentTable', () => {
   beforeEach(() => {

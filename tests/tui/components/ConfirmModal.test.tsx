@@ -2,8 +2,8 @@
  * ConfirmModal component test
  */
 
-import { describe, expect, it } from 'vitest';
 import React from 'react';
+import { describe, expect, it } from 'vitest';
 
 describe('ConfirmModal', () => {
   it('exports ConfirmModal component', async () => {

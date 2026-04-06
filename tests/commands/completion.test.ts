@@ -2,31 +2,17 @@
  * completion command tests
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import fs from 'fs-extra';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
 import { Command } from 'commander';
+import fs from 'fs-extra';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { register } from '../../src/commands/completion.js';
+import { createMockFileOps } from '../helpers/mock-context.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'agentforge-completion-command-test');
-
-// Create a mock fileOps with all required methods
-function createMockFileOps(overrides = {}) {
-  return {
-    pathExists: vi.fn(() => false),
-    fileExists: vi.fn(() => false),
-    readFile: vi.fn(() => null),
-    readFileSync: vi.fn(() => null),
-    writeFileSync: vi.fn(),
-    mkdirSync: vi.fn(),
-    ensureDir: vi.fn().mockResolvedValue(undefined),
-    listSubdirectories: vi.fn(() => []),
-    scanSkillsInDirectory: vi.fn(() => []),
-    getDirectoryHash: vi.fn().mockResolvedValue(null),
-    ...overrides,
-  };
-}
 
 describe('completion command', () => {
   let originalProfile: string | undefined;

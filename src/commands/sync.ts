@@ -4,11 +4,13 @@
  * af sync projects <skill> [projects...]
  */
 
-import chalk from 'chalk';
 import { checkbox, select } from '@inquirer/prompts';
+import chalk from 'chalk';
 import type { Command } from 'commander';
-import type { CommandContext } from './index.js';
+
 import type { SyncMode, AgentId } from '../types.js';
+
+import type { CommandContext } from './index.js';
 
 /**
  * Filter Agents that have existing directories
@@ -17,12 +19,12 @@ function filterExistingAgents(
   agents: Array<{ id: string; name: string; basePath: string }>,
   fileOps: CommandContext['fileOps']
 ): Array<{ id: string; name: string; basePath: string }> {
-  return agents.filter(agent => fileOps.pathExists(agent.basePath));
+  return agents.filter((agent) => fileOps.pathExists(agent.basePath));
 }
 
 function validateExistingAgentTypes(ctx: CommandContext, agentTypes: AgentId[]): void {
-  const existingAgentIds = new Set(ctx.storage.listAgents().map(agent => agent.id));
-  const invalidAgentTypes = agentTypes.filter(agentType => !existingAgentIds.has(agentType));
+  const existingAgentIds = new Set(ctx.storage.listAgents().map((agent) => agent.id));
+  const invalidAgentTypes = agentTypes.filter((agentType) => !existingAgentIds.has(agentType));
 
   if (invalidAgentTypes.length > 0) {
     console.error(chalk.red(`Agent not available: ${invalidAgentTypes.join(', ')}`));
@@ -38,21 +40,33 @@ export function register(program: Command, ctx: CommandContext): void {
     .description('Sync skills (agents | projects)')
     .option('-m, --mode <mode>', 'Sync mode (copy or symlink)')
     .option('-a, --agent-types <types...>', 'Agent types for project sync')
-    .action(async (target: string, name: string | undefined, targets: string[], options: { mode?: string; agentTypes?: string[] }) => {
-      const skillName = name || '';
-      if (target === 'agents') {
-        await syncToAgents(ctx, skillName, targets, options);
-      } else if (target === 'projects') {
-        await syncToProjects(ctx, skillName, targets, options);
-      } else {
-        console.error(chalk.red(`Invalid target: ${target}`));
-        console.log(chalk.dim('Supported: agents, projects'));
-        process.exit(1);
+    .action(
+      async (
+        target: string,
+        name: string | undefined,
+        targets: string[],
+        options: { mode?: string; agentTypes?: string[] }
+      ) => {
+        const skillName = name || '';
+        if (target === 'agents') {
+          await syncToAgents(ctx, skillName, targets, options);
+        } else if (target === 'projects') {
+          await syncToProjects(ctx, skillName, targets, options);
+        } else {
+          console.error(chalk.red(`Invalid target: ${target}`));
+          console.log(chalk.dim('Supported: agents, projects'));
+          process.exit(1);
+        }
       }
-    });
+    );
 }
 
-async function syncToAgents(ctx: CommandContext, name: string, agentIds: string[], options: { mode?: string }): Promise<void> {
+async function syncToAgents(
+  ctx: CommandContext,
+  name: string,
+  agentIds: string[],
+  options: { mode?: string }
+): Promise<void> {
   // Interactive skill selection
   let skillNames: string[] = [];
   if (!name) {
@@ -67,7 +81,7 @@ async function syncToAgents(ctx: CommandContext, name: string, agentIds: string[
     }
     skillNames = await checkbox({
       message: 'Select skills to sync:',
-      choices: skills.map(s => ({ name: s.name, value: s.name })),
+      choices: skills.map((s) => ({ name: s.name, value: s.name })),
     });
   } else {
     skillNames = [name];
@@ -113,16 +127,16 @@ async function syncToAgents(ctx: CommandContext, name: string, agentIds: string[
     }
     mode = options.mode;
   } else if (process.stdin.isTTY) {
-    mode = await select({
+    mode = (await select({
       message: 'Select sync mode:',
       choices: [
         { name: 'Copy - Independent copy, stable and reliable', value: 'copy' },
         { name: 'Symlink - Link to source, updates automatically', value: 'symlink' },
       ],
-    }) as SyncMode;
+    })) as SyncMode;
   }
 
-  const agents = ctx.storage.listAgents().filter(a => agentIds.includes(a.id));
+  const agents = ctx.storage.listAgents().filter((a) => agentIds.includes(a.id));
 
   for (const skillName of skillNames) {
     console.log(chalk.bold(`\nSyncing ${skillName}:`));
@@ -147,7 +161,12 @@ async function syncToAgents(ctx: CommandContext, name: string, agentIds: string[
   }
 }
 
-async function syncToProjects(ctx: CommandContext, name: string, projectIds: string[], options: { mode?: string; agentTypes?: string[] }): Promise<void> {
+async function syncToProjects(
+  ctx: CommandContext,
+  name: string,
+  projectIds: string[],
+  options: { mode?: string; agentTypes?: string[] }
+): Promise<void> {
   // Interactive skill selection
   let skillNames: string[] = [];
   if (!name) {
@@ -162,7 +181,7 @@ async function syncToProjects(ctx: CommandContext, name: string, projectIds: str
     }
     skillNames = await checkbox({
       message: 'Select skills to sync:',
-      choices: skills.map(s => ({ name: s.name, value: s.name })),
+      choices: skills.map((s) => ({ name: s.name, value: s.name })),
     });
   } else {
     skillNames = [name];
@@ -187,7 +206,7 @@ async function syncToProjects(ctx: CommandContext, name: string, projectIds: str
   if (projectIds.length === 0 && process.stdin.isTTY) {
     const selected = await checkbox({
       message: 'Select projects to sync to:',
-      choices: projects.map(p => ({
+      choices: projects.map((p) => ({
         name: `${p.id} (${p.path})`,
         value: p.id,
       })),
@@ -209,13 +228,13 @@ async function syncToProjects(ctx: CommandContext, name: string, projectIds: str
     }
     mode = options.mode as SyncMode;
   } else if (process.stdin.isTTY) {
-    mode = await select({
+    mode = (await select({
       message: 'Select sync mode:',
       choices: [
         { name: 'Copy - Independent copy, stable and reliable', value: 'copy' },
         { name: 'Symlink - Link to source, updates automatically', value: 'symlink' },
       ],
-    }) as SyncMode;
+    })) as SyncMode;
   }
 
   // Agent types
@@ -230,8 +249,9 @@ async function syncToProjects(ctx: CommandContext, name: string, projectIds: str
       return;
     }
     const selectedTypes = await checkbox({
-      message: 'Select Agent types to sync (leave empty to auto-detect existing project structure):',
-      choices: allAgents.map(a => ({
+      message:
+        'Select Agent types to sync (leave empty to auto-detect existing project structure):',
+      choices: allAgents.map((a) => ({
         name: `${a.name} (${a.id})`,
         value: a.id,
       })),
@@ -246,17 +266,32 @@ async function syncToProjects(ctx: CommandContext, name: string, projectIds: str
 
     for (const projectId of projectIds) {
       try {
-        const projectResults = await ctx.projectSync.syncToProject(skillName, projectId, agentTypes, mode);
+        const projectResults = await ctx.projectSync.syncToProject(
+          skillName,
+          projectId,
+          agentTypes,
+          mode
+        );
         results.push({ projectId, results: projectResults });
       } catch (e: unknown) {
-        console.log(chalk.red(`  Failed for project ${projectId}: ${e instanceof Error ? e.message : String(e)}`));
+        console.log(
+          chalk.red(
+            `  Failed for project ${projectId}: ${e instanceof Error ? e.message : String(e)}`
+          )
+        );
         process.exit(1);
       }
     }
 
     for (const { projectId, results: projectResults } of results) {
       console.log(chalk.bold(`  Project ${projectId}:`));
-      for (const r of projectResults as Array<{ success: boolean; target: string; path: string; mode: string; error?: string }>) {
+      for (const r of projectResults as Array<{
+        success: boolean;
+        target: string;
+        path: string;
+        mode: string;
+        error?: string;
+      }>) {
         if (r.success) {
           const icon = r.mode === 'symlink' ? '\uD83D\uDD17' : '\uD83D\uDCE6';
           const agentType = r.target.split(':')[1];

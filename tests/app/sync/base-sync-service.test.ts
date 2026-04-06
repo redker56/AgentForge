@@ -4,10 +4,11 @@
  * Test shared methods of abstract base class
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import fs from 'fs-extra';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
+import fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 const TEST_DIR = path.join(os.tmpdir(), 'agentforge-base-sync-test');
 

@@ -4,10 +4,12 @@
  * af import agents [agentId] [skillName]
  */
 
-import chalk from 'chalk';
-import { checkbox, select } from '@inquirer/prompts';
 import path from 'path';
+
+import { checkbox, select } from '@inquirer/prompts';
+import chalk from 'chalk';
 import type { Command } from 'commander';
+
 import type { CommandContext } from './index.js';
 
 interface ImportResult {
@@ -49,7 +51,11 @@ export function register(program: Command, ctx: CommandContext): void {
     });
 }
 
-async function finalizeImport(ctx: CommandContext, result: ImportResult, seedAgentIds: string[] = []): Promise<void> {
+async function finalizeImport(
+  ctx: CommandContext,
+  result: ImportResult,
+  seedAgentIds: string[] = []
+): Promise<void> {
   if (!result.success) return;
 
   try {
@@ -76,14 +82,18 @@ function printImportResults(results: ImportResult[]): void {
 function buildInteractiveSkillChoices(
   skills: Array<{ name: string; labelSuffix?: string; alreadyExists: boolean }>
 ): InteractiveSkillChoice[] {
-  return skills.map(skill => ({
+  return skills.map((skill) => ({
     name: `${skill.name}${skill.labelSuffix ? ` ${skill.labelSuffix}` : ''}`,
     value: skill.name,
     disabled: skill.alreadyExists ? 'already in AgentForge' : undefined,
   }));
 }
 
-async function importFromProject(ctx: CommandContext, projectId?: string, skillName?: string): Promise<void> {
+async function importFromProject(
+  ctx: CommandContext,
+  projectId?: string,
+  skillName?: string
+): Promise<void> {
   const projects = ctx.storage.listProjects();
 
   if (projects.length === 0) {
@@ -95,18 +105,19 @@ async function importFromProject(ctx: CommandContext, projectId?: string, skillN
   if (!projectId && process.stdin.isTTY) {
     projectId = await select({
       message: 'Select project:',
-      choices: projects.map(p => ({
+      choices: projects.map((p) => ({
         name: `${p.id} (${p.path})`,
         value: p.id,
       })),
     });
   }
 
-  const project = ctx.storage.getProject(projectId!);
+  const project = projectId ? ctx.storage.getProject(projectId) : undefined;
   if (!project) {
-    console.error(chalk.red(`Project not found: ${projectId}`));
+    console.error(chalk.red(`Project not found: ${projectId ?? 'undefined'}`));
     console.log(chalk.dim('Run "af list projects" to see registered projects'));
     process.exit(1);
+    return;
   }
 
   const skills = ctx.scan.scanProject(project.path);
@@ -119,7 +130,7 @@ async function importFromProject(ctx: CommandContext, projectId?: string, skillN
   let toImport: string[];
 
   if (skillName) {
-    if (!skills.find(s => s.name === skillName)) {
+    if (!skills.find((s) => s.name === skillName)) {
       console.error(chalk.red(`Skill not found: ${skillName}`));
       console.log(chalk.dim('Available skills:'));
       for (const skill of skills) {
@@ -129,12 +140,14 @@ async function importFromProject(ctx: CommandContext, projectId?: string, skillN
     }
     toImport = [skillName];
   } else if (process.stdin.isTTY) {
-    const choices = buildInteractiveSkillChoices(skills.map(skill => ({
-      name: skill.name,
-      alreadyExists: ctx.skills.exists(skill.name),
-    })));
+    const choices = buildInteractiveSkillChoices(
+      skills.map((skill) => ({
+        name: skill.name,
+        alreadyExists: ctx.skills.exists(skill.name),
+      }))
+    );
 
-    if (choices.every(choice => choice.disabled)) {
+    if (choices.every((choice) => choice.disabled)) {
       console.log(chalk.yellow(`All skills from project ${projectId} are already in AgentForge`));
       return;
     }
@@ -157,7 +170,8 @@ async function importFromProject(ctx: CommandContext, projectId?: string, skillN
   const results: ImportResult[] = [];
 
   for (const name of toImport) {
-    const skillInfo = skills.find(s => s.name === name)!;
+    const skillInfo = skills.find((s) => s.name === name);
+    if (!skillInfo) continue;
     const srcPath = skillInfo.path;
 
     try {
@@ -166,7 +180,11 @@ async function importFromProject(ctx: CommandContext, projectId?: string, skillN
         continue;
       }
 
-      await ctx.skills.importFromPath(srcPath, name, { type: 'project', projectId: projectId! });
+      const effectiveProjectId = projectId ?? '';
+      await ctx.skills.importFromPath(srcPath, name, {
+        type: 'project',
+        projectId: effectiveProjectId,
+      });
       results.push({ name, success: true });
     } catch (err) {
       results.push({ name, success: false, error: (err as Error).message });
@@ -181,11 +199,15 @@ async function importFromProject(ctx: CommandContext, projectId?: string, skillN
 
   printImportResults(results);
 
-  const successCount = results.filter(result => result.success).length;
+  const successCount = results.filter((result) => result.success).length;
   console.log(chalk.dim(`\nSuccessfully imported ${successCount}/${results.length} skills`));
 }
 
-async function importFromAgent(ctx: CommandContext, agentId?: string, skillName?: string): Promise<void> {
+async function importFromAgent(
+  ctx: CommandContext,
+  agentId?: string,
+  skillName?: string
+): Promise<void> {
   const agents = ctx.storage.listAgents();
 
   if (agents.length === 0) {
@@ -196,18 +218,19 @@ async function importFromAgent(ctx: CommandContext, agentId?: string, skillName?
   if (!agentId && process.stdin.isTTY) {
     agentId = await select({
       message: 'Select Agent:',
-      choices: agents.map(agent => ({
+      choices: agents.map((agent) => ({
         name: `${agent.name} (${agent.id})`,
         value: agent.id,
       })),
     });
   }
 
-  const agent = ctx.storage.getAgent(agentId!);
+  const agent = agentId ? ctx.storage.getAgent(agentId) : undefined;
   if (!agent) {
-    console.error(chalk.red(`Agent not found: ${agentId}`));
+    console.error(chalk.red(`Agent not found: ${agentId ?? 'undefined'}`));
     console.log(chalk.dim('Run "af list agents" to see available Agents'));
     process.exit(1);
+    return;
   }
 
   const skillDirs = ctx.fileOps.listSubdirectories(agent.basePath);
@@ -230,19 +253,22 @@ async function importFromAgent(ctx: CommandContext, agentId?: string, skillName?
     }
     toImport = [skillName];
   } else if (process.stdin.isTTY) {
-    const choices = buildInteractiveSkillChoices(skillDirs.map(skill => {
-      const skillPath = path.join(agent.basePath, skill);
-      const hasSkillMd = ctx.fileOps.fileExists(path.join(skillPath, 'SKILL.md'))
-        || ctx.fileOps.fileExists(path.join(skillPath, 'skill.md'));
+    const choices = buildInteractiveSkillChoices(
+      skillDirs.map((skill) => {
+        const skillPath = path.join(agent.basePath, skill);
+        const hasSkillMd =
+          ctx.fileOps.fileExists(path.join(skillPath, 'SKILL.md')) ||
+          ctx.fileOps.fileExists(path.join(skillPath, 'skill.md'));
 
-      return {
-        name: skill,
-        labelSuffix: hasSkillMd ? undefined : '(no SKILL.md)',
-        alreadyExists: ctx.skills.exists(skill),
-      };
-    }));
+        return {
+          name: skill,
+          labelSuffix: hasSkillMd ? undefined : '(no SKILL.md)',
+          alreadyExists: ctx.skills.exists(skill),
+        };
+      })
+    );
 
-    if (choices.every(choice => choice.disabled)) {
+    if (choices.every((choice) => choice.disabled)) {
       console.log(chalk.yellow(`${agent.name} (${agent.id}) has no new skills to import`));
       return;
     }
@@ -289,6 +315,6 @@ async function importFromAgent(ctx: CommandContext, agentId?: string, skillName?
 
   printImportResults(results);
 
-  const successCount = results.filter(result => result.success).length;
+  const successCount = results.filter((result) => result.success).length;
   console.log(chalk.dim(`\nSuccessfully imported ${successCount}/${results.length} skills`));
 }

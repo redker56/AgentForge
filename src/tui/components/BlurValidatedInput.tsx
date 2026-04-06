@@ -8,9 +8,10 @@
  * The parent form tracks which field has focus and controls validation flow.
  */
 
-import React, { useEffect, useState, useRef } from 'react';
 import { Box, Text } from 'ink';
 import TextInput from 'ink-text-input';
+import React, { useEffect, useState, useRef } from 'react';
+
 import { ErrorMessage } from './ErrorMessage.js';
 
 export interface BlurValidatedInputProps {
@@ -31,7 +32,7 @@ export function BlurValidatedInput({
   validate,
   placeholder,
   label,
-  width,
+  width: _width,
   hasFocus = false,
   onValidationResult,
   forceValidate = false,

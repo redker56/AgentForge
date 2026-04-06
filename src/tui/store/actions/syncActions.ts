@@ -6,14 +6,20 @@
  */
 
 import type { StoreApi } from 'zustand';
+
 import type { SyncMode } from '../../../types.js';
-import type { AppStore } from '../index.js';
 import type { ServiceContext } from '../dataSlice.js';
+import type { AppStore } from '../index.js';
 import type { OperationResult, ProgressItem } from '../uiSlice.js';
 
 export interface SyncActions {
   syncSkillsToAgents: (skillNames: string[], agentIds: string[], mode: SyncMode) => Promise<void>;
-  syncSkillsToProjects: (skillNames: string[], projectIds: string[], agentTypes: string[], mode: SyncMode) => Promise<void>;
+  syncSkillsToProjects: (
+    skillNames: string[],
+    projectIds: string[],
+    agentTypes: string[],
+    mode: SyncMode
+  ) => Promise<void>;
   unsyncFromAgents: (skillNames: string[], agentIds: string[]) => Promise<void>;
   unsyncFromProjects: (skillNames: string[], targetIds: string[]) => Promise<void>;
   updateSkill: (skillName: string) => Promise<void>;
@@ -27,7 +33,7 @@ export interface SyncActions {
 export async function doImportFromProject(
   ctx: ServiceContext,
   projectId: string,
-  skillNames: string[],
+  skillNames: string[]
 ): Promise<OperationResult[]> {
   const project = ctx.storage.getProject(projectId);
   if (!project) {
@@ -49,7 +55,11 @@ export async function doImportFromProject(
       await ctx.skillService.importFromPath(found.path, skillName, { type: 'project', projectId });
       results.push({ target: skillName, success: true });
     } catch (e: unknown) {
-      results.push({ target: skillName, success: false, error: e instanceof Error ? e.message : String(e) });
+      results.push({
+        target: skillName,
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
   }
   return results;
@@ -58,7 +68,7 @@ export async function doImportFromProject(
 export async function doImportFromAgent(
   ctx: ServiceContext,
   agentId: string,
-  skillNames: string[],
+  skillNames: string[]
 ): Promise<OperationResult[]> {
   const agent = ctx.storage.getAgent(agentId);
   if (!agent) {
@@ -78,7 +88,11 @@ export async function doImportFromAgent(
       });
       results.push({ target: skillName, success: true });
     } catch (e: unknown) {
-      results.push({ target: skillName, success: false, error: e instanceof Error ? e.message : String(e) });
+      results.push({
+        target: skillName,
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
   }
   return results;
@@ -88,12 +102,9 @@ export async function doImportFromAgent(
 // SyncActions factory
 // ============================================================
 
-export function createSyncActions(
-  store: StoreApi<AppStore>,
-  ctx: ServiceContext,
-): SyncActions {
+export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext): SyncActions {
   return {
-    syncSkillsToAgents: async (skillNames, agentIds, mode) => {
+    syncSkillsToAgents: async (skillNames, agentIds, mode): Promise<void> => {
       const s = store.getState();
       s.setSyncFormStep('executing');
 
@@ -104,7 +115,7 @@ export function createSyncActions(
           label: `${skill} -> ${agentId}`,
           progress: 0,
           status: 'pending' as const,
-        })),
+        }))
       );
       s.setUpdateProgressItems(items);
 
@@ -132,7 +143,7 @@ export function createSyncActions(
       // Clear progress after a delay
       setTimeout(() => s.setUpdateProgressItems([]), 2000);
       // Push summary toast
-      const failCount1 = results.filter(r => !r.success).length;
+      const failCount1 = results.filter((r) => !r.success).length;
       if (failCount1 === 0) {
         s.pushToast(`${results.length} skill(s) synced`, 'success');
       } else {
@@ -140,7 +151,7 @@ export function createSyncActions(
       }
     },
 
-    syncSkillsToProjects: async (skillNames, projectIds, agentTypes, mode) => {
+    syncSkillsToProjects: async (skillNames, projectIds, agentTypes, mode): Promise<void> => {
       const s = store.getState();
       s.setSyncFormStep('executing');
 
@@ -151,7 +162,7 @@ export function createSyncActions(
           label: `${skill} -> ${projectId}`,
           progress: 0,
           status: 'pending' as const,
-        })),
+        }))
       );
       s.setUpdateProgressItems(items);
 
@@ -178,7 +189,7 @@ export function createSyncActions(
       // Clear progress after a delay
       setTimeout(() => s.setUpdateProgressItems([]), 2000);
       // Push summary toast
-      const failCount2 = results.filter(r => !r.success).length;
+      const failCount2 = results.filter((r) => !r.success).length;
       if (failCount2 === 0) {
         s.pushToast(`${results.length} skill(s) synced`, 'success');
       } else {
@@ -186,7 +197,7 @@ export function createSyncActions(
       }
     },
 
-    unsyncFromAgents: async (skillNames, agentIds) => {
+    unsyncFromAgents: async (skillNames, agentIds): Promise<void> => {
       const s = store.getState();
       s.setSyncFormStep('executing');
 
@@ -197,7 +208,7 @@ export function createSyncActions(
           label: `unsync ${skill} from ${agentId}`,
           progress: 0,
           status: 'pending' as const,
-        })),
+        }))
       );
       s.setUpdateProgressItems(items);
 
@@ -212,7 +223,11 @@ export function createSyncActions(
             s.updateProgressItem(itemId, { status: 'success', progress: 100 });
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
-            results.push({ target: `${skillName} (unsync from ${agentId})`, success: false, error: msg });
+            results.push({
+              target: `${skillName} (unsync from ${agentId})`,
+              success: false,
+              error: msg,
+            });
             s.updateProgressItem(itemId, { status: 'error', progress: 100, error: msg });
           }
         }
@@ -223,7 +238,7 @@ export function createSyncActions(
       // Clear progress after a delay
       setTimeout(() => s.setUpdateProgressItems([]), 2000);
       // Push summary toast
-      const failCount3 = results.filter(r => !r.success).length;
+      const failCount3 = results.filter((r) => !r.success).length;
       if (failCount3 === 0) {
         s.pushToast(`${results.length} item(s) unsynced`, 'success');
       } else {
@@ -231,7 +246,7 @@ export function createSyncActions(
       }
     },
 
-    unsyncFromProjects: async (skillNames, targetIds) => {
+    unsyncFromProjects: async (skillNames, targetIds): Promise<void> => {
       const s = store.getState();
       s.setSyncFormStep('executing');
 
@@ -242,7 +257,7 @@ export function createSyncActions(
           label: `unsync ${skill} from ${targetId}`,
           progress: 0,
           status: 'pending' as const,
-        })),
+        }))
       );
       s.setUpdateProgressItems(items);
 
@@ -257,7 +272,11 @@ export function createSyncActions(
             s.updateProgressItem(itemId, { status: 'success', progress: 100 });
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
-            results.push({ target: `${skillName} (unsync from ${targetId})`, success: false, error: msg });
+            results.push({
+              target: `${skillName} (unsync from ${targetId})`,
+              success: false,
+              error: msg,
+            });
             s.updateProgressItem(itemId, { status: 'error', progress: 100, error: msg });
           }
         }
@@ -268,7 +287,7 @@ export function createSyncActions(
       // Clear progress after a delay
       setTimeout(() => s.setUpdateProgressItems([]), 2000);
       // Push summary toast
-      const failCount4 = results.filter(r => !r.success).length;
+      const failCount4 = results.filter((r) => !r.success).length;
       if (failCount4 === 0) {
         s.pushToast(`${results.length} item(s) unsynced`, 'success');
       } else {
@@ -276,19 +295,28 @@ export function createSyncActions(
       }
     },
 
-    updateSkill: async (skillName: string) => {
+    updateSkill: async (skillName: string): Promise<void> => {
       const skill = ctx.storage.getSkill(skillName);
       if (!skill) return;
 
       const s = store.getState();
       s.setUpdateProgressItems([
-        { id: `update-${skillName}`, label: `Updating ${skillName}...`, progress: 0, status: 'running' as const },
+        {
+          id: `update-${skillName}`,
+          label: `Updating ${skillName}...`,
+          progress: 0,
+          status: 'running' as const,
+        },
       ]);
 
       try {
         const updated = await ctx.skillService.update(skillName);
         if (!updated) {
-          s.updateProgressItem(`update-${skillName}`, { status: 'success', progress: 100, label: `${skillName} (skipped)` });
+          s.updateProgressItem(`update-${skillName}`, {
+            status: 'success',
+            progress: 100,
+            label: `${skillName} (skipped)`,
+          });
           await s.refreshSkills();
           setTimeout(() => {
             const cur = store.getState().updateProgressItems;
@@ -296,9 +324,21 @@ export function createSyncActions(
           }, 2000);
           return;
         }
-        try { await ctx.syncService.resync(skillName); } catch { /* ignore */ }
-        try { await ctx.projectSyncService.resync(skillName); } catch { /* ignore */ }
-        s.updateProgressItem(`update-${skillName}`, { status: 'success', progress: 100, label: `${skillName} updated` });
+        try {
+          await ctx.syncService.resync(skillName);
+        } catch {
+          /* ignore */
+        }
+        try {
+          await ctx.projectSyncService.resync(skillName);
+        } catch {
+          /* ignore */
+        }
+        s.updateProgressItem(`update-${skillName}`, {
+          status: 'success',
+          progress: 100,
+          label: `${skillName} updated`,
+        });
         await s.refreshSkills();
         setTimeout(() => {
           const cur = store.getState().updateProgressItems;
@@ -317,9 +357,11 @@ export function createSyncActions(
       }
     },
 
-    updateAllSkills: async () => {
+    updateAllSkills: async (): Promise<void> => {
       const allSkills = ctx.skillService.list();
-      const gitSkills = allSkills.filter((sk) => sk.source && (sk.source as { type: string }).type === 'git');
+      const gitSkills = allSkills.filter(
+        (sk) => sk.source && (sk.source as { type: string }).type === 'git'
+      );
       if (gitSkills.length === 0) return;
 
       const s = store.getState();
@@ -336,15 +378,35 @@ export function createSyncActions(
         try {
           const updated = await ctx.skillService.update(skill.name);
           if (!updated) {
-            s.updateProgressItem(`update-${skill.name}`, { status: 'success', progress: 100, label: `${skill.name} (skipped)` });
+            s.updateProgressItem(`update-${skill.name}`, {
+              status: 'success',
+              progress: 100,
+              label: `${skill.name} (skipped)`,
+            });
             continue;
           }
-          try { await ctx.syncService.resync(skill.name); } catch { /* ignore */ }
-          try { await ctx.projectSyncService.resync(skill.name); } catch { /* ignore */ }
-          s.updateProgressItem(`update-${skill.name}`, { status: 'success', progress: 100, label: `${skill.name} updated` });
+          try {
+            await ctx.syncService.resync(skill.name);
+          } catch {
+            /* ignore */
+          }
+          try {
+            await ctx.projectSyncService.resync(skill.name);
+          } catch {
+            /* ignore */
+          }
+          s.updateProgressItem(`update-${skill.name}`, {
+            status: 'success',
+            progress: 100,
+            label: `${skill.name} updated`,
+          });
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
-          s.updateProgressItem(`update-${skill.name}`, { status: 'error', progress: 100, error: msg });
+          s.updateProgressItem(`update-${skill.name}`, {
+            status: 'error',
+            progress: 100,
+            error: msg,
+          });
         }
       }
       await s.refreshSkills();

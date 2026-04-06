@@ -2,10 +2,12 @@
  * ProjectStorage Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import fs from 'fs-extra';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
+import fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { ProjectStorage } from '../../src/app/project-storage.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'agentforge-project-storage-test');
@@ -30,7 +32,12 @@ describe('ProjectStorage', () => {
     it('should be able to read and write config', () => {
       const config = {
         syncedSkills: [
-          { name: 'test-skill', syncedAt: '2024-01-01T00:00:00Z', mode: 'copy' as const, agentType: 'claude' as const },
+          {
+            name: 'test-skill',
+            syncedAt: '2024-01-01T00:00:00Z',
+            mode: 'copy' as const,
+            agentType: 'claude' as const,
+          },
         ],
       };
 

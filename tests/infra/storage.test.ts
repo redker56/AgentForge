@@ -5,10 +5,11 @@
  * these tests operate directly in temp directory, need to set env var to override home
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import fs from 'fs-extra';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
+import fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // Set test environment variable
 const TEST_HOME = path.join(os.tmpdir(), 'agentforge-storage-test');

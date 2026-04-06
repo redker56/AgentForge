@@ -4,32 +4,45 @@
  * af unsync projects <skill> [projects...]
  */
 
-import chalk from 'chalk';
 import { checkbox, select } from '@inquirer/prompts';
+import chalk from 'chalk';
 import type { Command } from 'commander';
-import type { CommandContext } from './index.js';
+
 import type { AgentId } from '../types.js';
+
+import type { CommandContext } from './index.js';
 
 export function register(program: Command, ctx: CommandContext): void {
   program
     .command('unsync <target> [name] [targets...]')
     .description('Remove sync (agents | projects)')
     .option('-a, --agent-types <types...>', 'Agent types when removing project sync')
-    .action(async (target: string, name: string | undefined, targets: string[], options: { agentTypes?: string[] }) => {
-      const skillName = name || '';
-      if (target === 'agents') {
-        await unsyncFromAgents(ctx, skillName, targets);
-      } else if (target === 'projects') {
-        await unsyncFromProjects(ctx, skillName, targets, options);
-      } else {
-        console.error(chalk.red(`Invalid target: ${target}`));
-        console.log(chalk.dim('Supported: agents, projects'));
-        process.exit(1);
+    .action(
+      async (
+        target: string,
+        name: string | undefined,
+        targets: string[],
+        options: { agentTypes?: string[] }
+      ) => {
+        const skillName = name || '';
+        if (target === 'agents') {
+          await unsyncFromAgents(ctx, skillName, targets);
+        } else if (target === 'projects') {
+          await unsyncFromProjects(ctx, skillName, targets, options);
+        } else {
+          console.error(chalk.red(`Invalid target: ${target}`));
+          console.log(chalk.dim('Supported: agents, projects'));
+          process.exit(1);
+        }
       }
-    });
+    );
 }
 
-async function unsyncFromAgents(ctx: CommandContext, name: string, agentIds: string[]): Promise<void> {
+async function unsyncFromAgents(
+  ctx: CommandContext,
+  name: string,
+  agentIds: string[]
+): Promise<void> {
   // Interactive skill selection
   if (!name) {
     if (!process.stdin.isTTY) {
@@ -37,14 +50,14 @@ async function unsyncFromAgents(ctx: CommandContext, name: string, agentIds: str
       process.exit(1);
     }
     // Only show skills synced to Agents
-    const skills = ctx.skills.list().filter(s => (s.syncedTo || []).length > 0);
+    const skills = ctx.skills.list().filter((s) => (s.syncedTo || []).length > 0);
     if (skills.length === 0) {
       console.log(chalk.yellow('No skills synced to Agents'));
       return;
     }
     name = await select({
       message: 'Select skill to unsync:',
-      choices: skills.map(s => ({ name: s.name, value: s.name })),
+      choices: skills.map((s) => ({ name: s.name, value: s.name })),
     });
   }
 
@@ -65,7 +78,7 @@ async function unsyncFromAgents(ctx: CommandContext, name: string, agentIds: str
   if (agentIds.length === 0 && process.stdin.isTTY) {
     const selected = await checkbox({
       message: 'Select Agents to unsync:',
-      choices: syncedAgents.map(r => {
+      choices: syncedAgents.map((r) => {
         const agent = ctx.storage.getAgent(r.agentId);
         return {
           name: `${agent?.name || r.agentId} (${r.mode})`,
@@ -85,7 +98,12 @@ async function unsyncFromAgents(ctx: CommandContext, name: string, agentIds: str
   console.log(chalk.green('Sync removed'));
 }
 
-async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds: string[], options: { agentTypes?: string[] }): Promise<void> {
+async function unsyncFromProjects(
+  ctx: CommandContext,
+  name: string,
+  projectIds: string[],
+  options: { agentTypes?: string[] }
+): Promise<void> {
   // Interactive skill selection
   if (!name) {
     if (!process.stdin.isTTY) {
@@ -100,13 +118,15 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
     }
 
     // Get project distribution for each skill
-    const skillsWithProjects = await Promise.all(skills.map(async s => {
-      const distribution = await ctx.scan.getSkillProjectDistributionWithStatus(s.name);
-      return { ...s, distribution };
-    }));
+    const skillsWithProjects = await Promise.all(
+      skills.map(async (s) => {
+        const distribution = await ctx.scan.getSkillProjectDistributionWithStatus(s.name);
+        return { ...s, distribution };
+      })
+    );
 
     // Filter skills with project distribution
-    const skillsWithProjectDist = skillsWithProjects.filter(s => s.distribution.length > 0);
+    const skillsWithProjectDist = skillsWithProjects.filter((s) => s.distribution.length > 0);
 
     if (skillsWithProjectDist.length === 0) {
       console.log(chalk.yellow('No skills synced to any project'));
@@ -115,7 +135,7 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
 
     name = await select({
       message: 'Select skill to unsync:',
-      choices: skillsWithProjectDist.map(s => ({
+      choices: skillsWithProjectDist.map((s) => ({
         name: `${s.name} (${s.distribution.length} projects)`,
         value: s.name,
       })),
@@ -135,7 +155,12 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
   const actualDistribution = await ctx.scan.getSkillProjectDistributionWithStatus(name);
 
   // Merge: recorded + existing but unrecorded
-  const allTargets: Array<{ projectId: string; agentType: string; mode: string; fromRecord: boolean }> = [];
+  const allTargets: Array<{
+    projectId: string;
+    agentType: string;
+    mode: string;
+    fromRecord: boolean;
+  }> = [];
 
   // Add recorded
   for (const r of syncedProjects) {
@@ -151,7 +176,7 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
   for (const d of actualDistribution) {
     for (const a of d.agents) {
       const alreadyRecorded = syncedProjects.some(
-        r => r.projectId === d.projectId && r.agentType === a.id
+        (r) => r.projectId === d.projectId && r.agentType === a.id
       );
       if (!alreadyRecorded) {
         allTargets.push({
@@ -173,7 +198,7 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
   if (projectIds.length === 0 && process.stdin.isTTY) {
     const selected = await checkbox({
       message: 'Select projects to unsync:',
-      choices: allTargets.map(t => {
+      choices: allTargets.map((t) => {
         const project = ctx.storage.getProject(t.projectId);
         const displayName = project
           ? `${project.id} (${t.agentType}${t.mode !== 'unknown' ? `, ${t.mode}` : ''})`
@@ -182,7 +207,7 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
       }),
     });
     // Extract projectId from "projectId:agentType"
-    projectIds = [...new Set((selected as string[]).map(s => s.split(':')[0]))];
+    projectIds = [...new Set((selected as string[]).map((s) => s.split(':')[0]))];
     // If selection made, use full selection list
     if (selected.length > 0) {
       const targets = selected as string[];
@@ -207,7 +232,11 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
         : `${t.projectId} (${t.agentType}) [project deleted]`;
       console.log(chalk.dim(`  ${displayName}`));
     }
-    console.log(chalk.dim('\nUse "af unsync projects <skill> <projectId>:<agentType>" to remove specific sync'));
+    console.log(
+      chalk.dim(
+        '\nUse "af unsync projects <skill> <projectId>:<agentType>" to remove specific sync'
+      )
+    );
     return;
   }
 
@@ -245,7 +274,11 @@ async function unsyncFromProjects(ctx: CommandContext, name: string, projectIds:
 
   try {
     for (const projectId of plainProjectIds) {
-      await ctx.projectSync.unsyncFromProject(name, projectId, options.agentTypes as AgentId[] | undefined);
+      await ctx.projectSync.unsyncFromProject(
+        name,
+        projectId,
+        options.agentTypes as AgentId[] | undefined
+      );
     }
     console.log(chalk.green('Sync removed'));
   } catch (e: unknown) {

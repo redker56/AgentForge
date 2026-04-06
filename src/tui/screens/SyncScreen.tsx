@@ -2,13 +2,14 @@
  * Sync tab full screen. Hosts SyncForm and provides a title header.
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
-import type { AppStore } from '../store/index.js';
-import { SyncForm } from '../components/SyncForm.js';
+
 import { ProgressBarStack } from '../components/ProgressBar.js';
+import { SyncForm } from '../components/SyncForm.js';
+import type { AppStore } from '../store/index.js';
 
 interface SyncScreenProps {
   store: StoreApi<AppStore>;

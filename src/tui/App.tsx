@@ -2,32 +2,33 @@
  * Root TUI component -- renders TabBar, BreadcrumbBar, screen router, StatusBar, and overlays
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import { useEffect } from 'react';
 import { useStore } from 'zustand';
-import { useShallow } from 'zustand/react/shallow';
 import type { StoreApi } from 'zustand';
-import type { AppStore } from './store/index.js';
-import { TabBar } from './components/TabBar.js';
-import { StatusBar } from './components/StatusBar.js';
-import { SkillsScreen } from './screens/SkillsScreen.js';
-import { AgentsScreen } from './screens/AgentsScreen.js';
-import { ProjectsScreen } from './screens/ProjectsScreen.js';
-import { SyncScreen } from './screens/SyncScreen.js';
-import { ImportScreen } from './screens/ImportScreen.js';
-import { SearchOverlay } from './components/SearchOverlay.js';
-import { HelpOverlay } from './components/HelpOverlay.js';
+import { useShallow } from 'zustand/react/shallow';
+
 import { AddForm } from './components/AddForm.js';
-import { ImportForm } from './components/ImportForm.js';
+import { BreadcrumbBar } from './components/BreadcrumbBar.js';
+import { CommandPalette } from './components/CommandPalette.js';
+import { CompletionModal } from './components/CompletionModal.js';
 import { ConfirmModal } from './components/ConfirmModal.js';
 import { ConflictPanel } from './components/ConflictPanel.js';
-import { CompletionModal } from './components/CompletionModal.js';
-import { CommandPalette } from './components/CommandPalette.js';
-import { BreadcrumbBar } from './components/BreadcrumbBar.js';
-import { useInputHandler } from './hooks/useInput.js';
+import { HelpOverlay } from './components/HelpOverlay.js';
+import { ImportForm } from './components/ImportForm.js';
 import { ProgressBarStack } from './components/ProgressBar.js';
+import { SearchOverlay } from './components/SearchOverlay.js';
+import { StatusBar } from './components/StatusBar.js';
+import { TabBar } from './components/TabBar.js';
+import { useInputHandler } from './hooks/useInput.js';
 import { useTerminalDimensions } from './hooks/useTerminalDimensions.js';
 import type { WidthBand } from './hooks/useTerminalDimensions.js';
+import { AgentsScreen } from './screens/AgentsScreen.js';
+import { ImportScreen } from './screens/ImportScreen.js';
+import { ProjectsScreen } from './screens/ProjectsScreen.js';
+import { SkillsScreen } from './screens/SkillsScreen.js';
+import { SyncScreen } from './screens/SyncScreen.js';
+import type { AppStore } from './store/index.js';
 import { deriveBreadcrumbs } from './utils/breadcrumbs.js';
 
 interface AppProps {
@@ -52,13 +53,12 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
   const dimensions = useTerminalDimensions();
 
   // Sync width band to Zustand store so all downstream hooks can read state.widthBand
-  React.useEffect(() => {
+  useEffect(() => {
     setWidthBand(dimensions.band);
   }, [dimensions.band, setWidthBand]);
 
   const band = dimensions.band as WidthBand;
   const columns = dimensions.columns;
-  const rows = dimensions.rows;
   const isCompact = band === 'compact';
 
   // Derive breadcrumb segments from store state

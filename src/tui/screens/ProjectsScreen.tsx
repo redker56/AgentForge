@@ -2,13 +2,14 @@
  * Projects tab content -- wraps ProjectTable with padding and detail loading.
  */
 
-import React, { useEffect } from 'react';
 import { Box } from 'ink';
+import React, { useEffect } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
-import type { AppStore } from '../store/index.js';
+
 import { ProjectTable } from '../components/ProjectTable.js';
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
+import type { AppStore } from '../store/index.js';
 
 interface ProjectsScreenProps {
   store: StoreApi<AppStore>;
@@ -30,7 +31,7 @@ export function ProjectsScreen({ store, band, columns }: ProjectsScreenProps): R
     if (focusedProject) {
       const detail = store.getState().projectDetails[focusedProject.id];
       if (!detail) {
-        store.getState().loadProjectDetail(focusedProject.id);
+        void store.getState().loadProjectDetail(focusedProject.id);
       }
     }
   }, [focusedProjectIndex, projects, store]);

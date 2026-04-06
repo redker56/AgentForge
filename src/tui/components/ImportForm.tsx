@@ -2,13 +2,13 @@
  * Form overlay for importing skills from a project or agent.
  */
 
-import React, { useState, useCallback } from 'react';
 import { Box, Text, useInput } from 'ink';
+import Spinner from 'ink-spinner';
+import React, { useState, useEffect } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
-import Spinner from 'ink-spinner';
+
 import type { AppStore } from '../store/index.js';
-import { ErrorMessage } from './ErrorMessage.js';
 
 interface ImportFormProps {
   store: StoreApi<AppStore>;
@@ -41,7 +41,7 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
   const isProject = formType === 'importProject';
 
   // If projectId is pre-set, skip to skill scanning
-  React.useEffect(() => {
+  useEffect(() => {
     if (isProject && formState.data.projectId) {
       const state = store.getState();
       const skills = state.scanProjectSkills(formState.data.projectId);

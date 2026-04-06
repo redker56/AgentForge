@@ -9,8 +9,8 @@
  * Minimal horizontal space cost -- left-aligned within fixed width.
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
 
 export interface StepIndicatorProps {
   steps: string[];

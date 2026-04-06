@@ -2,9 +2,12 @@
  * unsync command tests
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { select as selectMock } from '@inquirer/prompts';
 import { Command } from 'commander';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { register } from '../../src/commands/unsync.js';
+import { createMockFileOps } from '../helpers/mock-context.js';
 
 vi.mock('@inquirer/prompts', () => ({
   checkbox: vi.fn(),
@@ -12,25 +15,6 @@ vi.mock('@inquirer/prompts', () => ({
   input: vi.fn(),
   confirm: vi.fn(),
 }));
-
-import { select as selectMock } from '@inquirer/prompts';
-
-// Create a mock fileOps with all required methods
-function createMockFileOps(overrides: Record<string, unknown> = {}) {
-  return {
-    pathExists: vi.fn(() => false),
-    fileExists: vi.fn(() => false),
-    readFile: vi.fn(() => null),
-    readFileSync: vi.fn(() => null),
-    writeFileSync: vi.fn(),
-    mkdirSync: vi.fn(),
-    ensureDir: vi.fn().mockResolvedValue(undefined),
-    listSubdirectories: vi.fn(() => []),
-    scanSkillsInDirectory: vi.fn(() => []),
-    getDirectoryHash: vi.fn().mockResolvedValue(null),
-    ...overrides,
-  };
-}
 
 describe('unsync command', () => {
   let consoleLog: ReturnType<typeof vi.spyOn>;
@@ -82,10 +66,7 @@ describe('unsync command', () => {
         fileOps: createMockFileOps(),
       } as never);
 
-      await program.parseAsync(
-        ['unsync', 'agents', 'test-skill', 'claude'],
-        { from: 'user' }
-      );
+      await program.parseAsync(['unsync', 'agents', 'test-skill', 'claude'], { from: 'user' });
 
       expect(unsync).toHaveBeenCalledWith('test-skill', ['claude']);
       expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Sync removed'));
@@ -108,10 +89,9 @@ describe('unsync command', () => {
         fileOps: createMockFileOps(),
       } as never);
 
-      await expect(program.parseAsync(
-        ['unsync', 'agents', 'unknown-skill'],
-        { from: 'user' }
-      )).rejects.toThrow('process.exit mocked');
+      await expect(
+        program.parseAsync(['unsync', 'agents', 'unknown-skill'], { from: 'user' })
+      ).rejects.toThrow('process.exit mocked');
 
       expect(getMock).toHaveBeenCalledWith('unknown-skill');
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));
@@ -138,10 +118,7 @@ describe('unsync command', () => {
         fileOps: createMockFileOps(),
       } as never);
 
-      await program.parseAsync(
-        ['unsync', 'agents', 'test-skill'],
-        { from: 'user' }
-      );
+      await program.parseAsync(['unsync', 'agents', 'test-skill'], { from: 'user' });
 
       expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('not synced to any Agent'));
     });
@@ -170,7 +147,9 @@ describe('unsync command', () => {
 
         await program.parseAsync(['unsync', 'agents'], { from: 'user' });
 
-        expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('No skills synced to Agents'));
+        expect(consoleLog).toHaveBeenCalledWith(
+          expect.stringContaining('No skills synced to Agents')
+        );
       } finally {
         Object.defineProperty(process.stdin, 'isTTY', { value: originalIsTTY, configurable: true });
         (selectMock as ReturnType<typeof vi.fn>).mockReset();
@@ -216,10 +195,9 @@ describe('unsync command', () => {
         fileOps: createMockFileOps(),
       } as never);
 
-      await program.parseAsync(
-        ['unsync', 'projects', 'test-skill', 'proj-a:claude'],
-        { from: 'user' }
-      );
+      await program.parseAsync(['unsync', 'projects', 'test-skill', 'proj-a:claude'], {
+        from: 'user',
+      });
 
       expect(unsync).toHaveBeenCalledWith('test-skill', ['proj-a:claude']);
     });
@@ -253,9 +231,11 @@ describe('unsync command', () => {
           })),
         },
         scan: {
-          getSkillProjectDistributionWithStatus: vi.fn().mockResolvedValue([
-            { projectId: 'proj-a', agents: [{ id: 'claude', name: 'Claude Code' }] },
-          ]),
+          getSkillProjectDistributionWithStatus: vi
+            .fn()
+            .mockResolvedValue([
+              { projectId: 'proj-a', agents: [{ id: 'claude', name: 'Claude Code' }] },
+            ]),
         },
         projectSync: {
           unsyncFromProject,
@@ -293,10 +273,9 @@ describe('unsync command', () => {
         fileOps: createMockFileOps(),
       } as never);
 
-      await expect(program.parseAsync(
-        ['unsync', 'projects', 'unknown-skill'],
-        { from: 'user' }
-      )).rejects.toThrow('process.exit mocked');
+      await expect(
+        program.parseAsync(['unsync', 'projects', 'unknown-skill'], { from: 'user' })
+      ).rejects.toThrow('process.exit mocked');
 
       expect(getMock).toHaveBeenCalledWith('unknown-skill');
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));
@@ -337,12 +316,11 @@ describe('unsync command', () => {
         fileOps: createMockFileOps(),
       } as never);
 
-      await program.parseAsync(
-        ['unsync', 'projects', 'test-skill'],
-        { from: 'user' }
-      );
+      await program.parseAsync(['unsync', 'projects', 'test-skill'], { from: 'user' });
 
-      expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('This skill is synced to the following projects'));
+      expect(consoleLog).toHaveBeenCalledWith(
+        expect.stringContaining('This skill is synced to the following projects')
+      );
     });
 
     it('shows no skills available message when no skills exist', async () => {
@@ -386,8 +364,9 @@ describe('unsync command', () => {
 
       register(program, { fileOps: createMockFileOps() } as never);
 
-      await expect(program.parseAsync(['unsync', 'invalid'], { from: 'user' }))
-        .rejects.toThrow('process.exit mocked');
+      await expect(program.parseAsync(['unsync', 'invalid'], { from: 'user' })).rejects.toThrow(
+        'process.exit mocked'
+      );
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Invalid target'));
     });

@@ -2,8 +2,8 @@
  * CommandPalette component test
  */
 
-import { describe, expect, it } from 'vitest';
 import React from 'react';
+import { describe, expect, it } from 'vitest';
 
 describe('CommandPalette', () => {
   it('exports CommandPalette component', async () => {
@@ -43,7 +43,7 @@ describe('CommandPalette', () => {
     // Count the entries in COMMANDS array
     const commandMatches = source.match(/{ id: '/g);
     expect(commandMatches).not.toBeNull();
-    expect(commandMatches!.length).toBe(12);
+    expect(commandMatches?.length).toBe(12);
   });
 
   it('command list includes all expected commands', async () => {

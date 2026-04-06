@@ -1,12 +1,20 @@
 /**
- * Sync service abstract base class
+ * @module App/BaseSyncService
+ * @layer app
+ * @allowed-imports infra/, types
+ * @responsibility Abstract base class for skill sync operations.
  *
- * Provides shared logic for user-level and project-level sync
+ * Provides shared logic for user-level (Agent) and project-level sync.
+ * Subclasses implement target resolution and record persistence for their
+ * specific sync domain (agents or projects).
+ *
+ * @architecture Template Method pattern — this class defines the sync/unsync/check
+ * workflow while subclass hooks (`getAvailableTargets`, `getTargetPath`,
+ * `getSyncRecords`, `saveSyncRecords`) supply domain-specific behavior.
  */
 
-import path from 'path';
-import { Storage } from '../../infra/storage.js';
 import { files } from '../../infra/files.js';
+import { Storage } from '../../infra/storage.js';
 import type { SyncMode } from '../../types.js';
 
 export interface SyncResult {
@@ -66,15 +74,21 @@ export abstract class BaseSyncService<TTarget, TRecord> {
       const targetId = this.getTargetId(target);
 
       try {
-      // Target exists, remove first
-      if (files.exists(targetPath)) {
-        await files.remove(targetPath);
-      }
+        // Target exists, remove first
+        if (files.exists(targetPath)) {
+          await files.remove(targetPath);
+        }
 
         const actualMode = await this.doSync(skillPath, targetPath, mode);
         results.push({ target: targetId, success: true, path: targetPath, mode: actualMode });
-      } catch (error: any) {
-        results.push({ target: targetId, success: false, path: targetPath, mode, error: error.message });
+      } catch (error: unknown) {
+        results.push({
+          target: targetId,
+          success: false,
+          path: targetPath,
+          mode,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
@@ -88,10 +102,10 @@ export abstract class BaseSyncService<TTarget, TRecord> {
    */
   async unsync(skillName: string, targetIds?: string[]): Promise<void> {
     const records = this.getSyncRecords(skillName);
-    const toRemove = targetIds || records.map(r => this.getRecordTarget(r));
+    const toRemove = targetIds || records.map((r) => this.getRecordTarget(r));
 
     for (const targetId of toRemove) {
-      const record = records.find(r => this.getRecordTarget(r) === targetId);
+      const record = records.find((r) => this.getRecordTarget(r) === targetId);
       if (!record) continue;
 
       const targetPath = this.getTargetPathFromRecord(record, skillName);
@@ -100,7 +114,7 @@ export abstract class BaseSyncService<TTarget, TRecord> {
       }
     }
 
-    const remaining = records.filter(r => !toRemove.includes(this.getRecordTarget(r)));
+    const remaining = records.filter((r) => !toRemove.includes(this.getRecordTarget(r)));
     this.saveSyncRecords(skillName, remaining);
   }
 
@@ -111,13 +125,19 @@ export abstract class BaseSyncService<TTarget, TRecord> {
     const skillPath = this.storage.getSkillPath(skillName);
     const targets = this.getAvailableTargets();
 
-    return targets.map(target => {
+    return targets.map((target) => {
       const targetPath = this.getTargetPath(target, skillName);
       const targetId = this.getTargetId(target);
       const exists = files.exists(targetPath);
 
       if (!exists) {
-        return { target: targetId, exists: false, sameContent: null, isSymlink: false, linkTarget: null };
+        return {
+          target: targetId,
+          exists: false,
+          sameContent: null,
+          isSymlink: false,
+          linkTarget: null,
+        };
       }
 
       const isSymlink = files.isSymlink(targetPath);
@@ -144,7 +164,11 @@ export abstract class BaseSyncService<TTarget, TRecord> {
     return String(target);
   }
 
-  protected async doSync(sourcePath: string, targetPath: string, mode: SyncMode): Promise<SyncMode> {
+  protected async doSync(
+    sourcePath: string,
+    targetPath: string,
+    mode: SyncMode
+  ): Promise<SyncMode> {
     if (mode === 'symlink') {
       const success = await files.symlink(sourcePath, targetPath);
       if (success) return 'symlink';

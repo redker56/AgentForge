@@ -3,11 +3,14 @@
  * af show agents <id> | projects <id> | skills <name>
  */
 
-import chalk from 'chalk';
 import path from 'path';
+
+import chalk from 'chalk';
 import type { Command } from 'commander';
-import type { CommandContext } from './index.js';
+
 import { formatProjectSkillList, formatSourceLabel } from '../app/cli-formatting.js';
+
+import type { CommandContext } from './index.js';
 
 async function showAgent(ctx: CommandContext, agentId: string): Promise<void> {
   const agent = ctx.storage.getAgent(agentId);
@@ -29,8 +32,9 @@ async function showAgent(ctx: CommandContext, agentId: string): Promise<void> {
   } else {
     for (const skill of skillDirs) {
       const skillPath = path.join(agent.basePath, skill);
-      const hasSkillMd = ctx.fileOps.fileExists(path.join(skillPath, 'SKILL.md')) ||
-                        ctx.fileOps.fileExists(path.join(skillPath, 'skill.md'));
+      const hasSkillMd =
+        ctx.fileOps.fileExists(path.join(skillPath, 'SKILL.md')) ||
+        ctx.fileOps.fileExists(path.join(skillPath, 'skill.md'));
       const icon = hasSkillMd ? '📦' : '📁';
       console.log(`  ${icon} ${chalk.cyan(skill)}`);
     }
@@ -45,9 +49,11 @@ async function showAgent(ctx: CommandContext, agentId: string): Promise<void> {
     // Group by project
     const byProject = new Map<string, typeof projectSkills>();
     for (const skill of projectSkills) {
-      const existing = byProject.get(skill.projectId!) || [];
+      const projectId = skill.projectId;
+      if (!projectId) continue;
+      const existing = byProject.get(projectId) || [];
       existing.push(skill);
-      byProject.set(skill.projectId!, existing);
+      byProject.set(projectId, existing);
     }
 
     for (const [projectId, skills] of byProject) {
@@ -134,7 +140,7 @@ function showSkill(ctx: CommandContext, skillName: string): void {
     for (const d of distribution) {
       const isSource = meta.source.type === 'project' && meta.source.projectId === d.projectId;
       const sourceMark = isSource ? chalk.dim(' (source)') : '';
-      const agentNames = d.agents.map(a => a.name).join(', ');
+      const agentNames = d.agents.map((a) => a.name).join(', ');
       console.log(chalk.dim(`  ${d.projectId}${sourceMark}`) + chalk.green(` (${agentNames})`));
     }
   }

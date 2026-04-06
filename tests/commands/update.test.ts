@@ -2,8 +2,9 @@
  * update command tests
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Command } from 'commander';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { register } from '../../src/commands/update.js';
 
 describe('update command', () => {
@@ -90,8 +91,9 @@ describe('update command', () => {
       },
     } as never);
 
-    await expect(program.parseAsync(['update', 'unknown-skill'], { from: 'user' }))
-      .rejects.toThrow('process.exit mocked');
+    await expect(program.parseAsync(['update', 'unknown-skill'], { from: 'user' })).rejects.toThrow(
+      'process.exit mocked'
+    );
 
     expect(getMock).toHaveBeenCalledWith('unknown-skill');
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));

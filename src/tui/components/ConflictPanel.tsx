@@ -3,10 +3,11 @@
  * Shows same-name skills found in agent directories and allows resolution.
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
+
 import type { AppStore } from '../store/index.js';
 
 interface ConflictPanelProps {

@@ -5,25 +5,34 @@
  * af remove agents <agentId>
  */
 
-import chalk from 'chalk';
 import { confirm } from '@inquirer/prompts';
+import chalk from 'chalk';
 import type { Command } from 'commander';
-import type { CommandContext } from './index.js';
+
 import { BUILTIN_AGENTS, type Agent, type SkillMeta } from '../types.js';
+
+import type { CommandContext } from './index.js';
 
 function getProjectTargetId(projectId: string, agentType: string): string {
   return `${projectId}:${agentType}`;
 }
 
-function getRecordedProjectTargetIds(meta: SkillMeta, predicate?: (record: NonNullable<SkillMeta['syncedProjects']>[number]) => boolean): string[] {
+function getRecordedProjectTargetIds(
+  meta: SkillMeta,
+  predicate?: (record: NonNullable<SkillMeta['syncedProjects']>[number]) => boolean
+): string[] {
   const records = meta.syncedProjects || [];
   return records
-    .filter(record => predicate ? predicate(record) : true)
-    .map(record => getProjectTargetId(record.projectId, record.agentType));
+    .filter((record) => (predicate ? predicate(record) : true))
+    .map((record) => getProjectTargetId(record.projectId, record.agentType));
 }
 
-async function removeManagedSkillSyncs(ctx: CommandContext, skillName: string, meta: SkillMeta): Promise<{ agentSyncCount: number; projectSyncCount: number }> {
-  const agentIds = [...new Set(meta.syncedTo.map(record => record.agentId))];
+async function removeManagedSkillSyncs(
+  ctx: CommandContext,
+  skillName: string,
+  meta: SkillMeta
+): Promise<{ agentSyncCount: number; projectSyncCount: number }> {
+  const agentIds = [...new Set(meta.syncedTo.map((record) => record.agentId))];
   const projectTargetIds = [...new Set(getRecordedProjectTargetIds(meta))];
 
   if (agentIds.length > 0) {
@@ -45,7 +54,7 @@ function removeProjectSyncReferences(ctx: CommandContext, projectId: string): nu
 
   for (const skill of ctx.storage.listSkills()) {
     const syncedProjects = skill.syncedProjects || [];
-    const remaining = syncedProjects.filter(record => record.projectId !== projectId);
+    const remaining = syncedProjects.filter((record) => record.projectId !== projectId);
 
     if (remaining.length !== syncedProjects.length) {
       removedCount += syncedProjects.length - remaining.length;
@@ -56,19 +65,22 @@ function removeProjectSyncReferences(ctx: CommandContext, projectId: string): nu
   return removedCount;
 }
 
-function removeAgentSyncReferences(ctx: CommandContext, agentId: string): { agentSyncCount: number; projectSyncCount: number } {
+function removeAgentSyncReferences(
+  ctx: CommandContext,
+  agentId: string
+): { agentSyncCount: number; projectSyncCount: number } {
   let agentSyncCount = 0;
   let projectSyncCount = 0;
 
   for (const skill of ctx.storage.listSkills()) {
-    const remainingAgentSyncs = skill.syncedTo.filter(record => record.agentId !== agentId);
+    const remainingAgentSyncs = skill.syncedTo.filter((record) => record.agentId !== agentId);
     if (remainingAgentSyncs.length !== skill.syncedTo.length) {
       agentSyncCount += skill.syncedTo.length - remainingAgentSyncs.length;
       ctx.storage.updateSkillSync(skill.name, remainingAgentSyncs);
     }
 
     const syncedProjects = skill.syncedProjects || [];
-    const remainingProjectSyncs = syncedProjects.filter(record => record.agentType !== agentId);
+    const remainingProjectSyncs = syncedProjects.filter((record) => record.agentType !== agentId);
     if (remainingProjectSyncs.length !== syncedProjects.length) {
       projectSyncCount += syncedProjects.length - remainingProjectSyncs.length;
       ctx.storage.updateSkillProjectSync(skill.name, remainingProjectSyncs);
@@ -78,7 +90,11 @@ function removeAgentSyncReferences(ctx: CommandContext, agentId: string): { agen
   return { agentSyncCount, projectSyncCount };
 }
 
-export async function removeSkill(ctx: CommandContext, skillName: string, options: { yes?: boolean }): Promise<void> {
+export async function removeSkill(
+  ctx: CommandContext,
+  skillName: string,
+  options: { yes?: boolean }
+): Promise<void> {
   if (!ctx.skills.exists(skillName)) {
     console.error(chalk.red(`Skill not found: ${skillName}`));
     process.exit(1);
@@ -108,7 +124,11 @@ export async function removeSkill(ctx: CommandContext, skillName: string, option
   const removed = await removeManagedSkillSyncs(ctx, skillName, meta);
 
   if (removed.agentSyncCount > 0 || removed.projectSyncCount > 0) {
-    console.log(chalk.dim(`Removed ${removed.agentSyncCount} user-level sync(s) and ${removed.projectSyncCount} project sync(s)`));
+    console.log(
+      chalk.dim(
+        `Removed ${removed.agentSyncCount} user-level sync(s) and ${removed.projectSyncCount} project sync(s)`
+      )
+    );
   }
 
   // Delete skill
@@ -116,7 +136,11 @@ export async function removeSkill(ctx: CommandContext, skillName: string, option
   console.log(chalk.green(`Skill deleted: ${skillName}`));
 }
 
-export async function removeProject(ctx: CommandContext, projectId: string, options: { yes?: boolean }): Promise<void> {
+export async function removeProject(
+  ctx: CommandContext,
+  projectId: string,
+  options: { yes?: boolean }
+): Promise<void> {
   const project = ctx.storage.getProject(projectId);
   if (!project) {
     console.error(chalk.red(`Project not found: ${projectId}`));
@@ -129,7 +153,8 @@ export async function removeProject(ctx: CommandContext, projectId: string, opti
     console.log(chalk.dim(`Path: ${project.path}`));
 
     const confirmed = await confirm({
-      message: 'Remove this project from AgentForge? Project files stay on disk; AgentForge will just forget the project and its recorded sync references.',
+      message:
+        'Remove this project from AgentForge? Project files stay on disk; AgentForge will just forget the project and its recorded sync references.',
       default: false,
     });
 
@@ -149,27 +174,35 @@ export async function removeProject(ctx: CommandContext, projectId: string, opti
   }
 }
 
-export async function removeAgent(ctx: CommandContext, agentId: string, options: { yes?: boolean }): Promise<void> {
+export async function removeAgent(
+  ctx: CommandContext,
+  agentId: string,
+  options: { yes?: boolean }
+): Promise<void> {
   // Check if it's a built-in Agent
-  const builtinIds = BUILTIN_AGENTS.map(a => a.id);
+  const builtinIds = BUILTIN_AGENTS.map((a) => a.id);
   if (builtinIds.includes(agentId)) {
     console.error(chalk.red(`Built-in Agent "${agentId}" cannot be removed`));
     console.log(chalk.dim('Only custom Agent configurations can be removed'));
     process.exit(1);
   }
 
-  const agent = ctx.storage.listAllDefinedAgents().find((definedAgent: Agent) => definedAgent.id === agentId);
+  const agent = ctx.storage
+    .listAllDefinedAgents()
+    .find((definedAgent: Agent) => definedAgent.id === agentId);
   if (!agent) {
     console.error(chalk.red(`Agent configuration not found: ${agentId}`));
     console.log(chalk.dim('Run "af list agents" to see active Agents'));
     process.exit(1);
   }
 
-  const syncedSkills = ctx.storage.listSkills().filter(skill => skill.syncedTo.some(record => record.agentId === agentId));
-  const projectSyncCount = ctx.storage.listSkills()
-    .flatMap(skill => skill.syncedProjects || [])
-    .filter(record => record.agentType === agentId)
-    .length;
+  const syncedSkills = ctx.storage
+    .listSkills()
+    .filter((skill) => skill.syncedTo.some((record) => record.agentId === agentId));
+  const projectSyncCount = ctx.storage
+    .listSkills()
+    .flatMap((skill) => skill.syncedProjects || [])
+    .filter((record) => record.agentType === agentId).length;
 
   // Confirm deletion
   if (!options.yes && process.stdin.isTTY) {
@@ -183,7 +216,8 @@ export async function removeAgent(ctx: CommandContext, agentId: string, options:
     }
 
     const confirmed = await confirm({
-      message: 'Remove this custom Agent configuration? Files stay on disk; AgentForge will just forget sync references tied to this Agent.',
+      message:
+        'Remove this custom Agent configuration? Files stay on disk; AgentForge will just forget sync references tied to this Agent.',
       default: false,
     });
 
@@ -198,7 +232,11 @@ export async function removeAgent(ctx: CommandContext, agentId: string, options:
   if (success) {
     console.log(chalk.green(`Agent configuration removed: ${agentId}`));
     if (removed.agentSyncCount > 0 || removed.projectSyncCount > 0) {
-      console.log(chalk.dim(`Removed ${removed.agentSyncCount} user-level sync reference(s) and ${removed.projectSyncCount} project sync reference(s)`));
+      console.log(
+        chalk.dim(
+          `Removed ${removed.agentSyncCount} user-level sync reference(s) and ${removed.projectSyncCount} project sync reference(s)`
+        )
+      );
     }
   }
 }

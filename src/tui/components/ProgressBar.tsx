@@ -5,8 +5,9 @@
  * Pure display component -- no state, no input handling.
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
+
 import type { ProgressItem } from '../store/uiSlice.js';
 
 interface ProgressBarProps {
@@ -22,7 +23,6 @@ interface ProgressBarProps {
 
 const FULL_BLOCK = '\u2588';
 const LIGHT_SHADE = '\u2591';
-const BAR_WIDTH = 30;
 
 const STATUS_COLOR: Record<string, string> = {
   running: 'cyan',
@@ -31,7 +31,7 @@ const STATUS_COLOR: Record<string, string> = {
   pending: 'gray',
 };
 
-export function ProgressBar({ label, progress, status, error, width, columns, completed, total }: ProgressBarProps): React.ReactElement {
+export function ProgressBar({ label, progress, status, error: _error, width, columns, completed, total }: ProgressBarProps): React.ReactElement {
   // Adaptive width: columns > 120 -> scale up, otherwise 30, min 15
   const baseWidth = typeof width === 'number' ? width :
     typeof columns === 'number' && columns > 120 ? Math.max(50, Math.min(60, columns - 70)) : 30;

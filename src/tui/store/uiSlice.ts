@@ -3,8 +3,8 @@
  */
 
 import type { StateCreator } from 'zustand';
+
 import type { SyncMode } from '../../types.js';
-import { createUndoEngine } from '../utils/undo-engine.js';
 
 export type TabId = 'skills' | 'agents' | 'projects' | 'sync' | 'import';
 
@@ -12,10 +12,24 @@ export type TabId = 'skills' | 'agents' | 'projects' | 'sync' | 'import';
 export type SyncOperation = 'sync-agents' | 'sync-projects' | 'unsync';
 
 /** Step index for Sync tab form */
-export type SyncFormStep = 'select-op' | 'select-skills' | 'select-targets' | 'select-agent-types' | 'select-mode' | 'confirm' | 'executing' | 'results';
+export type SyncFormStep =
+  | 'select-op'
+  | 'select-skills'
+  | 'select-targets'
+  | 'select-agent-types'
+  | 'select-mode'
+  | 'confirm'
+  | 'executing'
+  | 'results';
 
 /** Step index for Import tab form */
-export type ImportFormTabStep = 'select-source-type' | 'select-source' | 'select-skills' | 'confirm' | 'executing' | 'results';
+export type ImportFormTabStep =
+  | 'select-source-type'
+  | 'select-source'
+  | 'select-skills'
+  | 'confirm'
+  | 'executing'
+  | 'results';
 
 /** Result entry for sync/update/import operations */
 export interface OperationResult {
@@ -238,7 +252,6 @@ export interface UISlice {
 export type StoreState = UISlice & Record<string, any>;
 
 // Module-level timer references (live outside Zustand state)
-let undoEngine = createUndoEngine(250, 8000);
 let undoTickTimer: ReturnType<typeof setInterval> | null = null;
 let toastTickTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -320,68 +333,74 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
   toastQueue: [],
   activeToast: null,
 
-  setActiveTab: (tab) => set({
-    activeTab: tab,
-    focusedSkillIndex: 0,
-    selectedSkillNames: new Set(),
-    // Reset agent/project focus when switching tabs
-    focusedAgentIndex: 0,
-    expandedAgentIds: new Set(),
-    focusedProjectIndex: 0,
-    expandedProjectIds: new Set(),
-    // Clear overlay states on tab switch
-    confirmState: null,
-    formState: null,
-    conflictState: null,
-    detailOverlayVisible: false,
-  }),
+  setActiveTab: (tab) =>
+    set({
+      activeTab: tab,
+      focusedSkillIndex: 0,
+      selectedSkillNames: new Set(),
+      // Reset agent/project focus when switching tabs
+      focusedAgentIndex: 0,
+      expandedAgentIds: new Set(),
+      focusedProjectIndex: 0,
+      expandedProjectIds: new Set(),
+      // Clear overlay states on tab switch
+      confirmState: null,
+      formState: null,
+      conflictState: null,
+      detailOverlayVisible: false,
+    }),
   setFocusedSkillIndex: (index) => set({ focusedSkillIndex: index }),
-  toggleSkillSelection: (name) => {
+  toggleSkillSelection: (name): void => {
     const next = new Set(get().selectedSkillNames);
-    if (next.has(name)) next.delete(name); else next.add(name);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
     set({ selectedSkillNames: next });
   },
   clearSelection: () => set({ selectedSkillNames: new Set() }),
   selectAllSkills: (allNames) => set({ selectedSkillNames: new Set(allNames) }),
   setSearchQuery: (query) => set({ searchQuery: query }),
-  moveFocusUp: () => {
+  moveFocusUp: (): void => {
     const idx = get().focusedSkillIndex;
     if (idx > 0) set({ focusedSkillIndex: idx - 1 });
   },
-  moveFocusDown: (listLength) => {
+  moveFocusDown: (listLength): void => {
     const idx = get().focusedSkillIndex;
     if (idx < listLength - 1) set({ focusedSkillIndex: idx + 1 });
   },
 
   // Agent actions
   setFocusedAgentIndex: (index) => set({ focusedAgentIndex: index }),
-  toggleAgentExpanded: (agentId) => {
+  toggleAgentExpanded: (agentId): void => {
     const next = new Set(get().expandedAgentIds);
-    if (next.has(agentId)) next.delete(agentId); else next.add(agentId);
+    if (next.has(agentId)) next.delete(agentId);
+    else next.add(agentId);
     set({ expandedAgentIds: next });
   },
 
   // Project actions
   setFocusedProjectIndex: (index) => set({ focusedProjectIndex: index }),
-  toggleProjectExpanded: (projectId) => {
+  toggleProjectExpanded: (projectId): void => {
     const next = new Set(get().expandedProjectIds);
-    if (next.has(projectId)) next.delete(projectId); else next.add(projectId);
+    if (next.has(projectId)) next.delete(projectId);
+    else next.add(projectId);
     set({ expandedProjectIds: next });
   },
 
   // Overlay actions (mutually exclusive with each other)
-  setShowSearch: (show) => set({
-    showSearch: show,
-    showHelp: false,
-    showCommandPalette: false,
-    searchQuery: show ? '' : get().searchQuery,
-    searchResultIndex: show ? 0 : get().searchResultIndex,
-  }),
-  setShowHelp: (show) => set({
-    showHelp: show,
-    showSearch: false,
-    showCommandPalette: false,
-  }),
+  setShowSearch: (show) =>
+    set({
+      showSearch: show,
+      showHelp: false,
+      showCommandPalette: false,
+      searchQuery: show ? '' : get().searchQuery,
+      searchResultIndex: show ? 0 : get().searchResultIndex,
+    }),
+  setShowHelp: (show) =>
+    set({
+      showHelp: show,
+      showSearch: false,
+      showCommandPalette: false,
+    }),
 
   // Overlay state actions (mutually exclusive: setting one clears the others)
   setConfirmState: (state) => set({ confirmState: state, formState: null, conflictState: null }),
@@ -393,63 +412,69 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
   setSyncFormStep: (step) => set({ syncFormStep: step }),
   setSyncFormOperation: (op) => set({ syncFormOperation: op }),
   setSyncFormSelectedSkillNames: (names) => set({ syncFormSelectedSkillNames: names }),
-  toggleSyncFormSkill: (name) => {
+  toggleSyncFormSkill: (name): void => {
     const next = new Set(get().syncFormSelectedSkillNames);
-    if (next.has(name)) next.delete(name); else next.add(name);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
     set({ syncFormSelectedSkillNames: next });
   },
   setSyncFormSelectedTargetIds: (ids) => set({ syncFormSelectedTargetIds: ids }),
-  toggleSyncFormTarget: (id) => {
+  toggleSyncFormTarget: (id): void => {
     const next = new Set(get().syncFormSelectedTargetIds);
-    if (next.has(id)) next.delete(id); else next.add(id);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
     set({ syncFormSelectedTargetIds: next });
   },
   setSyncFormSelectedAgentTypes: (types) => set({ syncFormSelectedAgentTypes: types }),
-  toggleSyncFormAgentType: (type) => {
+  toggleSyncFormAgentType: (type): void => {
     const next = new Set(get().syncFormSelectedAgentTypes);
-    if (next.has(type)) next.delete(type); else next.add(type);
+    if (next.has(type)) next.delete(type);
+    else next.add(type);
     set({ syncFormSelectedAgentTypes: next });
   },
   setSyncFormMode: (mode) => set({ syncFormMode: mode }),
   setSyncFormResults: (results) => set({ syncFormResults: results }),
   setSyncFormFocusedIndex: (index) => set({ syncFormFocusedIndex: index }),
-  resetSyncForm: () => set({
-    syncFormStep: 'select-op',
-    syncFormOperation: null,
-    syncFormSelectedSkillNames: new Set(),
-    syncFormSelectedTargetIds: new Set(),
-    syncFormSelectedAgentTypes: new Set(),
-    syncFormMode: 'copy' as SyncMode,
-    syncFormResults: [],
-    syncFormFocusedIndex: 0,
-  }),
+  resetSyncForm: () =>
+    set({
+      syncFormStep: 'select-op',
+      syncFormOperation: null,
+      syncFormSelectedSkillNames: new Set(),
+      syncFormSelectedTargetIds: new Set(),
+      syncFormSelectedAgentTypes: new Set(),
+      syncFormMode: 'copy' as SyncMode,
+      syncFormResults: [],
+      syncFormFocusedIndex: 0,
+    }),
 
   // Import tab form actions
   setImportTabStep: (step) => set({ importTabStep: step }),
   setImportTabSourceType: (type) => set({ importTabSourceType: type }),
   setImportTabSourceId: (id) => set({ importTabSourceId: id }),
   setImportTabSelectedSkillNames: (names) => set({ importTabSelectedSkillNames: names }),
-  toggleImportTabSkill: (name) => {
+  toggleImportTabSkill: (name): void => {
     const next = new Set(get().importTabSelectedSkillNames);
-    if (next.has(name)) next.delete(name); else next.add(name);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
     set({ importTabSelectedSkillNames: next });
   },
   setImportTabResults: (results) => set({ importTabResults: results }),
   setImportTabFocusedIndex: (index) => set({ importTabFocusedIndex: index }),
-  resetImportTab: () => set({
-    importTabStep: 'select-source-type',
-    importTabSourceType: null,
-    importTabSourceId: null,
-    importTabSelectedSkillNames: new Set(),
-    importTabResults: [],
-    importTabFocusedIndex: 0,
-  }),
+  resetImportTab: () =>
+    set({
+      importTabStep: 'select-source-type',
+      importTabSourceType: null,
+      importTabSourceId: null,
+      importTabSelectedSkillNames: new Set(),
+      importTabResults: [],
+      importTabFocusedIndex: 0,
+    }),
 
   // Update progress actions
   setUpdateProgressItems: (items) => set({ updateProgressItems: items }),
-  updateProgressItem: (id, update) => {
+  updateProgressItem: (id, update): void => {
     set({
-      updateProgressItems: get().updateProgressItems.map(item =>
+      updateProgressItems: get().updateProgressItems.map((item) =>
         item.id === id ? { ...item, ...update } : item
       ),
     });
@@ -458,14 +483,15 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
   setCompletionModalOpen: (open) => set({ completionModalOpen: open }),
 
   // Sprint 2: Command palette -- clears all other overlays for mutual exclusivity
-  setShowCommandPalette: (show) => set({
-    showCommandPalette: show,
-    showSearch: false,
-    showHelp: false,
-    confirmState: null,
-    formState: null,
-    conflictState: null,
-  }),
+  setShowCommandPalette: (show) =>
+    set({
+      showCommandPalette: show,
+      showSearch: false,
+      showHelp: false,
+      confirmState: null,
+      formState: null,
+      conflictState: null,
+    }),
 
   // Sprint 2: Search result navigation
   setSearchResultIndex: (index) => set({ searchResultIndex: index }),
@@ -474,12 +500,13 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
   setTabSwitchPending: (tab) => set({ tabSwitchPending: tab }),
   setDirtyConfirmActive: (active) => set({ dirtyConfirmActive: active }),
 
-  // Sprint 1: detail overlay
-  setDetailOverlayVisible: (visible) => set({ detailOverlayVisible: visible }),
+  setDetailOverlayVisible: (visible): void => set({ detailOverlayVisible: visible }),
 
-  setWidthBand: (band) => {
-    const state = get();
-    const updates: { widthBand: 'compact' | 'standard' | 'widescreen' | 'warning'; detailOverlayVisible?: boolean } = {
+  setWidthBand: (band): void => {
+    const updates: {
+      widthBand: 'compact' | 'standard' | 'widescreen' | 'warning';
+      detailOverlayVisible?: boolean;
+    } = {
       widthBand: band,
     };
     // Detail overlay cannot persist at compact or warning widths
@@ -495,8 +522,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
 
   setFormDirty: (dirty) => set({ formDirty: dirty }),
 
-  // Sprint 3: Undo actions
-  pushUndo: (action, snapshot) => {
+  pushUndo: (action, snapshot): void => {
     // Clear any existing undo timer
     if (undoTickTimer !== null) {
       clearInterval(undoTickTimer);
@@ -535,7 +561,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
     }, UNDO_TICK_MS);
   },
 
-  executeUndo: () => {
+  executeUndo: (): void => {
     const buffer = get().undoBuffer;
     if (!buffer) return;
 
@@ -559,14 +585,17 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
     }
 
     // Push success toast
-    const name = (snapshot as Record<string, unknown>).name || (snapshot as Record<string, unknown>).id || 'item';
+    const name =
+      (snapshot as Record<string, unknown>).name ||
+      (snapshot as Record<string, unknown>).id ||
+      'item';
     state.pushToast(`Restored '${String(name)}'`, 'success');
 
     // Clear undo buffer
     set({ undoBuffer: null, undoActive: false });
   },
 
-  clearUndo: () => {
+  clearUndo: (): void => {
     if (undoTickTimer !== null) {
       clearInterval(undoTickTimer);
       undoTickTimer = null;
@@ -574,8 +603,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
     set({ undoBuffer: null, undoActive: false });
   },
 
-  // Sprint 3: Toast actions
-  pushToast: (message, variant) => {
+  pushToast: (message, variant): void => {
     const toast: Toast = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       message,
@@ -615,7 +643,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
     }
   },
 
-  dismissActiveToast: () => {
+  dismissActiveToast: (): void => {
     const current = get();
     const next = current.toastQueue.length > 0 ? current.toastQueue.slice(1) : [];
     const nextToast = current.toastQueue.length > 0 ? current.toastQueue[0] : null;

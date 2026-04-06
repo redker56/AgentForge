@@ -3,12 +3,13 @@
  * Modern Claude Code aesthetic with subtle focus indicators.
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
-import type { AppStore, TabId } from '../store/index.js';
+
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
+import type { AppStore, TabId } from '../store/index.js';
 import { inkColors } from '../theme.js';
 
 interface TabBarProps {

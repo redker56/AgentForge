@@ -2,10 +2,11 @@
  * AgentSyncService Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import fs from 'fs-extra';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
+import fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 const TEST_DIR = path.join(os.tmpdir(), 'agentforge-agent-sync-test');
 
@@ -23,7 +24,11 @@ describe('AgentSyncService', () => {
 
   describe('Target path calculation', () => {
     it('should correctly calculate Agent target path', () => {
-      const agent = { id: 'claude', name: 'Claude', basePath: path.join(TEST_DIR, '.claude', 'skills') };
+      const agent = {
+        id: 'claude',
+        name: 'Claude',
+        basePath: path.join(TEST_DIR, '.claude', 'skills'),
+      };
       const skillName = 'my-skill';
       const targetPath = path.join(agent.basePath, skillName);
 
@@ -42,13 +47,13 @@ describe('AgentSyncService', () => {
         { agentId: 'gemini', mode: 'copy' as const },
       ];
 
-      const merged = new Map<string, typeof existing[0]>();
-      existing.forEach(r => merged.set(r.agentId, r));
-      newRecords.forEach(r => merged.set(r.agentId, r));
+      const merged = new Map<string, (typeof existing)[0]>();
+      existing.forEach((r) => merged.set(r.agentId, r));
+      newRecords.forEach((r) => merged.set(r.agentId, r));
 
       const result = Array.from(merged.values());
       expect(result).toHaveLength(3);
-      expect(result.find(r => r.agentId === 'claude')?.mode).toBe('symlink');
+      expect(result.find((r) => r.agentId === 'claude')?.mode).toBe('symlink');
     });
   });
 });

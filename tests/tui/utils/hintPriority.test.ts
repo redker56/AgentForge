@@ -4,6 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import { rankAndTruncateHints, type HintSpec } from '../../../src/tui/utils/hintPriority.js';
 
 const sampleContextHints: HintSpec[] = [
@@ -16,7 +17,7 @@ const sampleContextHints: HintSpec[] = [
 describe('rankAndTruncateHints', () => {
   it('compact band returns 1 context hint + q:Quit', () => {
     const result = rankAndTruncateHints(sampleContextHints, 'compact', 80);
-    const keys = result.segments.map(s => s.key);
+    const keys = result.segments.map((s) => s.key);
 
     expect(keys).toContain('q');
     expect(keys).toContain('d'); // highest priority context hint
@@ -25,7 +26,7 @@ describe('rankAndTruncateHints', () => {
 
   it('standard band returns 2 context hints + / + q', () => {
     const result = rankAndTruncateHints(sampleContextHints, 'standard', 100);
-    const keys = result.segments.map(s => s.key);
+    const keys = result.segments.map((s) => s.key);
 
     expect(keys).toContain('d'); // priority 1
     expect(keys).toContain('a'); // priority 3 (next highest)
@@ -36,7 +37,7 @@ describe('rankAndTruncateHints', () => {
 
   it('widescreen band returns all context + global hints', () => {
     const result = rankAndTruncateHints(sampleContextHints, 'widescreen', 200);
-    const keys = result.segments.map(s => s.key);
+    const keys = result.segments.map((s) => s.key);
 
     expect(keys).toContain('d');
     expect(keys).toContain('a');
@@ -49,7 +50,9 @@ describe('rankAndTruncateHints', () => {
 
   it('hints are sorted by priority (lower = first)', () => {
     const result = rankAndTruncateHints(sampleContextHints, 'widescreen', 200);
-    const contextKeys = result.segments.filter(s => s.key !== '/' && s.key !== '?' && s.key !== 'q');
+    const contextKeys = result.segments.filter(
+      (s) => s.key !== '/' && s.key !== '?' && s.key !== 'q'
+    );
 
     // d(1), a(3), i(4), s(5) should come before global hints
     expect(contextKeys[0].key).toBe('d');
@@ -58,21 +61,25 @@ describe('rankAndTruncateHints', () => {
 
   it('destructive hints get yellow color', () => {
     const result = rankAndTruncateHints(sampleContextHints, 'widescreen', 200);
-    const deleteSeg = result.segments.find(s => s.key === 'd');
+    const deleteSeg = result.segments.find((s) => s.key === 'd');
     expect(deleteSeg).toBeDefined();
-    expect(deleteSeg!.color).toBe('yellow');
+    if (deleteSeg) {
+      expect(deleteSeg.color).toBe('yellow');
+    }
   });
 
   it('creation hints get cyan color', () => {
     const result = rankAndTruncateHints(sampleContextHints, 'widescreen', 200);
-    const addSeg = result.segments.find(s => s.key === 'a');
+    const addSeg = result.segments.find((s) => s.key === 'a');
     expect(addSeg).toBeDefined();
-    expect(addSeg!.color).toBe('cyan');
+    if (addSeg) {
+      expect(addSeg.color).toBe('cyan');
+    }
   });
 
   it('width truncation drops lowest priority hints', () => {
     const result = rankAndTruncateHints(sampleContextHints, 'widescreen', 30);
-    const keys = result.segments.map(s => s.key);
+    const keys = result.segments.map((s) => s.key);
 
     // With only 30 chars width, only the highest priority hints fit
     expect(keys).toContain('q'); // q:Quit = 6 chars, always included since priority 1
@@ -81,7 +88,7 @@ describe('rankAndTruncateHints', () => {
 
   it('empty context hints still returns global hints', () => {
     const result = rankAndTruncateHints([], 'widescreen', 200);
-    const keys = result.segments.map(s => s.key);
+    const keys = result.segments.map((s) => s.key);
 
     expect(keys).toContain('/');
     expect(keys).toContain('?');

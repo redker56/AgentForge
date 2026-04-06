@@ -8,13 +8,16 @@
  *  - Step indicator updates when navigating through steps
  */
 
-import { describe, expect, it, vi, beforeAll } from 'vitest';
-import React from 'react';
 import { render } from 'ink-testing-library';
+import React from 'react';
+import { describe, expect, it, vi, beforeAll } from 'vitest';
 
 // Module references populated by beforeAll
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let ImportFormTab: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let StepIndicator: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let ImportChecklist: any;
 
 beforeAll(async () => {

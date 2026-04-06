@@ -2,8 +2,8 @@
  * BreadcrumbBar component test
  */
 
-import { describe, expect, it } from 'vitest';
 import React from 'react';
+import { describe, expect, it } from 'vitest';
 
 describe('BreadcrumbBar', () => {
   it('exports BreadcrumbBar component', async () => {

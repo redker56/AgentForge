@@ -1,19 +1,25 @@
 /**
- * Sync Status Check Service - Used during add/import to detect same-name skills
+ * @module App/SyncCheckService
+ * @layer app
+ * @allowed-imports infra/, types
+ * @responsibility Same-name skill conflict detection during add/import operations.
  *
- * Refactored to separate conflict detection (returns data) from conflict
- * resolution (requires user input). This enables both CLI and TUI code paths.
+ * Detects existing skills with the same name in agent directories and provides
+ * resolution options (link as synced, skip, or cancel).
  *
- * detectConflicts() is synchronous and pure -- no side effects, no I/O.
- * resolveConflicts() is synchronous and pure -- only reads the resolutions map.
- * resolveAndRecordSyncLinks() remains the CLI entry point with interactive prompts.
+ * @architecture Separates conflict detection (pure function) from resolution
+ * (user interaction). `detectConflicts()` and `resolveConflicts()` are pure
+ * synchronous functions suitable for both CLI and TUI paths.
+ * `resolveAndRecordSyncLinks()` is the CLI entry point with interactive prompts.
  */
 
-import chalk from 'chalk';
 import { select } from '@inquirer/prompts';
+import chalk from 'chalk';
+
 import { Storage } from '../infra/storage.js';
-import { AgentSyncService } from './sync/agent-sync-service.js';
 import type { SyncRecord } from '../types.js';
+
+import { AgentSyncService } from './sync/agent-sync-service.js';
 
 // --- Exported types for conflict data ---
 
@@ -40,9 +46,9 @@ export class SyncCheckService {
    */
   detectConflicts(skillName: string): SyncConflict[] {
     const results = this.sync.checkSyncStatus(skillName);
-    const conflicts = results.filter(r => r.exists);
+    const conflicts = results.filter((r) => r.exists);
 
-    return conflicts.map(conflict => {
+    return conflicts.map((conflict) => {
       const agentId = conflict.target;
       const agent = this.storage.getAgent(agentId);
       const agentName = agent?.name || agentId;
@@ -82,7 +88,10 @@ export class SyncCheckService {
    * CLI entry point: detect conflicts, prompt user via @inquirer/prompts,
    * apply resolutions, and update storage.
    */
-  async resolveAndRecordSyncLinks(skillName: string, seedAgentIds: string[] = []): Promise<string[]> {
+  async resolveAndRecordSyncLinks(
+    skillName: string,
+    seedAgentIds: string[] = []
+  ): Promise<string[]> {
     const skill = this.storage.getSkill(skillName);
     if (!skill) {
       throw new Error(`Skill not found: ${skillName}`);
@@ -93,7 +102,11 @@ export class SyncCheckService {
     const resolutions = new Map<string, ConflictResolution>();
 
     if (conflicts.length > 0) {
-      console.log(chalk.yellow(`\nDetected ${conflicts.length} Agent(s) with same-name skill "${skillName}":\n`));
+      console.log(
+        chalk.yellow(
+          `\nDetected ${conflicts.length} Agent(s) with same-name skill "${skillName}":\n`
+        )
+      );
     }
 
     for (const conflict of conflicts) {
@@ -147,6 +160,6 @@ export class SyncCheckService {
 
     const records = Array.from(merged.values());
     this.storage.updateSkillSync(skillName, records);
-    return records.map(record => record.agentId);
+    return records.map((record) => record.agentId);
   }
 }

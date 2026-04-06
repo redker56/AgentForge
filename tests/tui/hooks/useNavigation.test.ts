@@ -4,9 +4,9 @@
  * Uses dynamic import for ESM compatibility and wraps hook calls in React components.
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import React, { useState } from 'react';
 import { render, cleanup } from 'ink-testing-library';
+import React from 'react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 describe('useNavigation', () => {
   let mod: typeof import('../../../src/tui/hooks/useNavigation.js');

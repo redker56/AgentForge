@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+
 import { validateUrl, validateSkillName } from '../../../src/tui/utils/validators.js';
 
 describe('validateUrl', () => {

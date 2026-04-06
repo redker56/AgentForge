@@ -36,7 +36,7 @@ const DEFAULT_WINDOW_MS = 8000;
 
 export function createUndoEngine(
   tickIntervalMs: number = DEFAULT_TICK_MS,
-  windowMs: number = DEFAULT_WINDOW_MS,
+  windowMs: number = DEFAULT_WINDOW_MS
 ): UndoEngine {
   let entry: UndoEntry | null = null;
   let timerRef: ReturnType<typeof setInterval> | null = null;
@@ -68,7 +68,7 @@ export function createUndoEngine(
   }
 
   return {
-    push(newEntry) {
+    push(newEntry): void {
       // Replace any existing entry
       stopTimer();
       entry = {
@@ -80,7 +80,7 @@ export function createUndoEngine(
       startTimer();
     },
 
-    pop() {
+    pop(): UndoEntry | null {
       if (!entry) return null;
       const current = entry;
       stopTimer();
@@ -88,26 +88,26 @@ export function createUndoEngine(
       return current;
     },
 
-    clear() {
+    clear(): void {
       stopTimer();
       entry = null;
     },
 
-    get() {
+    get(): UndoEntry | null {
       return entry;
     },
 
-    isActive() {
+    isActive(): boolean {
       return entry !== null && entry.remainingMs > 0;
     },
 
-    getRemainingMs() {
+    getRemainingMs(): number {
       return entry?.remainingMs ?? 0;
     },
 
     tick,
 
-    destroy() {
+    destroy(): void {
       stopTimer();
       entry = null;
     },

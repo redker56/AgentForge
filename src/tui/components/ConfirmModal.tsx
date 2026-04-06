@@ -2,10 +2,11 @@
  * Confirmation dialog overlay for destructive actions
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
+
 import type { AppStore } from '../store/index.js';
 
 interface ConfirmModalProps {

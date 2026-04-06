@@ -2,10 +2,11 @@
  * Test environment setup
  */
 
-import { afterEach, beforeEach } from 'vitest';
-import fs from 'fs-extra';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
+import fs from 'fs-extra';
+import { afterEach, beforeEach } from 'vitest';
 
 // Test temp directory
 export const TEST_DIR = path.join(os.tmpdir(), 'agentforge-test');

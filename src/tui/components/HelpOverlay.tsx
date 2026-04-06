@@ -4,9 +4,10 @@
  * Modern Claude Code aesthetic.
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
 import type { StoreApi } from 'zustand';
+
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
 

@@ -2,8 +2,8 @@
  * CompletionModal component test
  */
 
-import { describe, expect, it, vi } from 'vitest';
 import React from 'react';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('CompletionModal', () => {
   it('exports CompletionModal component', async () => {

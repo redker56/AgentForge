@@ -2,8 +2,8 @@
  * ErrorMessage component test
  */
 
-import { describe, expect, it } from 'vitest';
 import React from 'react';
+import { describe, expect, it } from 'vitest';
 
 describe('ErrorMessage', () => {
   it('exports ErrorMessage component', async () => {

@@ -3,8 +3,8 @@
  * Encapsulates focus tracking and virtual scrolling.
  */
 
-import { useState, useEffect } from 'react';
 import { useStdout } from 'ink';
+import { useState, useEffect } from 'react';
 
 interface NavigationOptions<T> {
   items: T[];

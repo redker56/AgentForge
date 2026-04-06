@@ -9,15 +9,17 @@
  *  - ExecutingStep shows overall progress bar at top, per-skill bars below
  */
 
-import { describe, expect, it, vi, beforeAll } from 'vitest';
-import React from 'react';
 import { render } from 'ink-testing-library';
+import React from 'react';
+import { describe, expect, it, vi, beforeAll } from 'vitest';
 
 // Module references populated by beforeAll
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let SyncForm: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let StepIndicator: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let ProgressBar: any;
-let ProgressBarStack: any;
 
 beforeAll(async () => {
   const sf = await import('../../../src/tui/components/SyncForm.js');
@@ -26,7 +28,6 @@ beforeAll(async () => {
   StepIndicator = si.StepIndicator;
   const pb = await import('../../../src/tui/components/ProgressBar.js');
   ProgressBar = pb.ProgressBar;
-  ProgressBarStack = pb.ProgressBarStack;
 });
 
 function createMockStore(overrides: Record<string, unknown> = {}) {

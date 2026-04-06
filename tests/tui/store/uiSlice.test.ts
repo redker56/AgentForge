@@ -3,11 +3,16 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+
 import { createUISlice } from '../../../src/tui/store/uiSlice.js';
 import type { StoreState } from '../../../src/tui/store/uiSlice.js';
 
 // We need to mock get() for some actions. Zustand slices use set/get.
-function createMockSetGet(): { set: ReturnType<typeof vi.fn>; get: ReturnType<typeof vi.fn>; api: any } {
+function createMockSetGet(): {
+  set: ReturnType<typeof vi.fn>;
+  get: ReturnType<typeof vi.fn>;
+  api: any;
+} {
   let state: Partial<StoreState> = {
     toastQueue: [],
     activeToast: null,
@@ -26,7 +31,9 @@ function createMockSetGet(): { set: ReturnType<typeof vi.fn>; get: ReturnType<ty
 }
 
 describe('createUISlice', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('initializes with default state values', () => {
     const { set, get } = createMockSetGet();
@@ -77,18 +84,20 @@ describe('createUISlice', () => {
     // Simulate having a formState and conflictState set
     (slice.setActiveTab as any)('agents');
 
-    expect(set).toHaveBeenCalledWith(expect.objectContaining({
-      activeTab: 'agents',
-      focusedSkillIndex: 0,
-      selectedSkillNames: new Set(),
-      focusedAgentIndex: 0,
-      expandedAgentIds: new Set(),
-      focusedProjectIndex: 0,
-      expandedProjectIds: new Set(),
-      confirmState: null,
-      formState: null,
-      conflictState: null,
-    }));
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        activeTab: 'agents',
+        focusedSkillIndex: 0,
+        selectedSkillNames: new Set(),
+        focusedAgentIndex: 0,
+        expandedAgentIds: new Set(),
+        focusedProjectIndex: 0,
+        expandedProjectIds: new Set(),
+        confirmState: null,
+        formState: null,
+        conflictState: null,
+      })
+    );
   });
 
   it('toggleSkillSelection adds and removes skills', () => {
@@ -221,9 +230,7 @@ describe('createUISlice', () => {
   it('setUpdateProgressItems replaces the progress list', () => {
     const { set, get } = createMockSetGet();
     const slice = createUISlice(set, get, undefined as any);
-    const items = [
-      { id: 'p1', label: 'Item 1', progress: 0, status: 'pending' as const },
-    ];
+    const items = [{ id: 'p1', label: 'Item 1', progress: 0, status: 'pending' as const }];
 
     slice.setUpdateProgressItems(items);
 
@@ -329,12 +336,17 @@ describe('createUISlice', () => {
 
     vi.useFakeTimers();
     try {
-      slice.pushUndo('delete-skill', { name: 'test-skill', source: { type: 'local' }, createdAt: '2025-01-01', syncedTo: [] });
+      slice.pushUndo('delete-skill', {
+        name: 'test-skill',
+        source: { type: 'local' },
+        createdAt: '2025-01-01',
+        syncedTo: [],
+      });
 
       expect(set).toHaveBeenCalledWith(
         expect.objectContaining({
           undoActive: true,
-        }),
+        })
       );
 
       const lastCall = set.mock.calls[set.mock.calls.length - 1][0];
@@ -386,7 +398,9 @@ describe('createUISlice', () => {
     try {
       slice.pushToast('Test message', 'success');
 
-      const toastCalls = set.mock.calls.filter((c) => c[0].activeToast !== undefined && c[0].activeToast !== null);
+      const toastCalls = set.mock.calls.filter(
+        (c) => c[0].activeToast !== undefined && c[0].activeToast !== null
+      );
       expect(toastCalls.length).toBeGreaterThan(0);
 
       const toast = toastCalls[0][0].activeToast;

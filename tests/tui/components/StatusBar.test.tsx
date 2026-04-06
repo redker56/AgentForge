@@ -2,8 +2,8 @@
  * StatusBar component test
  */
 
-import { describe, expect, it, vi } from 'vitest';
 import React from 'react';
+import { describe, expect, it } from 'vitest';
 
 describe('StatusBar', () => {
   it('exports StatusBar component', async () => {

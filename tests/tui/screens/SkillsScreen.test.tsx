@@ -3,9 +3,9 @@
  * Verifies responsive layout variants and summary bar rendering.
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import React from 'react';
 import { render, cleanup } from 'ink-testing-library';
+import React from 'react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 describe('SkillsScreen', () => {
   beforeEach(() => {

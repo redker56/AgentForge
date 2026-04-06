@@ -7,14 +7,14 @@
  * Modern Claude Code aesthetic.
  */
 
+import { Box, Text , useInput } from 'ink';
 import React, { useMemo } from 'react';
-import { Box, Text } from 'ink';
-import { useInput } from 'ink';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
+
 import type { AppStore } from '../store/index.js';
-import { computeSearchResults } from '../utils/search.js';
 import { inkColors } from '../theme.js';
+import { computeSearchResults } from '../utils/search.js';
 
 interface SearchOverlayProps {
   store: StoreApi<AppStore>;

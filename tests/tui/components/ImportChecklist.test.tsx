@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import React from 'react';
 import { render } from 'ink-testing-library';
+import React from 'react';
+import { describe, it, expect } from 'vitest';
+
 import { ImportChecklist } from '../../../src/tui/components/ImportChecklist.js';
 import type { ChecklistSkill } from '../../../src/tui/components/ImportChecklist.js';
 

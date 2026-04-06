@@ -2,8 +2,9 @@
  * __complete command tests
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Command } from 'commander';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { register } from '../../src/commands/complete.js';
 
 describe('complete command', () => {
@@ -129,11 +130,7 @@ describe('complete command', () => {
 
     register(program, {
       skills: {
-        list: vi.fn(() => [
-          { name: 'skill-a' },
-          { name: 'skill-b' },
-          { name: 'skill-c' },
-        ]),
+        list: vi.fn(() => [{ name: 'skill-a' }, { name: 'skill-b' }, { name: 'skill-c' }]),
       },
     } as never);
 
@@ -170,7 +167,10 @@ describe('complete command', () => {
     register(program, {
       skills: {
         list: vi.fn(() => [
-          { name: 'project-skill', syncedProjects: [{ projectId: 'proj-a', agentType: 'claude', mode: 'copy' }] },
+          {
+            name: 'project-skill',
+            syncedProjects: [{ projectId: 'proj-a', agentType: 'claude', mode: 'copy' }],
+          },
           { name: 'no-project-skill', syncedProjects: [] },
         ]),
       },

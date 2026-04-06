@@ -1,10 +1,22 @@
 /**
- * File Operations Service - Provides file system operations for command layer
- * This service abstracts file system operations for commands to use
+ * @module App/FileOperationsService
+ * @layer app
+ * @allowed-imports infra/, types
+ * @responsibility Provides file system operations for the command layer via Dependency Injection.
+ *
+ * This service acts as the DI bridge so that commands never import from `infra/` directly.
+ * Every method here delegates to either `fs-extra` or the `infra/files.ts` module.
+ * Commands layer receives this service through CommandContext.
+ *
+ * @architecture DI pattern — commands layer gets file capabilities through this
+ * app-layer adapter instead of reaching into infra, preserving the commands -> app
+ * -> infra dependency direction.
  */
 
 import path from 'path';
+
 import fs from 'fs-extra';
+
 import { files } from '../infra/files.js';
 
 export class FileOperationsService {
@@ -21,7 +33,7 @@ export class FileOperationsService {
   listSubdirectories(dirPath: string): string[] {
     if (!fs.existsSync(dirPath)) return [];
     try {
-      return fs.readdirSync(dirPath).filter(f => {
+      return fs.readdirSync(dirPath).filter((f) => {
         try {
           const p = path.join(dirPath, f);
           return fs.statSync(p).isDirectory() && !f.startsWith('.');
@@ -46,8 +58,8 @@ export class FileOperationsService {
         const p = path.join(dirPath, item);
         try {
           if (!fs.statSync(p).isDirectory() || item.startsWith('.')) continue;
-          const files = fs.readdirSync(p);
-          if (files.some(file => file.toLowerCase() === 'skill.md')) {
+          const dirFiles = fs.readdirSync(p);
+          if (dirFiles.some((file) => file.toLowerCase() === 'skill.md')) {
             skills.push(item);
           }
         } catch {

@@ -5,18 +5,19 @@
  * af add projects [id] [path] - Add a project
  */
 
-import chalk from 'chalk';
-import { input, confirm, checkbox } from '@inquirer/prompts';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
+import { input, confirm, checkbox } from '@inquirer/prompts';
+import chalk from 'chalk';
 import type { Command } from 'commander';
-import type { CommandContext } from './index.js';
+
 import { BUILTIN_AGENTS } from '../types.js';
 
+import type { CommandContext } from './index.js';
+
 export function register(program: Command, ctx: CommandContext): void {
-  const addCmd = program
-    .command('add')
-    .description('Add resources (skills/agents/projects)');
+  const addCmd = program.command('add').description('Add resources (skills/agents/projects)');
 
   addCmd.action(() => {
     console.log(chalk.dim('Usage: af add <target> [arguments]'));
@@ -69,7 +70,7 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
     let explicitSubPath = '';
 
     if (url.includes('/tree/')) {
-      const match = url.match(/(https?:\/\/[^\/]+\/[^\/]+\/[^\/]+)\/tree\/[^\/]+\/(.+)/);
+      const match = url.match(/(https?:\/\/[^/]+\/[^/]+\/[^/]+)\/tree\/[^/]+\/(.+)/);
       if (match) {
         repoUrl = match[1];
         explicitSubPath = match[2];
@@ -90,13 +91,17 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
       const skills = ctx.skills.discoverSkillsInDirectory(tempRepoPath, repoUrl);
 
       if (skills.length === 0) {
-        console.log(chalk.yellow('No skills found in repository (directories containing SKILL.md)'));
+        console.log(
+          chalk.yellow('No skills found in repository (directories containing SKILL.md)')
+        );
         process.exit(1);
       }
 
       if (skills.length === 1) {
         console.log(chalk.cyan('Installing...'));
-        const sourceDir = skills[0].subPath ? path.join(tempRepoPath, skills[0].subPath) : tempRepoPath;
+        const sourceDir = skills[0].subPath
+          ? path.join(tempRepoPath, skills[0].subPath)
+          : tempRepoPath;
         const skillName = await ctx.skills.installFromDirectory(repoUrl, skills[0].name, sourceDir);
         console.log(chalk.green(`Installed: ${skillName}`));
         await postInstall(ctx, skillName);
@@ -105,7 +110,7 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
 
       const selected = await checkbox({
         message: 'Multiple skills found, select to install:',
-        choices: skills.map(s => ({ name: s.name, value: s })),
+        choices: skills.map((s) => ({ name: s.name, value: s })),
       });
 
       if (selected.length === 0) {
@@ -120,7 +125,9 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
           const installed = await ctx.skills.installFromDirectory(repoUrl, skill.name, sourceDir);
           results.push(installed);
         } catch (e: unknown) {
-          console.log(chalk.red(`  Failed ${skill.name}: ${e instanceof Error ? e.message : String(e)}`));
+          console.log(
+            chalk.red(`  Failed ${skill.name}: ${e instanceof Error ? e.message : String(e)}`)
+          );
         }
       }
       console.log(chalk.green(`Installed ${results.length} skills`));
@@ -155,7 +162,7 @@ async function postInstall(ctx: CommandContext, skillName: string, showHint = tr
 async function addAgent(ctx: CommandContext, idArg?: string): Promise<void> {
   console.log(chalk.cyan('\nAdd Custom Agent Configuration\n'));
 
-  const builtinIds = BUILTIN_AGENTS.map(a => a.id);
+  const builtinIds = BUILTIN_AGENTS.map((a) => a.id);
 
   const agentId = await input({
     message: 'Agent ID (e.g., my-agent):',
@@ -163,7 +170,8 @@ async function addAgent(ctx: CommandContext, idArg?: string): Promise<void> {
     validate: (value: string) => {
       const trimmed = value.trim();
       if (!trimmed) return 'Agent ID cannot be empty';
-      if (!/^[a-zA-Z0-9-_]+$/.test(trimmed)) return 'ID can only contain letters, numbers, hyphens, and underscores';
+      if (!/^[a-zA-Z0-9-_]+$/.test(trimmed))
+        return 'ID can only contain letters, numbers, hyphens, and underscores';
       if (builtinIds.includes(trimmed)) return 'Cannot use built-in Agent ID';
       if (ctx.storage.getAgent(trimmed)) return 'Agent ID already exists';
       return true;
@@ -172,7 +180,7 @@ async function addAgent(ctx: CommandContext, idArg?: string): Promise<void> {
 
   const name = await input({
     message: 'Display name:',
-    validate: (value: string) => value.trim() ? true : 'Name cannot be empty',
+    validate: (value: string) => (value.trim() ? true : 'Name cannot be empty'),
   });
 
   const basePathInput = await input({
@@ -200,12 +208,7 @@ async function addAgent(ctx: CommandContext, idArg?: string): Promise<void> {
     }
   }
 
-  ctx.storage.addAgent(
-    agentId.trim(),
-    name.trim(),
-    basePath,
-    skillsDirName?.trim() || undefined
-  );
+  ctx.storage.addAgent(agentId.trim(), name.trim(), basePath, skillsDirName?.trim() || undefined);
 
   console.log(chalk.green(`\nAgent added: ${agentId} (${name})`));
   console.log(chalk.dim(`  Path: ${basePath}`));
@@ -223,7 +226,8 @@ async function addProject(ctx: CommandContext, idArg?: string, pathArg?: string)
       validate: (value: string) => {
         const trimmed = value.trim();
         if (!trimmed) return 'Project ID cannot be empty';
-        if (!/^[a-zA-Z0-9-_]+$/.test(trimmed)) return 'ID can only contain letters, numbers, hyphens, and underscores';
+        if (!/^[a-zA-Z0-9-_]+$/.test(trimmed))
+          return 'ID can only contain letters, numbers, hyphens, and underscores';
         if (ctx.storage.getProject(trimmed)) return 'Project ID already exists';
         return true;
       },
@@ -248,5 +252,7 @@ async function addProject(ctx: CommandContext, idArg?: string, pathArg?: string)
 
   console.log(chalk.green(`\nProject added: ${finalId}`));
   console.log(chalk.dim(`  Path: ${expandedPath}`));
-  console.log(chalk.dim(`\nTip: Run "af import projects ${finalId}" to import skills from the project`));
+  console.log(
+    chalk.dim(`\nTip: Run "af import projects ${finalId}" to import skills from the project`)
+  );
 }

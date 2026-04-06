@@ -4,15 +4,18 @@
  * Modern Claude Code aesthetic with coral accent color.
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
-import type { AppStore } from '../store/index.js';
+
 import { useNavigation } from '../hooks/useNavigation.js';
 import type { AgentDetailData } from '../store/dataSlice.js';
-import { ScrollIndicator } from './ScrollIndicator.js';
+import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
+
+import { ScrollIndicator } from './ScrollIndicator.js';
+
 
 interface AgentTableProps {
   store: StoreApi<AppStore>;

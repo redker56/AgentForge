@@ -4,9 +4,10 @@
 
 import { useInput } from 'ink';
 import type { StoreApi } from 'zustand';
-import type { AppStore, TabId } from '../store/index.js';
-import { TAB_IDS } from '../store/index.js';
+
 import { BUILTIN_AGENTS } from '../../types.js';
+import type { AppStore } from '../store/index.js';
+import { TAB_IDS } from '../store/index.js';
 
 export function useInputHandler(store: StoreApi<AppStore>): void {
   useInput((input, key) => {
@@ -159,15 +160,13 @@ export function useInputHandler(store: StoreApi<AppStore>): void {
 
     // Refresh
     if (input === 'R') {
-      state.loadAllData();
+      void state.loadAllData();
       return;
     }
 
     // Toggle completion modal
     if (input === 'C') {
-      state.setCompletionModalOpen(
-        state.completionModalOpen ? null : true
-      );
+      state.setCompletionModalOpen(state.completionModalOpen ? null : true);
       return;
     }
 
@@ -262,7 +261,7 @@ function handleSkillsKeys(
         state.setDetailOverlayVisible(true);
         const focused = state.skills[state.focusedSkillIndex];
         if (focused && !state.skillDetails[focused.name]) {
-          store.getState().loadSkillDetail(focused.name);
+          void store.getState().loadSkillDetail(focused.name);
         }
       }
       return;
@@ -280,37 +279,45 @@ function handleSkillsKeys(
     return;
   }
   if (input === 'd' || input === 'r') {
-    const names = state.selectedSkillNames.size > 0
-      ? [...state.selectedSkillNames]
-      : [state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[];
+    const names =
+      state.selectedSkillNames.size > 0
+        ? [...state.selectedSkillNames]
+        : ([state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[]);
     if (names.length > 0) {
-      const agentSyncCount = names.reduce((sum, n) => sum + (state.skillDetails[n]?.syncedTo.length ?? 0), 0);
-      const projectSyncCount = names.reduce((sum, n) => sum + (state.skillDetails[n]?.syncedProjects?.length ?? 0), 0);
+      const agentSyncCount = names.reduce(
+        (sum, n) => sum + (state.skillDetails[n]?.syncedTo.length ?? 0),
+        0
+      );
+      const projectSyncCount = names.reduce(
+        (sum, n) => sum + (state.skillDetails[n]?.syncedProjects?.length ?? 0),
+        0
+      );
       state.setConfirmState({
         title: `Delete ${names.length} skill(s)`,
         message: `This will remove ${agentSyncCount} user-level sync(s) and ${projectSyncCount} project sync(s). Files on disk will be deleted.`,
-        onConfirm: async () => {
+        onConfirm: () => {
           // Build undo snapshots for deleted skills (single-skill only per A-17)
-          const snapshots = names.map(name => {
-            const skill = store.getState().skills.find(s => s.name === name);
-            return skill ? { ...skill } : null;
-          }).filter(Boolean);
+          const snapshots = names
+            .map((name) => {
+              const skill = store.getState().skills.find((s) => s.name === name);
+              return skill ? { ...skill } : null;
+            })
+            .filter(Boolean);
 
           for (const name of names) {
-            await store.getState().removeSkill(name);
+            void store.getState().removeSkill(name);
           }
           store.getState().setConfirmState(null);
           store.getState().clearSelection();
-          await store.getState().refreshSkills();
+          void store.getState().refreshSkills();
 
           // Push undo entry for single-skill deletes only
           if (snapshots.length === 1) {
             store.getState().pushUndo('delete-skill', snapshots[0]);
           }
           // Push toast
-          const msg = names.length === 1
-            ? `Deleted '${names[0]}'`
-            : `Deleted ${names.length} skill(s)`;
+          const msg =
+            names.length === 1 ? `Deleted '${names[0]}'` : `Deleted ${names.length} skill(s)`;
           store.getState().pushToast(msg, 'success');
         },
       });
@@ -323,9 +330,10 @@ function handleSkillsKeys(
   }
   if (input === 's') {
     // Sync focused/selected skills to agents -- switch to sync tab pre-configured
-    const names = state.selectedSkillNames.size > 0
-      ? [...state.selectedSkillNames]
-      : [state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[];
+    const names =
+      state.selectedSkillNames.size > 0
+        ? [...state.selectedSkillNames]
+        : ([state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[]);
     if (names.length > 0) {
       state.setSyncFormSelectedSkillNames(new Set(names));
       state.setSyncFormOperation('sync-agents');
@@ -336,9 +344,10 @@ function handleSkillsKeys(
   }
   if (input === 'p') {
     // Sync focused/selected skills to projects -- switch to sync tab pre-configured
-    const names = state.selectedSkillNames.size > 0
-      ? [...state.selectedSkillNames]
-      : [state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[];
+    const names =
+      state.selectedSkillNames.size > 0
+        ? [...state.selectedSkillNames]
+        : ([state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[]);
     if (names.length > 0) {
       state.setSyncFormSelectedSkillNames(new Set(names));
       state.setSyncFormOperation('sync-projects');
@@ -357,14 +366,15 @@ function handleSkillsKeys(
   }
   if (input === 'U') {
     // Update all git-sourced skills in place
-    store.getState().updateAllSkills();
+    void store.getState().updateAllSkills();
     return;
   }
   if (input === 'x') {
     // Unsync focused/selected skills -- switch to sync tab pre-configured
-    const names = state.selectedSkillNames.size > 0
-      ? [...state.selectedSkillNames]
-      : [state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[];
+    const names =
+      state.selectedSkillNames.size > 0
+        ? [...state.selectedSkillNames]
+        : ([state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[]);
     if (names.length > 0) {
       state.setSyncFormSelectedSkillNames(new Set(names));
       state.setSyncFormOperation('unsync');
@@ -409,7 +419,7 @@ function handleAgentsKeys(
   if (input === 'r') {
     const agent = state.agents[state.focusedAgentIndex];
     if (!agent) return;
-    const builtinIds = BUILTIN_AGENTS.map(a => a.id);
+    const builtinIds = BUILTIN_AGENTS.map((a) => a.id);
     if (builtinIds.includes(agent.id)) {
       // Built-in agents cannot be removed
       return;
@@ -417,9 +427,14 @@ function handleAgentsKeys(
     state.setConfirmState({
       title: `Remove Agent "${agent.name}"`,
       message: 'Files stay on disk. AgentForge will forget sync references tied to this Agent.',
-      onConfirm: async () => {
-        const agentSnapshot = { id: agent.id, name: agent.name, basePath: agent.basePath, skillsDirName: agent.skillsDirName };
-        await store.getState().removeAgent(agent.id);
+      onConfirm: () => {
+        const agentSnapshot = {
+          id: agent.id,
+          name: agent.name,
+          basePath: agent.basePath,
+          skillsDirName: agent.skillsDirName,
+        };
+        void store.getState().removeAgent(agent.id);
         store.getState().setConfirmState(null);
         store.getState().pushUndo('remove-agent', agentSnapshot);
         store.getState().pushToast(`Removed agent '${agent.name}'`, 'success');
@@ -451,7 +466,7 @@ function handleProjectsKeys(
       state.toggleProjectExpanded(focusedProject.id);
       // Lazy-load detail if not cached
       if (!state.projectDetails[focusedProject.id]) {
-        state.loadProjectDetail(focusedProject.id);
+        void store.getState().loadProjectDetail(focusedProject.id);
       }
     }
     return;
@@ -466,9 +481,10 @@ function handleProjectsKeys(
     const projectSnapshot = { id: project.id, path: project.path, addedAt: project.addedAt };
     state.setConfirmState({
       title: `Remove Project "${project.id}"`,
-      message: 'Files stay on disk. AgentForge will forget the project and its recorded sync references.',
-      onConfirm: async () => {
-        await store.getState().removeProject(project.id);
+      message:
+        'Files stay on disk. AgentForge will forget the project and its recorded sync references.',
+      onConfirm: () => {
+        void store.getState().removeProject(project.id);
         store.getState().setConfirmState(null);
         store.getState().pushUndo('remove-project', projectSnapshot);
         store.getState().pushToast(`Removed project '${project.id}'`, 'success');

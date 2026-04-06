@@ -1,11 +1,23 @@
 /**
- * File Operations Utilities
+ * @module Infra/Files
+ * @layer infra
+ * @allowed-imports types
+ * @responsibility File system utilities — copy, remove, symlink, hash, cleanup.
+ *
+ * Low-level file system helpers used by the application and infrastructure
+ * layers. All operations are async unless explicitly named with a `Sync`
+ * suffix.
+ *
+ * @architecture Infrastructure layer — must only import from `types.ts` (currently
+ * imports none, which is the correct pattern for pure infra modules). Uses `fs-extra`
+ * and Node's `crypto` module.
  */
 
-import fs from 'fs-extra';
-import path from 'path';
-import os from 'os';
 import crypto from 'crypto';
+import os from 'os';
+import path from 'path';
+
+import fs from 'fs-extra';
 
 export const files = {
   async copy(src: string, dest: string): Promise<void> {
@@ -105,24 +117,29 @@ export const files = {
 
     // Check if SKILL.md exists
     const entries = fs.existsSync(skillPath) ? fs.readdirSync(skillPath) : [];
-    const hasSkillMd = entries.some(e => e.toUpperCase() === 'SKILL.MD');
+    const hasSkillMd = entries.some((e) => e.toUpperCase() === 'SKILL.MD');
 
     // If SKILL.md exists, also delete README
     if (hasSkillMd) {
-      excludePatterns.push(/^readme$/i, /^readme\.md$/i, /^readme\.txt$/i, /^readme\.[a-z]{2}(-[a-z]{2})?\.md$/i);
+      excludePatterns.push(
+        /^readme$/i,
+        /^readme\.md$/i,
+        /^readme\.txt$/i,
+        /^readme\.[a-z]{2}(-[a-z]{2})?\.md$/i
+      );
     }
 
     // Collect items to remove
     for (const entry of entries) {
       const entryPath = path.join(skillPath, entry);
-      const stat = fs.statSync(entryPath);
+      const entryStat = fs.statSync(entryPath);
 
-      if (stat.isDirectory()) {
-        if (excludeDirs.some(d => d.toLowerCase() === entry.toLowerCase())) {
+      if (entryStat.isDirectory()) {
+        if (excludeDirs.some((d) => d.toLowerCase() === entry.toLowerCase())) {
           toRemove.push(entryPath);
         }
       } else {
-        if (excludePatterns.some(p => p.test(entry))) {
+        if (excludePatterns.some((p) => p.test(entry))) {
           toRemove.push(entryPath);
         }
       }
@@ -164,13 +181,14 @@ export const files = {
 
           const fullPath = path.join(dir, entry);
           const relativePath = base ? `${base}/${entry}` : entry;
-          const stat = await fs.stat(fullPath);
+          const entryStat = await fs.stat(fullPath);
 
-          if (stat.isDirectory()) {
-            hashes.push(...await getFilesHash(fullPath, relativePath));
+          if (entryStat.isDirectory()) {
+            hashes.push(...(await getFilesHash(fullPath, relativePath)));
           } else {
             const content = await fs.readFile(fullPath);
-            const hash = crypto.createHash('md5')
+            const hash = crypto
+              .createHash('md5')
               .update(relativePath)
               .update(content)
               .digest('hex');
@@ -194,7 +212,10 @@ export const files = {
    * Compare two directories for content equality
    * Returns: 'same' | 'different' | 'target-empty' | 'source-empty'
    */
-  compareDirs(sourcePath: string, targetPath: string): 'same' | 'different' | 'target-empty' | 'source-empty' {
+  compareDirs(
+    sourcePath: string,
+    targetPath: string
+  ): 'same' | 'different' | 'target-empty' | 'source-empty' {
     if (!fs.existsSync(sourcePath)) return 'source-empty';
     if (!fs.existsSync(targetPath)) return 'target-empty';
 
@@ -208,9 +229,9 @@ export const files = {
 
         const fullPath = path.join(dir, entry);
         const relativePath = base ? `${base}/${entry}` : entry;
-        const stat = fs.statSync(fullPath);
+        const entryStat = fs.statSync(fullPath);
 
-        if (stat.isDirectory()) {
+        if (entryStat.isDirectory()) {
           result.push(...getSourceFiles(fullPath, relativePath));
         } else {
           result.push(relativePath);

@@ -1,11 +1,18 @@
 /**
- * Project Local Config Read/Write
+ * @module App/ProjectStorage
+ * @layer app
+ * @allowed-imports infra/, types
+ * @responsibility Project-local `.agentforge.json` config read/write.
  *
- * Handles .agentforge.json file in project directories
+ * Manages the project-local config file that records which skills have been
+ * synced to that project (and under which agent type / mode). Unlike the
+ * user-level Storage singleton, this is per-project and stateless.
  */
 
 import path from 'path';
+
 import fs from 'fs-extra';
+
 import type { SyncMode, AgentId } from '../types.js';
 
 // Note: This type is for project local config file, different from ProjectSyncRecord in types.ts
@@ -27,6 +34,10 @@ const DEFAULT_CONFIG: ProjectLocalConfig = {
 
 const CONFIG_FILE = '.agentforge.json';
 
+/**
+ * Read, write, and update the project-local `.agentforge.json` config.
+ * All methods are synchronous because the file is small and operations are fast.
+ */
 export class ProjectStorage {
   private getConfigPath(projectPath: string): string {
     return path.join(projectPath, CONFIG_FILE);
@@ -57,7 +68,7 @@ export class ProjectStorage {
     const config = this.read(projectPath);
 
     const existingIndex = config.syncedSkills.findIndex(
-      s => s.name === record.name && s.agentType === record.agentType
+      (s) => s.name === record.name && s.agentType === record.agentType
     );
 
     if (existingIndex >= 0) {
@@ -72,7 +83,7 @@ export class ProjectStorage {
   removeSyncRecord(projectPath: string, skillName: string, agentType?: AgentId): void {
     const config = this.read(projectPath);
 
-    config.syncedSkills = config.syncedSkills.filter(s => {
+    config.syncedSkills = config.syncedSkills.filter((s) => {
       if (s.name !== skillName) return true;
       if (agentType && s.agentType !== agentType) return true;
       return false;
@@ -81,8 +92,12 @@ export class ProjectStorage {
     this.write(projectPath, config);
   }
 
-  getSyncRecord(projectPath: string, skillName: string, agentType: AgentId): ProjectLocalSyncRecord | undefined {
+  getSyncRecord(
+    projectPath: string,
+    skillName: string,
+    agentType: AgentId
+  ): ProjectLocalSyncRecord | undefined {
     const config = this.read(projectPath);
-    return config.syncedSkills.find(s => s.name === skillName && s.agentType === agentType);
+    return config.syncedSkills.find((s) => s.name === skillName && s.agentType === agentType);
   }
 }

@@ -3,12 +3,20 @@
  * af list agents | projects | skills
  */
 
-import chalk from 'chalk';
 import path from 'path';
+
+import chalk from 'chalk';
 import type { Command } from 'commander';
-import type { CommandContext } from './index.js';
+
+import {
+  formatAgentProjectSkillGroups,
+  formatSourceLabel,
+  formatAgentList,
+  sortAgentNamesByPriority,
+} from '../app/cli-formatting.js';
 import { getAgentProjectSkillsDir, type Agent } from '../types.js';
-import { formatAgentProjectSkillGroups, formatSourceLabel, formatAgentList, sortAgentNamesByPriority } from '../app/cli-formatting.js';
+
+import type { CommandContext } from './index.js';
 
 /**
  * Check if user-level skill matches Agent directory skill content
@@ -55,8 +63,9 @@ async function listAgents(ctx: CommandContext): Promise<void> {
     console.log(chalk.dim(`    Path: ${a.basePath}`));
 
     // Get user-level skills (synced to this Agent)
-    const userSkillRecords = ctx.storage.listSkills()
-      .filter(s => s.syncedTo.some(r => r.agentId === a.id));
+    const userSkillRecords = ctx.storage
+      .listSkills()
+      .filter((s) => s.syncedTo.some((r) => r.agentId === a.id));
 
     // Check each skill's actual sync status
     const syncedSkills: string[] = [];
@@ -85,8 +94,10 @@ async function listAgents(ctx: CommandContext): Promise<void> {
       }
     }
 
-    const totalProjectSkills = Array.from(projectSkillsByProject.values())
-      .reduce((count, skills) => count + skills.length, 0);
+    const totalProjectSkills = Array.from(projectSkillsByProject.values()).reduce(
+      (count, skills) => count + skills.length,
+      0
+    );
 
     // Display user-level skills
     console.log(chalk.dim(`    User-level (${syncedSkills.length + differentSkills.length}):`));
@@ -103,9 +114,14 @@ async function listAgents(ctx: CommandContext): Promise<void> {
 
     // Display project-level skills
     console.log(chalk.dim(`    Project-level (${totalProjectSkills}):`));
-    console.log(formatAgentProjectSkillGroups(
-      Array.from(projectSkillsByProject.entries()).map(([projectId, skills]) => ({ projectId, skills }))
-    ));
+    console.log(
+      formatAgentProjectSkillGroups(
+        Array.from(projectSkillsByProject.entries()).map(([projectId, skills]) => ({
+          projectId,
+          skills,
+        }))
+      )
+    );
 
     console.log();
   }
@@ -160,13 +176,16 @@ async function listProjects(ctx: CommandContext): Promise<void> {
 }
 
 async function listSkills(ctx: CommandContext): Promise<void> {
-  const list = ctx.skills.list()
+  const list = ctx.skills
+    .list()
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 
   if (list.length === 0) {
     console.log(chalk.yellow('\nNo skills yet'));
-    console.log(chalk.dim('  Run "af add skills <git-url>" to install skills from a Git repository'));
+    console.log(
+      chalk.dim('  Run "af add skills <git-url>" to install skills from a Git repository')
+    );
     console.log(chalk.dim('  Run "af import projects <project>" to import skills from a project'));
     return;
   }
@@ -217,18 +236,18 @@ async function listSkills(ctx: CommandContext): Promise<void> {
     if (distribution.length > 0) {
       for (const d of distribution) {
         // Group: same version and different version
-        const sameVersion = d.agents.filter(a => !a.isDifferentVersion);
-        const diffVersion = d.agents.filter(a => a.isDifferentVersion);
+        const sameVersion = d.agents.filter((a) => !a.isDifferentVersion);
+        const diffVersion = d.agents.filter((a) => a.isDifferentVersion);
 
         if (sameVersion.length > 0 || diffVersion.length > 0) {
           console.log(chalk.dim(`    Project-level: ${d.projectId}`));
 
           if (sameVersion.length > 0) {
-            const names = sortAgentNamesByPriority(sameVersion.map(a => a.name)).join(', ');
+            const names = sortAgentNamesByPriority(sameVersion.map((a) => a.name)).join(', ');
             console.log(chalk.dim(`      ${names}`));
           }
           if (diffVersion.length > 0) {
-            const names = sortAgentNamesByPriority(diffVersion.map(a => a.name)).join(', ');
+            const names = sortAgentNamesByPriority(diffVersion.map((a) => a.name)).join(', ');
             console.log(chalk.yellow(`      ${names} (different from AgentForge version)`));
           }
         }

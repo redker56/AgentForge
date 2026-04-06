@@ -2,8 +2,8 @@
  * AddForm component test
  */
 
-import { describe, expect, it, vi } from 'vitest';
 import React from 'react';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('AddForm', () => {
   it('exports AddForm component', async () => {

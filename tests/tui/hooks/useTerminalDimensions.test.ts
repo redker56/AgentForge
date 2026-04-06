@@ -7,10 +7,11 @@
  * directly with mock stdout objects that support variable column counts.
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import React from 'react';
 import { EventEmitter } from 'node:events';
+
 import { Text } from 'ink';
+import React from 'react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 /**
  * Creates a mock stdout with configurable columns/rows and proper EventEmitter
@@ -49,10 +50,7 @@ type MockStdout = ReturnType<typeof createMockStdout>;
  * Renders a component using ink.render() with a custom stdout.
  * Returns cleanup function.
  */
-async function renderWithStdout(
-  element: React.ReactElement,
-  stdout: MockStdout,
-) {
+async function renderWithStdout(element: React.ReactElement, stdout: MockStdout) {
   const ink = await import('ink');
   const instance = ink.render(element, {
     stdout: stdout as unknown as NodeJS.WriteStream,
@@ -98,23 +96,22 @@ describe('useTerminalDimensions', () => {
   });
 
   it('exports useTerminalDimensions function', async () => {
-    const { useTerminalDimensions } = await import('../../../src/tui/hooks/useTerminalDimensions.js');
+    const { useTerminalDimensions } =
+      await import('../../../src/tui/hooks/useTerminalDimensions.js');
     expect(typeof useTerminalDimensions).toBe('function');
   });
 
   it('returns widescreen when columns > 120', async () => {
     const stdout = createMockStdout(150, 40);
     let captured = '';
-    const { useTerminalDimensions } = await import('../../../src/tui/hooks/useTerminalDimensions.js');
+    const { useTerminalDimensions } =
+      await import('../../../src/tui/hooks/useTerminalDimensions.js');
     const Wrapper: React.FC = () => {
       const d = useTerminalDimensions();
       captured = `${d.band}-${d.columns}-${d.rows}`;
       return React.createElement(Text, null, d.band);
     };
-    const { unmount } = await renderWithStdout(
-      React.createElement(Wrapper),
-      stdout,
-    );
+    const { unmount } = await renderWithStdout(React.createElement(Wrapper), stdout);
     await vi.runAllTimersAsync();
     expect(captured).toBe('widescreen-150-40');
     unmount();
@@ -123,16 +120,14 @@ describe('useTerminalDimensions', () => {
   it('returns standard when columns are 80-120', async () => {
     const stdout = createMockStdout(100, 30);
     let captured = '';
-    const { useTerminalDimensions } = await import('../../../src/tui/hooks/useTerminalDimensions.js');
+    const { useTerminalDimensions } =
+      await import('../../../src/tui/hooks/useTerminalDimensions.js');
     const Wrapper: React.FC = () => {
       const d = useTerminalDimensions();
       captured = `${d.band}-${d.columns}-${d.rows}`;
       return React.createElement(Text, null, d.band);
     };
-    const { unmount } = await renderWithStdout(
-      React.createElement(Wrapper),
-      stdout,
-    );
+    const { unmount } = await renderWithStdout(React.createElement(Wrapper), stdout);
     await vi.runAllTimersAsync();
     expect(captured).toBe('standard-100-30');
     unmount();
@@ -141,16 +136,14 @@ describe('useTerminalDimensions', () => {
   it('returns compact when columns < 80', async () => {
     const stdout = createMockStdout(60, 20);
     let captured = '';
-    const { useTerminalDimensions } = await import('../../../src/tui/hooks/useTerminalDimensions.js');
+    const { useTerminalDimensions } =
+      await import('../../../src/tui/hooks/useTerminalDimensions.js');
     const Wrapper: React.FC = () => {
       const d = useTerminalDimensions();
       captured = `${d.band}-${d.columns}-${d.rows}`;
       return React.createElement(Text, null, d.band);
     };
-    const { unmount } = await renderWithStdout(
-      React.createElement(Wrapper),
-      stdout,
-    );
+    const { unmount } = await renderWithStdout(React.createElement(Wrapper), stdout);
     await vi.runAllTimersAsync();
     expect(captured).toBe('compact-60-20');
     unmount();
@@ -162,7 +155,7 @@ describe('useTerminalDimensions', () => {
     const path = await import('path');
     const source = fs.readFileSync(
       path.join(process.cwd(), 'src/tui/hooks/useTerminalDimensions.ts'),
-      'utf-8',
+      'utf-8'
     );
     expect(source).toContain('DEFAULT_DIMENSIONS');
     expect(source).toMatch(/columns.*120/);
@@ -171,15 +164,13 @@ describe('useTerminalDimensions', () => {
 
   it('registers resize listener on mount', async () => {
     const stdout = createMockStdout(120, 30);
-    const { useTerminalDimensions } = await import('../../../src/tui/hooks/useTerminalDimensions.js');
+    const { useTerminalDimensions } =
+      await import('../../../src/tui/hooks/useTerminalDimensions.js');
     const Wrapper: React.FC = () => {
       useTerminalDimensions();
       return React.createElement(Text, null, 'ok');
     };
-    const { unmount } = await renderWithStdout(
-      React.createElement(Wrapper),
-      stdout,
-    );
+    const { unmount } = await renderWithStdout(React.createElement(Wrapper), stdout);
     await vi.runAllTimersAsync();
     // Verify resize listener was registered
     expect(stdout.listenerCount('resize')).toBeGreaterThan(0);
@@ -188,15 +179,13 @@ describe('useTerminalDimensions', () => {
 
   it('removes resize listener on unmount', async () => {
     const stdout = createMockStdout(120, 30);
-    const { useTerminalDimensions } = await import('../../../src/tui/hooks/useTerminalDimensions.js');
+    const { useTerminalDimensions } =
+      await import('../../../src/tui/hooks/useTerminalDimensions.js');
     const Wrapper: React.FC = () => {
       useTerminalDimensions();
       return React.createElement(Text, null, 'ok');
     };
-    const { unmount } = await renderWithStdout(
-      React.createElement(Wrapper),
-      stdout,
-    );
+    const { unmount } = await renderWithStdout(React.createElement(Wrapper), stdout);
     await vi.runAllTimersAsync();
     unmount();
     // After unmount, resize listener should be removed
@@ -218,16 +207,14 @@ describe('useTerminalDimensions', () => {
     });
 
     let captured = '';
-    const { useTerminalDimensions } = await import('../../../src/tui/hooks/useTerminalDimensions.js');
+    const { useTerminalDimensions } =
+      await import('../../../src/tui/hooks/useTerminalDimensions.js');
     const Wrapper: React.FC = () => {
       const d = useTerminalDimensions();
       captured = `${d.band}-${d.columns}`;
       return React.createElement(Text, null, d.band);
     };
-    const { unmount } = await renderWithStdout(
-      React.createElement(Wrapper),
-      stdout,
-    );
+    const { unmount } = await renderWithStdout(React.createElement(Wrapper), stdout);
     await vi.runAllTimersAsync();
 
     // Initial: standard-100

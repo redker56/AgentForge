@@ -5,14 +5,15 @@
  * Compact: null (App-level warning banner handles this).
  */
 
-import React, { useEffect } from 'react';
 import { Box, Text } from 'ink';
+import React, { useEffect } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
-import type { AppStore } from '../store/index.js';
-import { SkillList } from '../components/SkillList.js';
+
 import { SkillDetail } from '../components/SkillDetail.js';
+import { SkillList } from '../components/SkillList.js';
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
+import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
 
 interface SkillsScreenProps {
@@ -32,7 +33,7 @@ export function SkillsScreen({ store, band, columns }: SkillsScreenProps): React
     if (focusedSkill) {
       const detail = store.getState().skillDetails[focusedSkill.name];
       if (!detail) {
-        store.getState().loadSkillDetail(focusedSkill.name);
+        void store.getState().loadSkillDetail(focusedSkill.name);
       }
     }
   }, [focusedIndex, skills, store]);

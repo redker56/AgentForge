@@ -5,8 +5,8 @@
  * Returns null when no segments are provided (zero height cost).
  */
 
-import React from 'react';
 import { Text } from 'ink';
+import React from 'react';
 
 interface BreadcrumbBarProps {
   segments: string[];

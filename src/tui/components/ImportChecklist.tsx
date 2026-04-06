@@ -1,5 +1,5 @@
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
 
 export interface ChecklistSkill {
   name: string;
@@ -26,9 +26,9 @@ export function ImportChecklist({
   skills,
   selected,
   focusedIndex,
-  onToggle,
-  onUp,
-  onDown,
+  onToggle: _onToggle,
+  onUp: _onUp,
+  onDown: _onDown,
   columns = 80,
 }: ImportChecklistProps): React.ReactElement {
   return (
@@ -76,8 +76,6 @@ export function ImportChecklist({
             </Box>
           );
         }
-
-        const nameColor = isSelected ? 'cyan' : undefined;
 
         return (
           <Box key={skill.name}>

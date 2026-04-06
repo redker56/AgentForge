@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
+
 import { createAppStore } from '../../src/tui/store/index.js';
 
 function createMockContext() {

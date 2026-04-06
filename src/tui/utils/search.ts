@@ -6,6 +6,7 @@
  */
 
 import type { TabId } from '../store/uiSlice.js';
+
 import { fuzzyMatch } from './fuzzy.js';
 
 const TAB_LABELS: Record<TabId, string> = {
@@ -29,7 +30,7 @@ export function computeSearchResults(
   skills: Array<{ name: string }>,
   agents: Array<{ id: string; name: string }>,
   projects: Array<{ id: string; path: string }>,
-  activeTab?: TabId,
+  activeTab?: TabId
 ): SearchResult[] {
   if (!query.trim()) return [];
 
@@ -39,7 +40,7 @@ export function computeSearchResults(
 
   // Search skills
   const skillResults = searchSkills
-    ? fuzzyMatch(query, skills, s => s.name).map(r => ({
+    ? fuzzyMatch(query, skills, (s) => s.name).map((r) => ({
         name: r.item.name,
         tabId: 'skills' as TabId,
         tabLabel: TAB_LABELS.skills,
@@ -51,24 +52,34 @@ export function computeSearchResults(
 
   // Search agents -- context-aware: only name in agents tab, name+id globally
   const agentResults = searchAgents
-    ? fuzzyMatch(query, agents, a => activeTab === 'agents' ? a.name : `${a.name} ${a.id}`).map(r => ({
-        name: activeTab === 'agents' ? r.item.name : `${r.item.name} (${r.item.id})`,
-        tabId: 'agents' as TabId,
-        tabLabel: TAB_LABELS.agents,
-        itemId: r.item.id,
-        matchIndices: activeTab === 'agents' ? r.matchIndices : remapAgentIndices(r.matchIndices, r.item.name, r.item.id),
-        score: r.score,
-      }))
+    ? fuzzyMatch(query, agents, (a) => (activeTab === 'agents' ? a.name : `${a.name} ${a.id}`)).map(
+        (r) => ({
+          name: activeTab === 'agents' ? r.item.name : `${r.item.name} (${r.item.id})`,
+          tabId: 'agents' as TabId,
+          tabLabel: TAB_LABELS.agents,
+          itemId: r.item.id,
+          matchIndices:
+            activeTab === 'agents'
+              ? r.matchIndices
+              : remapAgentIndices(r.matchIndices, r.item.name, r.item.id),
+          score: r.score,
+        })
+      )
     : [];
 
   // Search projects -- context-aware: only id in projects tab, id+path globally
   const projectResults = searchProjects
-    ? fuzzyMatch(query, projects, p => activeTab === 'projects' ? p.id : `${p.id} ${p.path}`).map(r => ({
+    ? fuzzyMatch(query, projects, (p) =>
+        activeTab === 'projects' ? p.id : `${p.id} ${p.path}`
+      ).map((r) => ({
         name: activeTab === 'projects' ? r.item.id : `${r.item.id} (${r.item.path})`,
         tabId: 'projects' as TabId,
         tabLabel: TAB_LABELS.projects,
         itemId: r.item.id,
-        matchIndices: activeTab === 'projects' ? r.matchIndices : remapProjectIndices(r.matchIndices, r.item.id, r.item.path),
+        matchIndices:
+          activeTab === 'projects'
+            ? r.matchIndices
+            : remapProjectIndices(r.matchIndices, r.item.id, r.item.path),
         score: r.score,
       }))
     : [];
@@ -97,7 +108,7 @@ function remapAgentIndices(indices: number[], name: string, _id: string): number
   // Search index < nameLen -> display index same
   // Search index == nameLen -> space, maps to nameLen + 1 (the opening paren)
   // Search index > nameLen -> shift by +2 (for "( ")
-  return indices.map(idx => {
+  return indices.map((idx) => {
     if (idx < nameLen) return idx;
     if (idx === nameLen) return nameLen + 1; // space -> '('
     return idx + 2; // offset for "( "
@@ -109,7 +120,7 @@ function remapAgentIndices(indices: number[], name: string, _id: string): number
  */
 function remapProjectIndices(indices: number[], id: string, _path: string): number[] {
   const idLen = id.length;
-  return indices.map(idx => {
+  return indices.map((idx) => {
     if (idx < idLen) return idx;
     if (idx === idLen) return idLen + 1;
     return idx + 2;

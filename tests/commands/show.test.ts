@@ -2,10 +2,12 @@
  * show command tests
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Command } from 'commander';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { register } from '../../src/commands/show.js';
 import type { SkillMeta } from '../../src/types.js';
+import { createMockFileOps } from '../helpers/mock-context.js';
 
 function createSkillMeta(overrides: Partial<SkillMeta> = {}): SkillMeta {
   return {
@@ -14,16 +16,6 @@ function createSkillMeta(overrides: Partial<SkillMeta> = {}): SkillMeta {
     createdAt: '2026-03-30T00:00:00.000Z',
     syncedTo: [],
     syncedProjects: [],
-    ...overrides,
-  };
-}
-
-// Create a mock fileOps with all required methods
-function createMockFileOps(overrides = {}) {
-  return {
-    listSubdirectories: vi.fn(() => []),
-    fileExists: vi.fn(() => false),
-    readFile: vi.fn(() => null),
     ...overrides,
   };
 }
@@ -152,7 +144,9 @@ describe('show command', () => {
     await program.parseAsync(['show', 'skills', 'git-skill'], { from: 'user' });
 
     expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('git-skill'));
-    expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('https://github.com/example/skill'));
+    expect(consoleLog).toHaveBeenCalledWith(
+      expect.stringContaining('https://github.com/example/skill')
+    );
     expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Claude Code'));
   });
 
@@ -236,8 +230,9 @@ describe('show command', () => {
       fileOps: createMockFileOps(),
     } as never);
 
-    await expect(program.parseAsync(['show', 'invalid', 'target'], { from: 'user' }))
-      .rejects.toThrow('process.exit mocked');
+    await expect(
+      program.parseAsync(['show', 'invalid', 'target'], { from: 'user' })
+    ).rejects.toThrow('process.exit mocked');
 
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Invalid target'));
   });
@@ -257,8 +252,9 @@ describe('show command', () => {
       },
     } as never);
 
-    await expect(program.parseAsync(['show', 'agents', 'unknown'], { from: 'user' }))
-      .rejects.toThrow('process.exit mocked');
+    await expect(
+      program.parseAsync(['show', 'agents', 'unknown'], { from: 'user' })
+    ).rejects.toThrow('process.exit mocked');
 
     expect(getAgentMock).toHaveBeenCalledWith('unknown');
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Agent not found'));
@@ -278,8 +274,9 @@ describe('show command', () => {
       },
     } as never);
 
-    await expect(program.parseAsync(['show', 'projects', 'unknown'], { from: 'user' }))
-      .rejects.toThrow('process.exit mocked');
+    await expect(
+      program.parseAsync(['show', 'projects', 'unknown'], { from: 'user' })
+    ).rejects.toThrow('process.exit mocked');
 
     expect(getProjectMock).toHaveBeenCalledWith('unknown');
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Project not found'));
@@ -301,8 +298,9 @@ describe('show command', () => {
       },
     } as never);
 
-    await expect(program.parseAsync(['show', 'skills', 'unknown'], { from: 'user' }))
-      .rejects.toThrow('process.exit mocked');
+    await expect(
+      program.parseAsync(['show', 'skills', 'unknown'], { from: 'user' })
+    ).rejects.toThrow('process.exit mocked');
 
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));
   });

@@ -2,10 +2,12 @@
  * ScanService Tests
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import fs from 'fs-extra';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+
+import fs from 'fs-extra';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { ScanService } from '../../src/app/scan-service.js';
 import { files } from '../../src/infra/files.js';
 import type { Agent } from '../../src/types.js';
@@ -26,7 +28,12 @@ describe('ScanService', () => {
     // Mock storage
     storage = {
       listAgents: vi.fn((): Agent[] => [
-        { id: 'claude', name: 'Claude Code', basePath: '/tmp/.claude/skills', skillsDirName: 'claude' },
+        {
+          id: 'claude',
+          name: 'Claude Code',
+          basePath: '/tmp/.claude/skills',
+          skillsDirName: 'claude',
+        },
         { id: 'codex', name: 'Codex', basePath: '/tmp/.codex/skills', skillsDirName: 'agents' },
       ]),
       listProjects: vi.fn(() => [
@@ -78,11 +85,17 @@ describe('ScanService', () => {
 
       await fs.ensureDir(claudeSkillsDir);
       await fs.ensureDir(path.join(claudeSkillsDir, 'duplicate-skill'));
-      await fs.writeFile(path.join(claudeSkillsDir, 'duplicate-skill', 'SKILL.md'), '# Claude version');
+      await fs.writeFile(
+        path.join(claudeSkillsDir, 'duplicate-skill', 'SKILL.md'),
+        '# Claude version'
+      );
 
       await fs.ensureDir(codexSkillsDir);
       await fs.ensureDir(path.join(codexSkillsDir, 'duplicate-skill'));
-      await fs.writeFile(path.join(codexSkillsDir, 'duplicate-skill', 'SKILL.md'), '# Codex version');
+      await fs.writeFile(
+        path.join(codexSkillsDir, 'duplicate-skill', 'SKILL.md'),
+        '# Codex version'
+      );
 
       const service = new ScanService(storage);
       const skills = service.scanProject(testProjectDir);
@@ -192,7 +205,10 @@ describe('ScanService', () => {
         const result = await service.importSkill(sourceDir, 'custom-name');
 
         expect(result).toBe('custom-name');
-        expect(copySpy).toHaveBeenCalledWith(sourceDir, path.join(TEST_DIR, 'skills', 'custom-name'));
+        expect(copySpy).toHaveBeenCalledWith(
+          sourceDir,
+          path.join(TEST_DIR, 'skills', 'custom-name')
+        );
         expect(storage.saveSkill).toHaveBeenCalledWith('custom-name', { type: 'local' });
       } finally {
         existsSpy.mockRestore();
@@ -213,7 +229,10 @@ describe('ScanService', () => {
         const result = await service.importSkill(sourceDir, 'test-skill', 'project-123');
 
         expect(result).toBe('test-skill');
-        expect(storage.saveSkill).toHaveBeenCalledWith('test-skill', { type: 'project', projectId: 'project-123' });
+        expect(storage.saveSkill).toHaveBeenCalledWith('test-skill', {
+          type: 'project',
+          projectId: 'project-123',
+        });
       } finally {
         existsSpy.mockRestore();
         copySpy.mockRestore();
@@ -228,7 +247,9 @@ describe('ScanService', () => {
 
       try {
         const service = new ScanService(storage);
-        await expect(service.importSkill(sourceDir)).rejects.toThrow('Skill already exists: source');
+        await expect(service.importSkill(sourceDir)).rejects.toThrow(
+          'Skill already exists: source'
+        );
       } finally {
         existsSpy.mockRestore();
       }
@@ -242,8 +263,22 @@ describe('ScanService', () => {
 
       try {
         const skills = [
-          { name: 'skill1', path: '/tmp/skill1', agentId: 'claude', agentName: 'Claude Code', hasSkillMd: true, subPath: '.claude/skills' },
-          { name: 'skill2', path: '/tmp/skill2', agentId: 'codex', agentName: 'Codex', hasSkillMd: true, subPath: '.agents/skills' },
+          {
+            name: 'skill1',
+            path: '/tmp/skill1',
+            agentId: 'claude',
+            agentName: 'Claude Code',
+            hasSkillMd: true,
+            subPath: '.claude/skills',
+          },
+          {
+            name: 'skill2',
+            path: '/tmp/skill2',
+            agentId: 'codex',
+            agentName: 'Codex',
+            hasSkillMd: true,
+            subPath: '.agents/skills',
+          },
         ];
 
         const service = new ScanService(storage);
@@ -260,14 +295,29 @@ describe('ScanService', () => {
 
     it('continues on error and returns failed results', async () => {
       const existsSpy = vi.spyOn(files, 'exists').mockReturnValue(false);
-      const copySpy = vi.spyOn(files, 'copy')
+      const copySpy = vi
+        .spyOn(files, 'copy')
         .mockResolvedValueOnce()
         .mockRejectedValueOnce(new Error('Copy failed'));
 
       try {
         const skills = [
-          { name: 'skill1', path: '/tmp/skill1', agentId: 'claude', agentName: 'Claude Code', hasSkillMd: true, subPath: '.claude/skills' },
-          { name: 'skill2', path: '/tmp/skill2', agentId: 'codex', agentName: 'Codex', hasSkillMd: true, subPath: '.agents/skills' },
+          {
+            name: 'skill1',
+            path: '/tmp/skill1',
+            agentId: 'claude',
+            agentName: 'Claude Code',
+            hasSkillMd: true,
+            subPath: '.claude/skills',
+          },
+          {
+            name: 'skill2',
+            path: '/tmp/skill2',
+            agentId: 'codex',
+            agentName: 'Codex',
+            hasSkillMd: true,
+            subPath: '.agents/skills',
+          },
         ];
 
         const service = new ScanService(storage);
@@ -288,13 +338,23 @@ describe('ScanService', () => {
 
       try {
         const skills = [
-          { name: 'skill1', path: '/tmp/skill1', agentId: 'claude', agentName: 'Claude Code', hasSkillMd: true, subPath: '.claude/skills' },
+          {
+            name: 'skill1',
+            path: '/tmp/skill1',
+            agentId: 'claude',
+            agentName: 'Claude Code',
+            hasSkillMd: true,
+            subPath: '.claude/skills',
+          },
         ];
 
         const service = new ScanService(storage);
         await service.importSkills(skills, 'project-456');
 
-        expect(storage.saveSkill).toHaveBeenCalledWith('skill1', { type: 'project', projectId: 'project-456' });
+        expect(storage.saveSkill).toHaveBeenCalledWith('skill1', {
+          type: 'project',
+          projectId: 'project-456',
+        });
       } finally {
         existsSpy.mockRestore();
         copySpy.mockRestore();
@@ -444,7 +504,9 @@ describe('ScanService', () => {
       await fs.ensureDir(path.join(skillsDir, 'imported-skill'));
       await fs.writeFile(path.join(skillsDir, 'imported-skill', 'SKILL.md'), '# Same Content');
 
-      storage.listSkills = vi.fn(() => [{ name: 'imported-skill', source: { type: 'local' }, createdAt: '', syncedTo: [] }]);
+      storage.listSkills = vi.fn(() => [
+        { name: 'imported-skill', source: { type: 'local' }, createdAt: '', syncedTo: [] },
+      ]);
 
       const service = new ScanService(storage);
       const result = await service.getProjectSkillsWithStatus('test-project');
@@ -466,7 +528,9 @@ describe('ScanService', () => {
       await fs.ensureDir(path.join(skillsDir, 'different-skill'));
       await fs.writeFile(path.join(skillsDir, 'different-skill', 'SKILL.md'), '# Modified');
 
-      storage.listSkills = vi.fn(() => [{ name: 'different-skill', source: { type: 'local' }, createdAt: '', syncedTo: [] }]);
+      storage.listSkills = vi.fn(() => [
+        { name: 'different-skill', source: { type: 'local' }, createdAt: '', syncedTo: [] },
+      ]);
 
       const service = new ScanService(storage);
       const result = await service.getProjectSkillsWithStatus('test-project');
@@ -492,8 +556,8 @@ describe('ScanService', () => {
       const result = await service.getProjectSkillsWithStatus('test-project');
 
       expect(result).toHaveLength(2);
-      expect(result.some(s => s.name === 'claude-skill' && s.agentId === 'claude')).toBe(true);
-      expect(result.some(s => s.name === 'codex-skill' && s.agentId === 'codex')).toBe(true);
+      expect(result.some((s) => s.name === 'claude-skill' && s.agentId === 'claude')).toBe(true);
+      expect(result.some((s) => s.name === 'codex-skill' && s.agentId === 'codex')).toBe(true);
     });
   });
 

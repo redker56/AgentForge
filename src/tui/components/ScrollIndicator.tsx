@@ -4,8 +4,8 @@
  * and "v N more" below the list when items are hidden below.
  */
 
-import React from 'react';
 import { Text } from 'ink';
+import React from 'react';
 
 interface ScrollIndicatorProps {
   hiddenAbove: number;

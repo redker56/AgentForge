@@ -5,14 +5,17 @@
  * Modern Claude Code aesthetic with coral accent color.
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
+import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
-import type { AppStore } from '../store/index.js';
+
 import { useNavigation } from '../hooks/useNavigation.js';
-import { ScrollIndicator } from './ScrollIndicator.js';
+import type { AppStore } from '../store/index.js';
 import { inkColors, statusDots } from '../theme.js';
+
+import { ScrollIndicator } from './ScrollIndicator.js';
+
 
 interface SkillListProps {
   store: StoreApi<AppStore>;
@@ -23,7 +26,6 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
   const skills = useStore(store, (s) => s.skills);
   const focusedIndex = useStore(store, (s) => s.focusedSkillIndex);
   const selectedNames = useStore(store, (s) => s.selectedSkillNames);
-  const detailOverlayVisible = useStore(store, (s) => s.detailOverlayVisible);
 
   const { visibleItems, scrollTop, hiddenAbove, hiddenBelow } = useNavigation({
     items: skills,

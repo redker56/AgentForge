@@ -1,11 +1,22 @@
 /**
- * Project-level sync service
+ * @module App/ProjectSyncService
+ * @layer app
+ * @allowed-imports infra/, types
+ * @responsibility Project-level skill sync — syncs skills into project-local agent directories.
+ *
+ * Manages syncing skills into project-local agent directories (e.g.
+ * `.claude/skills/`, `.agents/skills/`). Delegates actual file operations
+ * to the base class and adds project-local config updates.
+ *
+ * @architecture Inherits the Template Method from BaseSyncService and specializes
+ * for the Project domain (ProjectSyncTarget as targets, ProjectSyncRecord as records).
+ * Also updates the project-local `.agentforge.json` config via ProjectStorage.
  */
 
 import path from 'path';
+
 import fs from 'fs-extra';
-import { BaseSyncService, SyncResult } from './base-sync-service.js';
-import { ProjectStorage } from '../project-storage.js';
+
 import { files } from '../../infra/files.js';
 import {
   getAgentProjectSkillsDir,
@@ -15,6 +26,9 @@ import {
   type ProjectSyncTarget,
   type ProjectSyncRecord,
 } from '../../types.js';
+import { ProjectStorage } from '../project-storage.js';
+
+import { BaseSyncService, SyncResult } from './base-sync-service.js';
 
 export class ProjectSyncService extends BaseSyncService<ProjectSyncTarget, ProjectSyncRecord> {
   private readonly projectStorage = new ProjectStorage();
@@ -62,15 +76,15 @@ export class ProjectSyncService extends BaseSyncService<ProjectSyncTarget, Proje
   protected updateRecords(skillName: string, results: SyncResult[]): void {
     const existing = this.getSyncRecords(skillName);
     const newRecords: ProjectSyncRecord[] = results
-      .filter(r => r.success)
-      .map(r => {
+      .filter((r) => r.success)
+      .map((r) => {
         const [projectId, agentType] = r.target.split(':');
         return { projectId, agentType: agentType as AgentId, mode: r.mode };
       });
 
     const merged = new Map<string, ProjectSyncRecord>();
-    existing.forEach(r => merged.set(this.getRecordTarget(r), r));
-    newRecords.forEach(r => merged.set(this.getRecordTarget(r), r));
+    existing.forEach((r) => merged.set(this.getRecordTarget(r), r));
+    newRecords.forEach((r) => merged.set(this.getRecordTarget(r), r));
 
     this.saveSyncRecords(skillName, Array.from(merged.values()));
 
@@ -118,9 +132,11 @@ export class ProjectSyncService extends BaseSyncService<ProjectSyncTarget, Proje
     // If agentTypes not specified, detect existing structure
     const types = agentTypes || this.detectAgentTypes(project.path);
     if (types.length === 0) {
-      throw new Error(`No Agent directories detected in project ${projectId}. Use --agent-types to specify sync targets.`);
+      throw new Error(
+        `No Agent directories detected in project ${projectId}. Use --agent-types to specify sync targets.`
+      );
     }
-    const targets: ProjectSyncTarget[] = types.map(agentType => ({ project, agentType }));
+    const targets: ProjectSyncTarget[] = types.map((agentType) => ({ project, agentType }));
 
     return this.sync(skillName, targets, mode);
   }
@@ -144,7 +160,7 @@ export class ProjectSyncService extends BaseSyncService<ProjectSyncTarget, Proje
       const project = this.storage.getProject(projectId);
       if (!project) continue;
 
-      const agentTypes = projectRecords.map(r => r.agentType);
+      const agentTypes = projectRecords.map((r) => r.agentType);
       const mode = projectRecords[0].mode; // Use first record's mode
       await this.syncToProject(skillName, projectId, agentTypes, mode);
     }
@@ -156,9 +172,8 @@ export class ProjectSyncService extends BaseSyncService<ProjectSyncTarget, Proje
     return `${target.project.id}:${target.agentType}`;
   }
 
-  private getAgentConfig(agentType: AgentId) {
-    return this.storage.listAllDefinedAgents().find(a => a.id === agentType)
-      || { id: agentType };
+  private getAgentConfig(agentType: AgentId): { id: string } {
+    return this.storage.listAllDefinedAgents().find((a) => a.id === agentType) || { id: agentType };
   }
 
   private getExistingSkillAgentTypes(project: ProjectConfig, skillName: string): AgentId[] {
@@ -196,7 +211,7 @@ export class ProjectSyncService extends BaseSyncService<ProjectSyncTarget, Proje
    */
   override async unsync(skillName: string, targetIds?: string[]): Promise<void> {
     const records = this.getSyncRecords(skillName);
-    const toRemove = targetIds || records.map(r => this.getRecordTarget(r));
+    const toRemove = targetIds || records.map((r) => this.getRecordTarget(r));
 
     for (const targetId of toRemove) {
       // Parse targetId: "projectId:agentType"
@@ -214,7 +229,7 @@ export class ProjectSyncService extends BaseSyncService<ProjectSyncTarget, Proje
     }
 
     // Update records
-    const remaining = records.filter(r => !toRemove.includes(this.getRecordTarget(r)));
+    const remaining = records.filter((r) => !toRemove.includes(this.getRecordTarget(r)));
     this.saveSyncRecords(skillName, remaining);
 
     // Update project-local config
@@ -239,11 +254,12 @@ export class ProjectSyncService extends BaseSyncService<ProjectSyncTarget, Proje
     const records = this.getSyncRecords(skillName);
     const detectedAgentTypes = project ? this.getExistingSkillAgentTypes(project, skillName) : [];
     const recordedAgentTypes = records
-      .filter(r => r.projectId === projectId)
-      .map(r => r.agentType);
+      .filter((r) => r.projectId === projectId)
+      .map((r) => r.agentType);
 
-    const targetAgentTypes = agentTypes || Array.from(new Set([...recordedAgentTypes, ...detectedAgentTypes]));
-    const toRemove = targetAgentTypes.map(agentType => `${projectId}:${agentType}`);
+    const targetAgentTypes =
+      agentTypes || Array.from(new Set([...recordedAgentTypes, ...detectedAgentTypes]));
+    const toRemove = targetAgentTypes.map((agentType) => `${projectId}:${agentType}`);
 
     await this.unsync(skillName, toRemove);
 

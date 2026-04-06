@@ -3,14 +3,19 @@
  */
 
 import type { StoreApi } from 'zustand';
+
+import type { SkillMeta } from '../../../types.js';
 import type { ServiceContext } from '../dataSlice.js';
 import type { AppStore } from '../index.js';
 import type { ConflictEntry } from '../uiSlice.js';
-import type { SkillMeta } from '../../../types.js';
 
 export interface SkillActions {
   addSkillFromUrl: (url: string, name?: string) => Promise<void>;
-  addSkillFromDiscovery: (url: string, selectedSkills: Array<{ name: string; subPath: string }>, tempRepoPath: string) => Promise<void>;
+  addSkillFromDiscovery: (
+    url: string,
+    selectedSkills: Array<{ name: string; subPath: string }>,
+    tempRepoPath: string
+  ) => Promise<void>;
   removeSkill: (skillName: string) => Promise<void>;
   restoreSkill: (snapshot: Record<string, unknown>) => void;
 }
@@ -24,7 +29,7 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
 
     if (conflicts.length === 0) return;
 
-    const entries: ConflictEntry[] = conflicts.map(c => ({
+    const entries: ConflictEntry[] = conflicts.map((c) => ({
       agentId: c.agentId,
       agentName: c.agentName,
       sameContent: c.sameContent,
@@ -41,7 +46,10 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
 
         const resolutions = new Map<string, 'link' | 'skip' | 'cancel'>();
         for (const entry of conflictInfo.conflicts) {
-          resolutions.set(entry.agentId, entry.resolution === 'pending' ? 'skip' : entry.resolution);
+          resolutions.set(
+            entry.agentId,
+            entry.resolution === 'pending' ? 'skip' : entry.resolution
+          );
         }
 
         const linkedAgentIds = ctx.syncCheck.resolveConflicts(skillName, resolutions);
@@ -49,7 +57,7 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
         // Merge linked agents into existing sync records
         const skill = ctx.storage.getSkill(skillName);
         if (skill) {
-          const merged = new Map<string, typeof skill.syncedTo[0]>();
+          const merged = new Map<string, (typeof skill.syncedTo)[0]>();
           for (const record of skill.syncedTo) {
             merged.set(record.agentId, record);
           }
@@ -59,13 +67,13 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
           ctx.storage.updateSkillSync(skillName, Array.from(merged.values()));
         }
 
-        state.refreshSkills();
+        void state.refreshSkills();
       },
     });
   }
 
   return {
-    addSkillFromUrl: async (url, name) => {
+    addSkillFromUrl: async (url, name): Promise<void> => {
       try {
         let skillName: string;
 
@@ -96,7 +104,11 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
             }
 
             if (discovered.length === 1) {
-              skillName = await ctx.skillService.installFromDirectory(url, discovered[0].name, `${tempPath}/${discovered[0].subPath}`);
+              skillName = await ctx.skillService.installFromDirectory(
+                url,
+                discovered[0].name,
+                `${tempPath}/${discovered[0].subPath}`
+              );
               await ctx.skillService.removeTempRepo(tempPath);
             } else {
               // Multiple skills -- store discovery data for form selection
@@ -127,7 +139,7 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
       }
     },
 
-    addSkillFromDiscovery: async (url, selectedSkills, tempRepoPath) => {
+    addSkillFromDiscovery: async (url, selectedSkills, tempRepoPath): Promise<void> => {
       try {
         let lastInstalledName: string | undefined;
 
@@ -156,19 +168,19 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
       }
     },
 
-    removeSkill: async (skillName) => {
+    removeSkill: async (skillName): Promise<void> => {
       const skill = ctx.storage.getSkill(skillName);
       if (!skill) return;
 
       // Unsync from all agents
-      const agentIds = skill.syncedTo.map(r => r.agentId);
+      const agentIds = skill.syncedTo.map((r) => r.agentId);
       if (agentIds.length > 0) {
         await ctx.syncService.unsync(skillName, agentIds);
       }
 
       // Unsync from all projects
       const projectTargetIds = (skill.syncedProjects || []).map(
-        r => `${r.projectId}:${r.agentType}`
+        (r) => `${r.projectId}:${r.agentType}`
       );
       if (projectTargetIds.length > 0) {
         await ctx.projectSyncService.unsync(skillName, projectTargetIds);
@@ -179,7 +191,7 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
       await store.getState().refreshSkills();
     },
 
-    restoreSkill: (snapshot) => {
+    restoreSkill: (snapshot): void => {
       const name = snapshot.name as string;
       if (!name) return;
       // Write the full SkillMeta back to registry preserving original fields

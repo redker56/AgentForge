@@ -5,14 +5,15 @@
  * helper invocation (Known Deviation 1).
  */
 
-import React from 'react';
 import { Box, Text } from 'ink';
-import type { ServiceContext } from '../store/dataSlice.js';
+import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
-import type { AppStore } from '../store/index.js';
+
 import { ImportFormTab } from '../components/ImportFormTab.js';
 import { ProgressBarStack } from '../components/ProgressBar.js';
+import type { ServiceContext } from '../store/dataSlice.js';
+import type { AppStore } from '../store/index.js';
 
 interface ImportScreenProps {
   store: StoreApi<AppStore>;

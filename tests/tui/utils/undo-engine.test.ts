@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+
 import { createUndoEngine, type UndoEngine } from '../../../src/tui/utils/undo-engine.js';
 
 describe('createUndoEngine', () => {

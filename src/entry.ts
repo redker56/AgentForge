@@ -2,8 +2,8 @@
  * Program entry point -- routes to TUI mode or CLI mode
  */
 
-import { launchTUI } from './tui.js';
 import { launchCLI } from './cli.js';
+import { launchTUI } from './tui.js';
 
 const args = process.argv.slice(2);
 

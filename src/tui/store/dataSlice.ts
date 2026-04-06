@@ -2,10 +2,21 @@
  * Data State Slice
  */
 
-import type { StateCreator } from 'zustand';
-import fs from 'fs-extra';
 import path from 'path';
-import type { SkillMeta, SyncRecord, ProjectSyncRecord, SkillSource, SyncMode, Agent, ProjectConfig } from '../../types.js';
+
+import fs from 'fs-extra';
+import type { StateCreator } from 'zustand';
+
+import type {
+  SkillMeta,
+  SyncRecord,
+  ProjectSyncRecord,
+  SkillSource,
+  SyncMode,
+  Agent,
+  ProjectConfig,
+} from '../../types.js';
+
 import type { SkillListItem, StoreState } from './index.js';
 
 export interface SkillDetailData {
@@ -67,29 +78,53 @@ export interface ProjectDetailData {
 export interface ServiceContext {
   skillService: {
     list(): Array<SkillMeta & { exists: boolean }>;
-    get(name: string): { name: string; path: string; source: SkillSource; createdAt: string; syncedTo: SyncRecord[]; syncedProjects?: ProjectSyncRecord[] } | null;
+    get(name: string): {
+      name: string;
+      path: string;
+      source: SkillSource;
+      createdAt: string;
+      syncedTo: SyncRecord[];
+      syncedProjects?: ProjectSyncRecord[];
+    } | null;
     exists(name: string): boolean;
     install(url: string, name?: string, subPath?: string): Promise<string>;
     installFromDirectory(url: string, name: string, sourceDir: string): Promise<string>;
     importFromPath(sourcePath: string, name: string, source: SkillSource): Promise<void>;
     delete(name: string): Promise<void>;
     cloneRepoToTemp(repoUrl: string): Promise<string>;
-    discoverSkillsInDirectory(repoDir: string, repoUrl: string): Array<{ name: string; subPath: string }>;
+    discoverSkillsInDirectory(
+      repoDir: string,
+      repoUrl: string
+    ): Array<{ name: string; subPath: string }>;
     removeTempRepo(tempDir: string): Promise<void>;
-    update(name: string): Promise<boolean>;  // git pull on skill. Returns false if not a git skill or not a repo.
+    update(name: string): Promise<boolean>; // git pull on skill. Returns false if not a git skill or not a repo.
   };
   scanService: {
-    getSkillProjectDistributionWithStatus(skillName: string): Promise<Array<{ projectId: string; agents: Array<{ id: string; name: string; isDifferentVersion: boolean }> }>>;
-    getProjectSkillsWithStatus(projectId: string): Promise<Array<{
+    getSkillProjectDistributionWithStatus(skillName: string): Promise<
+      Array<{
+        projectId: string;
+        agents: Array<{ id: string; name: string; isDifferentVersion: boolean }>;
+      }>
+    >;
+    getProjectSkillsWithStatus(projectId: string): Promise<
+      Array<{
+        name: string;
+        path: string;
+        agentId: string;
+        agentName: string;
+        isImported: boolean;
+        isDifferentVersion: boolean;
+        subPath: string;
+      }>
+    >;
+    scanProject(projectPath: string): Array<{
       name: string;
       path: string;
       agentId: string;
       agentName: string;
-      isImported: boolean;
-      isDifferentVersion: boolean;
+      hasSkillMd: boolean;
       subPath: string;
-    }>>;
-    scanProject(projectPath: string): Array<{ name: string; path: string; agentId: string; agentName: string; hasSkillMd: boolean; subPath: string }>;
+    }>;
   };
   storage: {
     listAgents(): Agent[];
@@ -111,22 +146,51 @@ export interface ServiceContext {
   };
   syncService: {
     unsync(skillName: string, targetIds?: string[]): Promise<void>;
-    checkSyncStatus(skillName: string): Array<{ target: string; exists: boolean; sameContent: boolean | null; isSymlink: boolean; linkTarget: string | null }>;
-    sync(skillName: string, targets: unknown[], mode: SyncMode): Promise<Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>>;
+    checkSyncStatus(skillName: string): Array<{
+      target: string;
+      exists: boolean;
+      sameContent: boolean | null;
+      isSymlink: boolean;
+      linkTarget: string | null;
+    }>;
+    sync(
+      skillName: string,
+      targets: unknown[],
+      mode: SyncMode
+    ): Promise<
+      Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>
+    >;
     resync(skillName: string): Promise<void>;
     getSyncedAgents(skillName: string): Agent[];
   };
   projectSyncService: {
     unsync(skillName: string, targetIds?: string[]): Promise<void>;
-    syncToProject(skillName: string, projectId: string, agentTypes?: string[], mode?: SyncMode): Promise<Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>>;
+    syncToProject(
+      skillName: string,
+      projectId: string,
+      agentTypes?: string[],
+      mode?: SyncMode
+    ): Promise<
+      Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>
+    >;
     resync(skillName: string): Promise<void>;
     detectAgentTypes(projectPath: string): string[];
   };
   syncCheck: {
-    detectConflicts(skillName: string): Array<{ agentId: string; agentName: string; sameContent: boolean }>;
-    resolveConflicts(skillName: string, resolutions: Map<string, 'link' | 'skip' | 'cancel'>): string[];
+    detectConflicts(
+      skillName: string
+    ): Array<{ agentId: string; agentName: string; sameContent: boolean }>;
+    resolveConflicts(
+      skillName: string,
+      resolutions: Map<string, 'link' | 'skip' | 'cancel'>
+    ): string[];
   };
-  fileOps: { pathExists(p: string): boolean; listSubdirectories(p: string): string[]; ensureDir(p: string): Promise<void>; fileExists(p: string): boolean };
+  fileOps: {
+    pathExists(p: string): boolean;
+    listSubdirectories(p: string): string[];
+    ensureDir(p: string): Promise<void>;
+    fileExists(p: string): boolean;
+  };
 }
 
 export interface DataSlice {
@@ -143,19 +207,19 @@ export interface DataSlice {
   projectDetails: Record<string, ProjectDetailData | undefined>;
 
   // Actions
-  loadAllData: () => Promise<void>;
+  loadAllData: () => void;
   loadSkillDetail: (name: string) => Promise<void>;
-  refreshSkills: () => Promise<void>;
+  refreshSkills: () => void;
 
   // NEW: Agent/project actions
-  loadAgentDetail: (agentId: string) => Promise<void>;
+  loadAgentDetail: (agentId: string) => void;
   loadProjectDetail: (projectId: string) => Promise<void>;
-  refreshAgents: () => Promise<void>;
-  refreshProjects: () => Promise<void>;
+  refreshAgents: () => void;
+  refreshProjects: () => void;
 }
 
 export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [], [], DataSlice> {
-  return (set, get) => ({
+  return (set, _get) => ({
     skills: [],
     agents: [],
     projects: [],
@@ -167,35 +231,48 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
     agentDetails: {},
     projectDetails: {},
 
-    loadAllData: async () => {
+    loadAllData(): void {
       set({ loading: { skills: true, agents: true, projects: true }, error: null });
       try {
         const skills = ctx.skillService.list();
         const agents = ctx.storage.listAgents();
         const projects = ctx.storage.listProjects();
         set({
-          skills: skills.map(s => ({ ...s })),
+          skills: skills.map((s) => ({ ...s })),
           agents,
           projects,
           loading: { skills: false, agents: false, projects: false },
         });
       } catch (e: unknown) {
-        set({ error: e instanceof Error ? e.message : String(e), loading: { skills: false, agents: false, projects: false } });
+        set({
+          error: e instanceof Error ? e.message : String(e),
+          loading: { skills: false, agents: false, projects: false },
+        });
       }
     },
 
-    loadSkillDetail: async (name) => {
+    loadSkillDetail: async (name): Promise<void> => {
       const skill = ctx.skillService.get(name);
       if (!skill) return;
 
       const allAgents = ctx.storage.listAgents();
-      const syncStatus = allAgents.map(agent => {
-        const record = skill.syncedTo.find(r => r.agentId === agent.id);
+      const syncStatus = allAgents.map((agent) => {
+        const record = skill.syncedTo.find((r) => r.agentId === agent.id);
         if (!record) {
-          return { agentId: agent.id, agentName: agent.name, mode: 'copy' as SyncMode, status: 'missing' as const };
+          return {
+            agentId: agent.id,
+            agentName: agent.name,
+            mode: 'copy' as SyncMode,
+            status: 'missing' as const,
+          };
         }
         // Sprint 1: treats all synced records as 'synced'.
-        return { agentId: agent.id, agentName: agent.name, mode: record.mode, status: 'synced' as const };
+        return {
+          agentId: agent.id,
+          agentName: agent.name,
+          mode: record.mode,
+          status: 'synced' as const,
+        };
       });
 
       const projectDistribution = await ctx.scanService.getSkillProjectDistributionWithStatus(name);
@@ -236,14 +313,17 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
       }));
     },
 
-    refreshSkills: async () => {
+    refreshSkills(): void {
       set((state) => ({ loading: { ...state.loading, skills: true } }));
       const skills = ctx.skillService.list();
-      set((state) => ({ skills: skills.map(s => ({ ...s })), loading: { ...state.loading, skills: false } }));
+      set((state) => ({
+        skills: skills.map((s) => ({ ...s })),
+        loading: { ...state.loading, skills: false },
+      }));
     },
 
     // NEW: Load agent detail data
-    loadAgentDetail: async (agentId) => {
+    loadAgentDetail(agentId): void {
       const agent = ctx.storage.getAgent(agentId);
       if (!agent) return;
 
@@ -255,8 +335,9 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
           const skillPath = path.join(agent.basePath, skillDir);
           // Check if it looks like a skill directory (has SKILL.md)
           try {
-            const hasSkillMd = fs.existsSync(path.join(skillPath, 'SKILL.md'))
-              || fs.existsSync(path.join(skillPath, 'skill.md'));
+            const hasSkillMd =
+              fs.existsSync(path.join(skillPath, 'SKILL.md')) ||
+              fs.existsSync(path.join(skillPath, 'skill.md'));
             if (!hasSkillMd) continue;
           } catch {
             continue;
@@ -264,7 +345,7 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
 
           // Check sync record
           const skill = ctx.storage.getSkill(skillDir);
-          const syncRecord = skill?.syncedTo.find(r => r.agentId === agentId);
+          const syncRecord = skill?.syncedTo.find((r) => r.agentId === agentId);
           userLevelSkills.push({
             name: skillDir,
             syncMode: syncRecord?.mode ?? 'copy',
@@ -287,8 +368,9 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
         for (const skillDir of projectSkillDirs) {
           const skillPath = path.join(agentSkillsDir, skillDir);
           try {
-            const hasSkillMd = fs.existsSync(path.join(skillPath, 'SKILL.md'))
-              || fs.existsSync(path.join(skillPath, 'skill.md'));
+            const hasSkillMd =
+              fs.existsSync(path.join(skillPath, 'SKILL.md')) ||
+              fs.existsSync(path.join(skillPath, 'skill.md'));
             if (!hasSkillMd) continue;
           } catch {
             continue;
@@ -319,14 +401,21 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
     },
 
     // NEW: Load project detail data
-    loadProjectDetail: async (projectId) => {
+    loadProjectDetail: async (projectId): Promise<void> => {
       const project = ctx.storage.getProject(projectId);
       if (!project) return;
 
       const allProjectSkills = await ctx.scanService.getProjectSkillsWithStatus(projectId);
 
       // Group by agent
-      const byAgent = new Map<string, { agentId: string; agentName: string; skills: ProjectDetailData['skillsByAgent'][0]['skills'] }>();
+      const byAgent = new Map<
+        string,
+        {
+          agentId: string;
+          agentName: string;
+          skills: ProjectDetailData['skillsByAgent'][0]['skills'];
+        }
+      >();
       for (const skill of allProjectSkills) {
         let group = byAgent.get(skill.agentId);
         if (!group) {
@@ -355,13 +444,13 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
     },
 
     // NEW: Refresh agents
-    refreshAgents: async () => {
+    refreshAgents(): void {
       const agents = ctx.storage.listAgents();
       set({ agents, agentDetails: {} });
     },
 
     // NEW: Refresh projects
-    refreshProjects: async () => {
+    refreshProjects(): void {
       const projects = ctx.storage.listProjects();
       set({ projects, projectDetails: {} });
     },

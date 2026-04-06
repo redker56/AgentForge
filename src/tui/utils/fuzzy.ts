@@ -17,10 +17,10 @@ export interface FuzzyMatchResult<T> {
 export function fuzzyMatch<T>(
   query: string,
   items: T[],
-  getText: (item: T) => string,
+  getText: (item: T) => string
 ): FuzzyMatchResult<T>[] {
   if (!query) {
-    return items.map(item => ({ item, score: 0, matchIndices: [] }));
+    return items.map((item) => ({ item, score: 0, matchIndices: [] }));
   }
 
   const q = query.toLowerCase();

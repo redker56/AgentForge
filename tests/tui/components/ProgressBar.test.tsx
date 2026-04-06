@@ -10,9 +10,10 @@
  *  - ProgressBarStack rendering
  */
 
-import { describe, it, expect } from 'vitest';
-import React from 'react';
 import { render } from 'ink-testing-library';
+import React from 'react';
+import { describe, it, expect } from 'vitest';
+
 import { ProgressBar, ProgressBarStack } from '../../../src/tui/components/ProgressBar.js';
 
 describe('ProgressBar', () => {
