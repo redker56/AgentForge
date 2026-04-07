@@ -2,8 +2,8 @@
  * Vertical step indicator for multi-step form flows (Sync / Import).
  *
  * Renders a list of step labels with status markers:
- *   Completed: `* Step Name` (green dim)
- *   Current:   `> Step Name` (cyan bold)
+ *   Completed: `✓ Step Name` (green dim)
+ *   Current:   `> Step Name` (accent bold)
  *   Future:    `  Step Name` (dim)
  *
  * Minimal horizontal space cost -- left-aligned within fixed width.
@@ -11,6 +11,8 @@
 
 import { Box, Text } from 'ink';
 import React from 'react';
+
+import { inkColors, symbols } from '../theme.js';
 
 export interface StepIndicatorProps {
   steps: string[];
@@ -28,13 +30,13 @@ export function StepIndicator({
       {steps.map((label, i) => {
         const isCompleted = i < currentStep;
         const isCurrent = i === currentStep;
-        const prefix = isCompleted ? '* ' : isCurrent ? '> ' : '  ';
+        const prefix = isCompleted ? `${symbols.checkMark} ` : isCurrent ? '> ' : '  ';
 
         if (isCompleted) {
           return (
             <Box key={i} flexDirection="row">
-              <Text color="green">{prefix}</Text>
-              <Text color="green">{label}</Text>
+              <Text color={inkColors.success}>{prefix}</Text>
+              <Text color={inkColors.success}>{label}</Text>
             </Box>
           );
         }
@@ -42,8 +44,8 @@ export function StepIndicator({
         if (isCurrent) {
           return (
             <Box key={i} flexDirection="row">
-              <Text bold color="cyan">{prefix}</Text>
-              <Text bold color="cyan">{label}</Text>
+              <Text bold color={inkColors.accent}>{prefix}</Text>
+              <Text bold color={inkColors.accent}>{label}</Text>
             </Box>
           );
         }

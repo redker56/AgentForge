@@ -12,7 +12,7 @@ import type { StoreApi } from 'zustand';
 
 import { useNavigation } from '../hooks/useNavigation.js';
 import type { AppStore } from '../store/index.js';
-import { inkColors, statusDots } from '../theme.js';
+import { inkColors, statusDots, renderFocusPrefix, selectionMarkers, emptyStateText } from '../theme.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
 
@@ -39,7 +39,6 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
     <Box flexDirection="column" flexGrow={1}>
       <Text bold color={inkColors.accent}>
         Skills <Text color={inkColors.muted}>({skills.length})</Text>
-        <Text color={inkColors.muted}>  [/] search</Text>
       </Text>
 
       {hiddenAbove > 0 && (
@@ -68,23 +67,10 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
         // Source type color
         const sourceColor = skill.source.type === 'git' ? inkColors.git : inkColors.muted;
 
-        // Build prefix based on focus + selection state
-        let prefix: string;
-        if (isFocused) {
-          // Focused rows get "▎ " prefix
-          if (isSelected) {
-            prefix = '\u258E [✓] ';
-          } else {
-            prefix = '\u258E ';
-          }
-        } else {
-          // Non focused
-          if (isSelected) {
-            prefix = '[✓] ';
-          } else {
-            prefix = '  '; // 2-char indent for alignment
-          }
-        }
+        // Focus prefix using shared function
+        const prefix = renderFocusPrefix(isFocused);
+        // Selection marker
+        const marker = isSelected ? selectionMarkers.selected : '';
 
         // Focused row gets full-row background + white text
         // The ▎ must be rendered as a colored sibling, not inside the bg Text
@@ -92,11 +78,15 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
           <Box key={skill.name}>
             {isFocused ? (
               <>
-                <Text color={inkColors.accent}>{"\u258E"}</Text>
+                <Text color={inkColors.accent}>{prefix}</Text>
                 <Text> </Text>
-                {isSelected ? <Text backgroundColor={inkColors.focusBg}>[✓] </Text> : null}
+                {isSelected ? (
+                  <Text color={inkColors.success} backgroundColor={inkColors.focusBg}>
+                    {marker}{' '}
+                  </Text>
+                ) : null}
                 <Text backgroundColor={inkColors.focusBg}>
-                  {isSelected ? '' : ''}{skill.name}
+                  {skill.name}
                 </Text>
                 <Text> </Text>
                 <Text color={sourceColor} backgroundColor={inkColors.focusBg}>
@@ -107,9 +97,12 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
               </>
             ) : (
               <>
-                <Text color={inkColors.accent}>
+                <Text>
                   {prefix}
                 </Text>
+                {isSelected ? (
+                  <Text color={inkColors.success}>{marker}{' '}</Text>
+                ) : null}
                 <Text color={inkColors.primary}>
                   {skill.name}
                 </Text>
@@ -126,7 +119,7 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
       })}
 
       {skills.length === 0 && (
-        <Text color={inkColors.muted}>No skills installed</Text>
+        <Text color={inkColors.muted}>{emptyStateText.skills}</Text>
       )}
 
       {hiddenBelow > 0 && (

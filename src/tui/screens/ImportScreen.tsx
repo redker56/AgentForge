@@ -12,6 +12,7 @@ import type { StoreApi } from 'zustand';
 
 import { ImportFormTab } from '../components/ImportFormTab.js';
 import { ProgressBarStack } from '../components/ProgressBar.js';
+import { inkColors } from '../theme.js';
 import type { ServiceContext } from '../store/dataSlice.js';
 import type { AppStore } from '../store/index.js';
 
@@ -26,7 +27,7 @@ export function ImportScreen({ store, ctx }: ImportScreenProps): React.ReactElem
   return (
     <Box flexDirection="column" height="100%">
       <Box paddingX={1}>
-        <Text bold color="cyan">Import Skills</Text>
+        <Text bold color={inkColors.accent}>Import Skills</Text>
       </Box>
       <Box flexGrow={1}>
         <ImportFormTab store={store} ctx={ctx} />

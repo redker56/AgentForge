@@ -108,7 +108,7 @@ describe('ImportChecklist', () => {
       />
     );
     const output = lastFrame();
-    expect(output).toContain('>');
+    expect(output).toContain('\u258E');
   });
 
   it('header shows "Select skills to import"', () => {

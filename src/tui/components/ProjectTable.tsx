@@ -12,7 +12,7 @@ import type { StoreApi } from 'zustand';
 import { useNavigation } from '../hooks/useNavigation.js';
 import type { ProjectDetailData } from '../store/dataSlice.js';
 import type { AppStore } from '../store/index.js';
-import { inkColors } from '../theme.js';
+import { inkColors, renderFocusPrefix, emptyStateText } from '../theme.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
 
@@ -62,18 +62,24 @@ export function ProjectTable({ store, columns }: ProjectTableProps): React.React
       : project.path.padEnd(pathWidth);
 
     const rowText = `${project.id.padEnd(idWidth)}${pathDisplay}${dateStr.padEnd(addedWidth)}${totalSkills}`;
+    const prefix = renderFocusPrefix(isFocused);
 
     if (isFocused) {
       return (
         <>
-          <Text color={inkColors.accent}>{"\u258E"}</Text>
+          <Text color={inkColors.accent}>{prefix}</Text>
           <Text> </Text>
           <Text backgroundColor={inkColors.focusBg}>{rowText}</Text>
         </>
       );
     }
 
-    return <Text color={inkColors.secondary}>{rowText}</Text>;
+    return (
+      <>
+        <Text>{prefix}</Text>
+        <Text color={inkColors.primary}>{rowText}</Text>
+      </>
+    );
   };
 
   return (
@@ -153,7 +159,7 @@ export function ProjectTable({ store, columns }: ProjectTableProps): React.React
       )}
 
       {projects.length === 0 && (
-        <Text color={inkColors.muted}>No projects registered. Add a project with `a` key.</Text>
+        <Text color={inkColors.muted}>{emptyStateText.projects}</Text>
       )}
     </Box>
   );

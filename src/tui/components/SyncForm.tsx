@@ -13,6 +13,7 @@ import type { StoreApi } from 'zustand';
 import type { SyncMode } from '../../types.js';
 import type { AppStore } from '../store/index.js';
 import type { SyncOperation } from '../store/uiSlice.js';
+import { inkColors, renderFocusPrefix, selectionMarkers, spacing } from '../theme.js';
 
 import { ProgressBar } from './ProgressBar.js';
 import { StepIndicator } from './StepIndicator.js';
@@ -234,9 +235,9 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
   const syncCurrentIndex = syncSteps.indexOf(syncStepLabel);
 
   return (
-    <Box flexDirection="row" flexGrow={1} paddingX={1}>
+    <Box flexDirection="row" flexGrow={1} paddingX={spacing.paddingX}>
       <StepIndicator steps={syncSteps} currentStep={Math.max(0, syncCurrentIndex)} width={22} />
-      <Box flexDirection="column" flexGrow={1} paddingX={1}>
+      <Box flexDirection="column" flexGrow={1} paddingX={spacing.paddingX}>
         {syncFormStep === 'select-op' && <SelectOp operation={syncFormOperation} />}
         {syncFormStep === 'select-skills' && (
           <SelectSkills skills={skills} selected={syncFormSelectedSkillNames} focusedIndex={syncFormFocusedIndex} />
@@ -360,12 +361,12 @@ function SelectOp({ operation }: { operation: SyncOperation | null }): React.Rea
 
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">Sync Skills</Text>
+      <Text bold color={inkColors.accent}>Sync Skills</Text>
       <Text> </Text>
       <Text>Choose operation:</Text>
       {opts.map((op, i) => (
         <Text key={op.value}>
-          {i === opIdx ? '  > ' : '    '}
+          {renderFocusPrefix(i === opIdx)}
           {i === opIdx ? <Text bold>( {op.label} )</Text> : <Text> {op.label} </Text>}
         </Text>
       ))}
@@ -386,20 +387,20 @@ function SelectSkills({
 }): React.ReactElement {
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">Select skills to sync</Text>
+      <Text bold color={inkColors.accent}>Select skills to sync</Text>
       <Text> </Text>
       {skills.map((skill, i) => {
         const isSelected = selected.has(skill.name);
         const isFocused = i === focusedIndex;
         return (
           <Text key={skill.name}>
-            {isFocused ? '  > ' : '    '}
-            <Text color={isSelected ? 'cyan' : undefined}>{isSelected ? '[x]' : '[ ]'}</Text>{' '}
+            {renderFocusPrefix(isFocused)}
+            <Text color={isSelected ? inkColors.success : undefined}>{isSelected ? selectionMarkers.selected : selectionMarkers.unselected}</Text>{' '}
             {skill.name}
           </Text>
         );
       })}
-      {skills.length === 0 && <Text dimColor>No skills installed</Text>}
+      {skills.length === 0 && <Text dimColor>No skills installed. Use the Skills tab to add skills.</Text>}
       <Text> </Text>
       <Text dimColor>Up/Down to navigate, Space to toggle, Enter to continue</Text>
     </Box>
@@ -426,20 +427,20 @@ function SelectTargets({
 
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">{title}</Text>
+      <Text bold color={inkColors.accent}>{title}</Text>
       <Text> </Text>
       {targets.map((target, i) => {
         const isSelected = selected.has(target.id);
         const isFocused = i === focusedIndex;
         return (
           <Text key={target.id}>
-            {isFocused ? '  > ' : '    '}
-            <Text color={isSelected ? 'cyan' : undefined}>{isSelected ? '[x]' : '[ ]'}</Text>{' '}
+            {renderFocusPrefix(isFocused)}
+            <Text color={isSelected ? inkColors.success : undefined}>{isSelected ? selectionMarkers.selected : selectionMarkers.unselected}</Text>{' '}
             {target.label}
           </Text>
         );
       })}
-      {targets.length === 0 && <Text dimColor>No targets configured</Text>}
+      {targets.length === 0 && <Text dimColor>No targets configured. Add agents or projects first.</Text>}
       <Text> </Text>
       <Text dimColor>{selected.size} target(s) selected</Text>
       <Text dimColor>Up/Down to navigate, Space to toggle, Enter to continue</Text>
@@ -458,15 +459,15 @@ function SelectAgentTypes({
 }): React.ReactElement {
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">Select agent types</Text>
+      <Text bold color={inkColors.accent}>Select agent types</Text>
       <Text> </Text>
       {agents.map((agent, i) => {
         const isSelected = selected.has(agent.id);
         const isFocused = i === focusedIndex;
         return (
           <Text key={agent.id}>
-            {isFocused ? '  > ' : '    '}
-            <Text color={isSelected ? 'cyan' : undefined}>{isSelected ? '[x]' : '[ ]'}</Text>{' '}
+            {renderFocusPrefix(isFocused)}
+            <Text color={isSelected ? inkColors.success : undefined}>{isSelected ? selectionMarkers.selected : selectionMarkers.unselected}</Text>{' '}
             {agent.id}
           </Text>
         );
@@ -480,10 +481,10 @@ function SelectAgentTypes({
 function SelectMode({ mode }: { mode: SyncMode }): React.ReactElement {
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">Sync mode</Text>
+      <Text bold color={inkColors.accent}>Sync mode</Text>
       <Text> </Text>
-      <Text>{mode === 'copy' ? '  > ' : '    '}Copy - Independent copy, stable and reliable</Text>
-      <Text>{mode === 'symlink' ? '  > ' : '    '}Symlink - Link to source, updates automatically</Text>
+      <Text>{renderFocusPrefix(mode === 'copy')}Copy - Independent copy, stable and reliable</Text>
+      <Text>{renderFocusPrefix(mode === 'symlink')}Symlink - Link to source, updates automatically</Text>
       <Text> </Text>
       <Text dimColor>Up/Down to choose, Enter to continue</Text>
     </Box>
@@ -509,7 +510,7 @@ function ConfirmStep({
 
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">Confirm {operation === 'unsync' ? 'Unsync' : 'Sync'}</Text>
+      <Text bold color={inkColors.accent}>Confirm {operation === 'unsync' ? 'Unsync' : 'Sync'}</Text>
       <Text> </Text>
       <Text>
         {actionText} {skillNames.size} skill(s) to {targetIds.size} {targetLabel}.
@@ -521,7 +522,7 @@ function ConfirmStep({
       {agentTypes.size > 0 && <Text dimColor>Agent types: {[...agentTypes].join(', ')}</Text>}
       <Text> </Text>
       <Box flexDirection="row" gap={2}>
-        <Text color="cyan">[Enter]</Text>
+        <Text color={inkColors.accent}>[Enter]</Text>
         <Text>{actionText}</Text>
         <Text dimColor>[Esc] Back</Text>
       </Box>
@@ -574,13 +575,13 @@ function ResultsStep({
 
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">Sync complete</Text>
+      <Text bold color={inkColors.accent}>Sync complete</Text>
       <Text> </Text>
       <Text>
         <Text bold>{successes.length}</Text> succeeded
         {failures.length > 0 && (
           <>
-            , <Text bold color="red">{failures.length}</Text> failed
+            , <Text bold color={inkColors.error}>{failures.length}</Text> failed
           </>
         )}
       </Text>
@@ -589,16 +590,16 @@ function ResultsStep({
           <Text> </Text>
           {failures.map((r, i) => (
             <Box key={`fail-${i}`} flexDirection="row" flexWrap="wrap">
-              <Text color="red">x </Text>
+              <Text color={inkColors.error}>x </Text>
               <Text>{r.target}</Text>
-              {r.error && <Text color="red">: {r.error}</Text>}
+              {r.error && <Text color={inkColors.error}>: {r.error}</Text>}
             </Box>
           ))}
         </>
       )}
       <Text> </Text>
       <Box flexDirection="row" gap={2}>
-        <Text color="cyan">[Enter]</Text>
+        <Text color={inkColors.accent}>[Enter]</Text>
         <Text>New sync</Text>
         <Text dimColor>[Esc] Close</Text>
       </Box>

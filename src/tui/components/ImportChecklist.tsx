@@ -1,6 +1,8 @@
 import { Box, Text } from 'ink';
 import React from 'react';
 
+import { inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
+
 export interface ChecklistSkill {
   name: string;
   path: string;
@@ -20,7 +22,7 @@ interface ImportChecklistProps {
 
 /**
  * Checklist preview for import workflow.
- * Shows discovered skills with paths, already-imported markers, and [x]/[ ] toggles.
+ * Shows discovered skills with paths, already-imported markers, and [+]/[ ] toggles.
  */
 export function ImportChecklist({
   skills,
@@ -41,12 +43,12 @@ export function ImportChecklist({
         const isSelected = selected.has(skill.name);
         const isAlreadyImported = skill.alreadyExists;
 
-        const prefix = isFocused ? '> ' : '  ';
+        const prefix = renderFocusPrefix(isFocused);
         let checkbox: string;
         if (isAlreadyImported) {
           checkbox = '[IMPORTED]';
         } else {
-          checkbox = isSelected ? '[x]' : '[ ]';
+          checkbox = isSelected ? selectionMarkers.selected : selectionMarkers.unselected;
         }
 
         const availableWidth = columns - prefix.length - checkbox.length - 1;
@@ -79,9 +81,9 @@ export function ImportChecklist({
 
         return (
           <Box key={skill.name}>
-            {prefix === '> ' ? (
+            {isFocused ? (
               <Box width={prefix.length}>
-                <Text color="cyan">{prefix}</Text>
+                <Text color={inkColors.accent}>{prefix}</Text>
               </Box>
             ) : (
               <Box width={prefix.length}>
@@ -89,7 +91,7 @@ export function ImportChecklist({
               </Box>
             )}
             {isSelected ? (
-              <Text color="cyan">{rowContent}</Text>
+              <Text color={inkColors.success}>{rowContent}</Text>
             ) : (
               <Text>{rowContent}</Text>
             )}

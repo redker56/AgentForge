@@ -10,7 +10,7 @@ import type { StoreApi } from 'zustand';
 
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
 import type { AppStore, TabId } from '../store/index.js';
-import { inkColors } from '../theme.js';
+import { inkColors, spacing } from '../theme.js';
 
 interface TabBarProps {
   store: StoreApi<AppStore>;
@@ -39,15 +39,21 @@ export function TabBar({ store, band, columns }: TabBarProps): React.ReactElemen
 
   const useSymbols = band === 'compact' || columns < 60;
   const tabs = useSymbols ? SYMBOL_TABS : FULL_TABS;
+  const showHints = !useSymbols && columns >= 60;
+
+  const gap = ' '.repeat(spacing.tabGap);
 
   return (
     <Box>
       <Text bold color={inkColors.accent}>AgentForge</Text>
-      <Text color={inkColors.muted}>  </Text>
+      <Text>{gap}</Text>
       {tabs.map((tab, index) => {
         const isActive = tab.id === activeTab;
         return (
           <React.Fragment key={tab.id}>
+            {showHints && (
+              <Text dimColor>{index + 1}</Text>
+            )}
             <Text
               color={isActive ? inkColors.accent : inkColors.muted}
               bold={isActive}
@@ -61,7 +67,7 @@ export function TabBar({ store, band, columns }: TabBarProps): React.ReactElemen
               </Text>
               {isActive ? ']' : ' '}
             </Text>
-            {index < tabs.length - 1 && <Text> </Text>}
+            {index < tabs.length - 1 && <Text>{gap}</Text>}
           </React.Fragment>
         );
       })}

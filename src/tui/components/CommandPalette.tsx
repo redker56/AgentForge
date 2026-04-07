@@ -12,7 +12,7 @@ import React, { useState, useMemo } from 'react';
 import type { StoreApi } from 'zustand';
 
 import type { AppStore } from '../store/index.js';
-import { inkColors } from '../theme.js';
+import { inkColors, renderFocusPrefix } from '../theme.js';
 import { fuzzyMatch } from '../utils/fuzzy.js';
 
 interface CommandEntry {
@@ -223,20 +223,20 @@ export function CommandPalette({ store }: CommandPaletteProps): React.ReactEleme
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Box borderStyle="single" paddingLeft={1} paddingRight={1} borderColor={inkColors.muted}>
+      <Box borderStyle="single" paddingLeft={1} paddingRight={1} borderColor={inkColors.border}>
         <Text color={inkColors.accent}>{'>'} </Text>
         <Text>{query}</Text>
         <Text color={inkColors.muted}>|</Text>
       </Box>
       {filteredCommands.length > 0 && (
-        <Box flexDirection="column" borderStyle="single" borderTop={false} paddingLeft={1} paddingRight={1} borderColor={inkColors.muted}>
+        <Box flexDirection="column" borderStyle="single" borderTop={false} paddingLeft={1} paddingRight={1} borderColor={inkColors.border}>
           {filteredCommands.map((result, i) => (
             <Text
               key={result.item.id}
               color={i === clampedIndex ? inkColors.accent : inkColors.secondary}
               bold={i === clampedIndex}
             >
-              {i === clampedIndex ? '› ' : '  '}{result.item.label}
+              {renderFocusPrefix(i === clampedIndex)}{result.item.label}
             </Text>
           ))}
         </Box>

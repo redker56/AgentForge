@@ -18,7 +18,7 @@ interface HelpOverlayProps {
 export function HelpOverlay({ store: _store }: HelpOverlayProps): React.ReactElement {
   return (
     <Box flexDirection="column" alignItems="center" justifyContent="center" height="100%">
-      <Box flexDirection="column" borderStyle="round" padding={1} width={60} borderColor={inkColors.muted}>
+      <Box flexDirection="column" borderStyle="single" padding={1} width={60} borderColor={inkColors.border}>
         <Text bold color={inkColors.accent}>Keyboard Shortcuts</Text>
 
         <Text> </Text>

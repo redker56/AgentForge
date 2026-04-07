@@ -15,6 +15,7 @@ import { doImportFromProject, doImportFromAgent } from '../store/actions/syncAct
 import type { ServiceContext } from '../store/dataSlice.js';
 import type { AppStore } from '../store/index.js';
 import type { OperationResult } from '../store/uiSlice.js';
+import { inkColors, renderFocusPrefix, selectionMarkers, spacing } from '../theme.js';
 
 import { ImportChecklist } from './ImportChecklist.js';
 import { ProgressBar } from './ProgressBar.js';
@@ -167,9 +168,9 @@ export function ImportFormTab({ store, ctx }: ImportFormTabProps): React.ReactEl
   const importCurrentIndex = importSteps.indexOf(importStepToLabel(importTabStep));
 
   return (
-    <Box flexDirection="row" flexGrow={1} paddingX={1}>
+    <Box flexDirection="row" flexGrow={1} paddingX={spacing.paddingX}>
       <StepIndicator steps={importSteps} currentStep={Math.max(0, importCurrentIndex)} width={22} />
-      <Box flexDirection="column" flexGrow={1} paddingX={1}>
+      <Box flexDirection="column" flexGrow={1} paddingX={spacing.paddingX}>
         {importTabStep === 'select-source-type' && <SelectSourceType sourceType={importTabSourceType} />}
         {importTabStep === 'select-source' && (
           <SelectSource
@@ -331,11 +332,11 @@ function handleImportBack(storeApi: StoreApi<AppStore>): void {
 function SelectSourceType({ sourceType }: { sourceType: 'project' | 'agent' | null }): React.ReactElement {
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">Import Skills</Text>
+      <Text bold color={inkColors.accent}>Import Skills</Text>
       <Text> </Text>
       <Text>Choose source:</Text>
-      <Text>{sourceType === 'project' ? '  > ' : '    '}Import from Project</Text>
-      <Text>{sourceType === 'agent' ? '  > ' : '    '}Import from Agent</Text>
+      <Text>{renderFocusPrefix(sourceType === 'project')}Import from Project</Text>
+      <Text>{renderFocusPrefix(sourceType === 'agent')}Import from Agent</Text>
       <Text> </Text>
       <Text dimColor>Up/Down to choose, Enter to continue</Text>
     </Box>
@@ -358,7 +359,7 @@ function SelectSource({
 
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">{title}</Text>
+      <Text bold color={inkColors.accent}>{title}</Text>
       <Text> </Text>
       {list.map((item, i) => {
         const isFocused = i === focusedIndex;
@@ -368,7 +369,7 @@ function SelectSource({
             : (item as { id: string; name: string }).name;
         return (
           <Text key={(item as { id: string }).id}>
-            {isFocused ? '  > ' : '    '} {label}
+            {renderFocusPrefix(isFocused)} {label}
           </Text>
         );
       })}
@@ -392,7 +393,7 @@ function ConfirmStep({
 
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">Confirm Import</Text>
+      <Text bold color={inkColors.accent}>Confirm Import</Text>
       <Text> </Text>
       <Text>
         Import {skillNames.size} skill(s) from {label} &quot;{sourceId}&quot;.
@@ -401,7 +402,7 @@ function ConfirmStep({
       <Text dimColor>Skills: {[...skillNames].join(', ')}</Text>
       <Text> </Text>
       <Box flexDirection="row" gap={2}>
-        <Text color="cyan">[Enter]</Text>
+        <Text color={inkColors.accent}>[Enter]</Text>
         <Text>Import</Text>
         <Text dimColor>[Esc] Back</Text>
       </Box>
@@ -422,7 +423,7 @@ function ExecutingStep({
 }): React.ReactElement {
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">Importing skills...</Text>
+      <Text bold color={inkColors.accent}>Importing skills...</Text>
       <Text> </Text>
       {progressItems.map((item) => (
         <ProgressBar key={item.id} label={item.label} progress={item.progress} status={item.status} error={item.error} />
@@ -441,20 +442,20 @@ function ResultsStep({
 
   return (
     <Box flexDirection="column">
-      <Text bold color="cyan">Import complete</Text>
+      <Text bold color={inkColors.accent}>Import complete</Text>
       <Text> </Text>
       <Text>{successCount} succeeded, {failCount} failed.</Text>
       <Text> </Text>
       {results.map((r, i) => (
         <Box key={`${r.target}-${i}`} flexDirection="row" flexWrap="wrap">
-          {r.success ? <Text color="green">OK  </Text> : <Text color="red">FAIL</Text>}
+          {r.success ? <Text color={inkColors.success}>OK  </Text> : <Text color={inkColors.error}>FAIL</Text>}
           <Text> {r.target}</Text>
-          {r.error && <Text color="red">: {r.error}</Text>}
+          {r.error && <Text color={inkColors.error}>: {r.error}</Text>}
         </Box>
       ))}
       <Text> </Text>
       <Box flexDirection="row" gap={2}>
-        <Text color="cyan">[Enter]</Text>
+        <Text color={inkColors.accent}>[Enter]</Text>
         <Text>New import</Text>
         <Text dimColor>[Esc] Close</Text>
       </Box>

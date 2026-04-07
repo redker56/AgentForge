@@ -9,6 +9,7 @@ import { Box, Text } from 'ink';
 import React from 'react';
 
 import type { ProgressItem } from '../store/uiSlice.js';
+import { progressStatusColors } from '../theme.js';
 
 interface ProgressBarProps {
   label: string;
@@ -24,13 +25,6 @@ interface ProgressBarProps {
 const FULL_BLOCK = '\u2588';
 const LIGHT_SHADE = '\u2591';
 
-const STATUS_COLOR: Record<string, string> = {
-  running: 'cyan',
-  success: 'green',
-  error: 'red',
-  pending: 'gray',
-};
-
 export function ProgressBar({ label, progress, status, error: _error, width, columns, completed, total }: ProgressBarProps): React.ReactElement {
   // Adaptive width: columns > 120 -> scale up, otherwise 30, min 15
   const baseWidth = typeof width === 'number' ? width :
@@ -39,7 +33,7 @@ export function ProgressBar({ label, progress, status, error: _error, width, col
 
   const filled = Math.round((progress / 100) * barWidth);
   const empty = barWidth - filled;
-  const color = STATUS_COLOR[status] || 'gray';
+  const color = progressStatusColors[status] || progressStatusColors.pending;
 
   const bar = FULL_BLOCK.repeat(Math.max(0, filled)) + LIGHT_SHADE.repeat(Math.max(0, empty));
 

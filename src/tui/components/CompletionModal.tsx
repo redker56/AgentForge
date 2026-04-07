@@ -8,6 +8,7 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import type { AppStore } from '../store/index.js';
+import { inkColors } from '../theme.js';
 
 interface CompletionModalProps {
   store: StoreApi<AppStore>;
@@ -25,15 +26,15 @@ export function CompletionModal({ store }: CompletionModalProps): React.ReactEle
 
   return (
     <Box flexDirection="column" alignItems="center" justifyContent="center" flexGrow={1}>
-      <Box flexDirection="column" borderStyle="round" padding={1} width={56}>
-        <Text bold color="cyan">Shell Completion Setup</Text>
+      <Box flexDirection="column" borderStyle="single" padding={1} width={56} borderColor={inkColors.border}>
+        <Text bold color={inkColors.accent}>Shell Completion Setup</Text>
         <Text> </Text>
         <Text>Run one of the following commands to enable tab</Text>
         <Text>auto-completion for your shell:</Text>
         <Text> </Text>
         {SHELLS.map((shell) => (
           <Box key={shell.name} flexDirection="row" marginBottom={0}>
-            <Text color="green">{shell.name.padEnd(12)}</Text>
+            <Text color={inkColors.success}>{shell.name.padEnd(12)}</Text>
             <Text dimColor>{shell.command}</Text>
           </Box>
         ))}

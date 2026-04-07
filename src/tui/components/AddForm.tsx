@@ -12,6 +12,7 @@ import type { StoreApi } from 'zustand';
 
 import { BUILTIN_AGENTS } from '../../types.js';
 import type { AppStore } from '../store/index.js';
+import { inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
 import { validateUrl, validateSkillName, validateAgentId, validateNonEmpty } from '../utils/validators.js';
 
 import { BlurValidatedInput } from './BlurValidatedInput.js';
@@ -243,14 +244,14 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
   }, [selectedDiscover, store]);
 
   return (
-    <Box flexDirection="column" borderStyle="round" padding={1} width={60} marginTop={1}>
-      <Text bold color="cyan">{title}</Text>
+    <Box flexDirection="column" borderStyle="single" padding={1} width={60} marginTop={1} borderColor={inkColors.border}>
+      <Text bold color={inkColors.accent}>{title}</Text>
       <Text> </Text>
 
       {phase === 'input' && (
         <>
           {Object.keys(fieldErrors).length > 0 && (
-            <Text color="red">Please fix {Object.keys(fieldErrors).length} error(s) before submitting.</Text>
+            <Text color={inkColors.error}>Please fix {Object.keys(fieldErrors).length} error(s) before submitting.</Text>
           )}
           {fields.map((field, i) => {
             const fieldHasFocus = i === focusedField;
@@ -260,8 +261,8 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
               return (
                 <Box flexDirection="column" key={field.key} marginBottom={0}>
                   <Text>
-                    <Text color={fieldHasFocus ? 'cyan' : 'gray'}>
-                      {fieldHasFocus ? '> ' : '  '}
+                    <Text color={fieldHasFocus ? inkColors.accent : inkColors.muted}>
+                      {renderFocusPrefix(fieldHasFocus)}
                     </Text>
                     <Text bold={fieldHasFocus}>{field.label}: </Text>
                   </Text>
@@ -303,8 +304,8 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
             return (
               <Box flexDirection="column" key={field.key} marginBottom={0}>
                 <Text>
-                  <Text color={fieldHasFocus ? 'cyan' : 'gray'}>
-                    {fieldHasFocus ? '> ' : '  '}
+                  <Text color={fieldHasFocus ? inkColors.accent : inkColors.muted}>
+                    {renderFocusPrefix(fieldHasFocus)}
                   </Text>
                   <Text bold={fieldHasFocus}>{field.label}: </Text>
                 </Text>
@@ -344,7 +345,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
 
       {phase === 'loading' && (
         <Box>
-          <Text color="cyan"><Spinner type="dots" /></Text>
+          <Text color={inkColors.accent}><Spinner type="dots" /></Text>
           <Text> Processing...</Text>
         </Box>
       )}
@@ -354,7 +355,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
           {resultError ? (
             <ErrorMessage message={resultError} />
           ) : (
-            <Text color="green">Operation completed successfully.</Text>
+            <Text color={inkColors.success}>Operation completed successfully.</Text>
           )}
           <Text> </Text>
           <Text dimColor>Press Esc to close</Text>
@@ -370,14 +371,20 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
           <>
             <Text dimColor>Multiple skills found in repository:</Text>
             <Text> </Text>
-            {discovered.map((skill, i) => (
-              <Text
-                key={skill.name}
-                color={selectedDiscover.has(i) ? 'green' : i === discoverFocusedIndex ? 'cyan' : 'gray'}
-              >
-                {selectedDiscover.has(i) ? '[x]' : '[ ]'} {skill.name}
-              </Text>
-            ))}
+            {discovered.map((skill, i) => {
+              const isFocused = i === discoverFocusedIndex;
+              const isSelected = selectedDiscover.has(i);
+              return (
+                <Text key={skill.name}>
+                  <Text color={isFocused ? inkColors.accent : inkColors.muted}>
+                    {renderFocusPrefix(isFocused)}
+                  </Text>
+                  <Text color={isSelected ? inkColors.success : undefined}>
+                    {isSelected ? selectionMarkers.selected : selectionMarkers.unselected} {skill.name}
+                  </Text>
+                </Text>
+              );
+            })}
             <Text> </Text>
             <Text dimColor>Space:Toggle Enter:Confirm Esc:Cancel</Text>
           </>

@@ -12,7 +12,7 @@ import type { StoreApi } from 'zustand';
 import { useNavigation } from '../hooks/useNavigation.js';
 import type { AgentDetailData } from '../store/dataSlice.js';
 import type { AppStore } from '../store/index.js';
-import { inkColors } from '../theme.js';
+import { inkColors, renderFocusPrefix, emptyStateText } from '../theme.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
 
@@ -49,18 +49,24 @@ export function AgentTable({ store, columns }: AgentTableProps): React.ReactElem
       : agent.basePath.padEnd(pathWidth);
 
     const rowText = `${agent.id.padEnd(idWidth)}${agent.name.padEnd(nameWidth)}${pathDisplay}${skillCount.padEnd(5)}${projCount}`;
+    const prefix = renderFocusPrefix(isFocused);
 
     if (isFocused) {
       return (
         <>
-          <Text color={inkColors.accent}>{"\u258E"}</Text>
+          <Text color={inkColors.accent}>{prefix}</Text>
           <Text> </Text>
           <Text backgroundColor={inkColors.focusBg}>{rowText}</Text>
         </>
       );
     }
 
-    return <Text color={inkColors.secondary}>{rowText}</Text>;
+    return (
+      <>
+        <Text>{prefix}</Text>
+        <Text color={inkColors.primary}>{rowText}</Text>
+      </>
+    );
   };
 
 
@@ -140,7 +146,7 @@ export function AgentTable({ store, columns }: AgentTableProps): React.ReactElem
       )}
 
       {agents.length === 0 && (
-        <Text color={inkColors.muted}>No agents registered. Add a custom agent with `a` key.</Text>
+        <Text color={inkColors.muted}>{emptyStateText.agents}</Text>
       )}
     </Box>
   );

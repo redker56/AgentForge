@@ -5,10 +5,12 @@
  * fzf-style character subsequence matching. Matched characters are
  * highlighted in bold accent color.
  * Modern Claude Code aesthetic.
+ *
+ * Fixed-height results (max 8 visible) to prevent terminal window jitter.
  */
 
-import { Box, Text , useInput } from 'ink';
-import React, { useMemo } from 'react';
+import { Box, Text, useInput } from 'ink';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
@@ -19,6 +21,9 @@ import { computeSearchResults } from '../utils/search.js';
 interface SearchOverlayProps {
   store: StoreApi<AppStore>;
 }
+
+// Maximum visible results to prevent layout jitter
+const MAX_VISIBLE_RESULTS = 8;
 
 function HighlightedText({ text, matchIndices }: { text: string; matchIndices: number[] }): React.ReactElement {
   const matchSet = useMemo(() => new Set(matchIndices), [matchIndices]);
@@ -63,6 +68,30 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
 
   // Clamp focus index to results length
   const clampedIdx = Math.min(searchResultIndex, Math.max(results.length - 1, 0));
+
+  // Internal scroll state for fixed-height results
+  const [scrollTop, setScrollTop] = useState(0);
+
+  // Calculate visible range
+  const totalResults = results.length;
+  const hasMoreAbove = scrollTop > 0;
+  const hasMoreBelow = totalResults > scrollTop + MAX_VISIBLE_RESULTS;
+
+  // Reset scroll when results change
+  useEffect(() => {
+    setScrollTop(0);
+  }, [results.length]);
+
+  // Sync scroll with focused index (keyboard navigation)
+  useEffect(() => {
+    if (clampedIdx < scrollTop) {
+      setScrollTop(clampedIdx);
+    } else if (clampedIdx >= scrollTop + MAX_VISIBLE_RESULTS) {
+      setScrollTop(clampedIdx - MAX_VISIBLE_RESULTS + 1);
+    }
+  }, [clampedIdx, scrollTop]);
+
+  const visibleResults = results.slice(scrollTop, scrollTop + MAX_VISIBLE_RESULTS);
 
   // Local input handler for search keys
   useInput((input, key) => {
@@ -143,25 +172,32 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
       {results.length > 0 && (
         <Box flexDirection="column">
           <Text color={inkColors.muted}>  {results.length} result{results.length !== 1 ? 's' : ''} for "{searchQuery}"</Text>
-          <Box flexDirection="column" borderStyle="single" borderTop={false} paddingLeft={1} paddingRight={1} borderColor={inkColors.muted}>
-            {results.map((result, i) => (
+          {hasMoreAbove && (
+            <Text color={inkColors.muted}>  ^ {scrollTop} more above</Text>
+          )}
+          {visibleResults.map((result, i) => {
+            const actualIndex = scrollTop + i;
+            return (
               <Box key={`${result.tabId}-${result.itemId}`}>
                 <Text
-                  color={i === clampedIdx ? inkColors.accent : inkColors.secondary}
-                  bold={i === clampedIdx}
+                  color={actualIndex === clampedIdx ? inkColors.accent : inkColors.secondary}
+                  bold={actualIndex === clampedIdx}
                 >
                   <HighlightedText text={result.name} matchIndices={result.matchIndices} />
                   {'  '}
                 </Text>
                 <Text
-                  color={i === clampedIdx ? inkColors.accent : inkColors.muted}
-                  bold={i === clampedIdx}
+                  color={actualIndex === clampedIdx ? inkColors.accent : inkColors.muted}
+                  bold={actualIndex === clampedIdx}
                 >
                   [{result.tabLabel}]
                 </Text>
               </Box>
-            ))}
-          </Box>
+            );
+          })}
+          {hasMoreBelow && (
+            <Text color={inkColors.muted}>  v {totalResults - scrollTop - MAX_VISIBLE_RESULTS} more below</Text>
+          )}
         </Box>
       )}
       {searchQuery.trim() && results.length === 0 && (

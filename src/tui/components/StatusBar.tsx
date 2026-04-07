@@ -10,7 +10,7 @@ import type { StoreApi } from 'zustand';
 
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
 import type { AppStore, TabId } from '../store/index.js';
-import { inkColors } from '../theme.js';
+import { inkColors, symbols } from '../theme.js';
 import { rankAndTruncateHints, type HintSpec } from '../utils/hintPriority.js';
 
 interface StatusBarProps {
@@ -86,15 +86,15 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
       || 'item';
     leftSection = (
       <Text color={inkColors.warning}>
-        ✗ Deleted '{entityName}' — Undo ({remainingSeconds}s)
+        {symbols.crossMark} Deleted '{entityName}' — Undo ({remainingSeconds}s)
       </Text>
     );
   } else if (activeToast) {
-    const symbol = activeToast.variant === 'success' ? '✓' : activeToast.variant === 'error' ? '✗' : '•';
+    const toastSymbol = activeToast.variant === 'success' ? symbols.checkMark : activeToast.variant === 'error' ? symbols.crossMark : symbols.bullet;
     const color = activeToast.variant === 'success' ? inkColors.success : activeToast.variant === 'error' ? inkColors.error : inkColors.info;
     leftSection = (
       <Text color={color}>
-        {symbol} {activeToast.message}
+        {toastSymbol} {activeToast.message}
       </Text>
     );
   } else {
@@ -123,7 +123,7 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
   const { segments } = rankAndTruncateHints(contextHints, band, availableWidth);
 
   return (
-    <Box borderStyle="single" borderTop={true} borderBottom={false} borderLeft={false} borderRight={false} borderColor={inkColors.muted}>
+    <Box borderStyle="single" borderTop={true} borderBottom={false} borderLeft={false} borderRight={false} borderColor={inkColors.border}>
       {leftSection}
       <Box flexGrow={1} justifyContent="flex-end">
         {segments.map((seg, i) => (

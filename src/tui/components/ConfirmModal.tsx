@@ -8,6 +8,7 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import type { AppStore } from '../store/index.js';
+import { inkColors } from '../theme.js';
 
 interface ConfirmModalProps {
   store: StoreApi<AppStore>;
@@ -20,13 +21,13 @@ export function ConfirmModal({ store }: ConfirmModalProps): React.ReactElement {
 
   return (
     <Box flexDirection="column" alignItems="center" justifyContent="center" height="100%">
-      <Box flexDirection="column" borderStyle="round" padding={1} width={56}>
-        <Text bold color="red">{confirmState.title}</Text>
+      <Box flexDirection="column" borderStyle="single" padding={1} width={56} borderColor={inkColors.border}>
+        <Text bold color={inkColors.error}>{confirmState.title}</Text>
         <Text> </Text>
         <Text>{confirmState.message}</Text>
         <Text> </Text>
         <Box flexDirection="row" justifyContent="space-between" width="100%">
-          <Text color="cyan">[Enter] Confirm</Text>
+          <Text color={inkColors.accent}>[Enter] Confirm</Text>
           <Text dimColor>[Esc] Cancel</Text>
         </Box>
       </Box>

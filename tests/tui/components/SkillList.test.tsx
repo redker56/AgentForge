@@ -115,11 +115,11 @@ describe('SkillList', () => {
     );
     vi.runAllTimers();
     const frame = lastFrame() || '';
-    // No [x] markers when no skills are selected
-    expect(frame).not.toContain('[x]');
+    // No [+] markers when no skills are selected
+    expect(frame).not.toContain('[+]');
   });
 
-  it('selected skills show [✓] checkbox', async () => {
+  it('selected skills show [+] checkbox', async () => {
     const { SkillList } = await import('../../../src/tui/components/SkillList.js');
     const store = makeMockStore({ selectedSkillNames: new Set(['alpha']) });
     const { lastFrame } = render(
@@ -127,8 +127,8 @@ describe('SkillList', () => {
     );
     vi.runAllTimers();
     const frame = lastFrame() || '';
-    // Updated to use ✓ checkmark instead of x
-    expect(frame).toContain('[✓]');
+    // Updated to use [+] selection marker
+    expect(frame).toContain('[+]');
   });
 
   it('renders status dots correctly', async () => {

@@ -70,11 +70,35 @@ export const inkColors = {
 
   // Focus bar character
   focusBar: '#FF6B6B',
+
+  // Borders
+  border: '#3F3F46',
+} as const;
+
+// Spacing constants
+export const spacing = {
+  paddingX: 1,        // Left/right content padding (1 space)
+  tabGap: 2,          // Gap between tab labels
+  listIndent: 2,      // Indent for unfocused list items (replaces prefix)
+  sectionGap: 1,      // Blank lines between sections
+} as const;
+
+// Selection markers (standardized across all lists)
+export const selectionMarkers = {
+  selected: '[+]',    // Green
+  unselected: '[ ]',  // Gray
+} as const;
+
+// Empty state guidance text per tab
+export const emptyStateText = {
+  skills: 'No skills installed. Press `a` to add one.',
+  agents: 'No agents registered. Press `a` to add a custom agent.',
+  projects: 'No projects registered. Press `a` to add a project.',
 } as const;
 
 // Focus row rendering helper
 export function renderFocusPrefix(isFocused: boolean): string {
-  return isFocused ? '\u258E' : ' '; // ▎ or space
+  return isFocused ? '\u258E' : '  '; // ▎ or 2-space indent
 }
 
 // Status dot characters
@@ -82,6 +106,14 @@ export const statusDots = {
   active: '\u25CF', // ● filled
   inactive: '\u25CB', // ○ hollow
   partial: '\u25D0', // ◐ half
+} as const;
+
+// Progress bar status colors (semantic mapping for ProgressBar component)
+export const progressStatusColors = {
+  pending: inkColors.muted,      // gray
+  running: inkColors.warning,    // amber
+  success: inkColors.success,    // green
+  error: inkColors.error,        // red
 } as const;
 
 // Unicode symbols

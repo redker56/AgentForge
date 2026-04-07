@@ -9,6 +9,7 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import type { AppStore } from '../store/index.js';
+import { inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
 
 interface ImportFormProps {
   store: StoreApi<AppStore>;
@@ -136,8 +137,8 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
   const title = isProject ? 'Import from Project' : 'Import from Agent';
 
   return (
-    <Box flexDirection="column" borderStyle="round" padding={1} width={60} marginTop={1}>
-      <Text bold color="cyan">{title}</Text>
+    <Box flexDirection="column" borderStyle="single" padding={1} width={60} marginTop={1} borderColor={inkColors.border}>
+      <Text bold color={inkColors.accent}>{title}</Text>
       <Text> </Text>
 
       {phase === 'select-source' && !formState.data.projectId && (
@@ -149,9 +150,13 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
             const label = isProject
               ? `${(item as { id: string; path: string }).id} (${(item as { id: string; path: string }).path})`
               : `${(item as { id: string; name: string }).name} (${(item as { id: string; name: string }).id})`;
+            const isFocused = i === sourceIndex;
             return (
-              <Text key={id} color={i === sourceIndex ? 'cyan' : 'gray'}>
-                {i === sourceIndex ? '> ' : '  '}{label}
+              <Text key={id}>
+                <Text color={isFocused ? inkColors.accent : inkColors.muted}>
+                  {renderFocusPrefix(isFocused)}
+                </Text>
+                <Text color={isFocused ? inkColors.accent : inkColors.muted}>{label}</Text>
               </Text>
             );
           })}
@@ -164,15 +169,37 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
         <>
           <Text dimColor>Select skills to import:</Text>
           <Text> </Text>
-          {scannedSkills.map((skill, i) => (
-            <Text
-              key={skill.name}
-              color={skill.alreadyExists ? 'gray' : (selectedSkills.has(i) ? 'green' : (i === skillFocusIndex ? 'cyan' : undefined))}
-            >
-              {skill.alreadyExists ? '[x]' : (selectedSkills.has(i) ? '[x]' : '[ ]')} {skill.name}
-              {skill.alreadyExists ? ' (already imported)' : ''}
-            </Text>
-          ))}
+          {scannedSkills.map((skill, i) => {
+            const isFocused = i === skillFocusIndex;
+            const isSelected = selectedSkills.has(i);
+
+            // Already-imported items keep [x] as locked marker
+            const checkbox = skill.alreadyExists
+              ? '[x]'
+              : isSelected
+                ? selectionMarkers.selected
+                : selectionMarkers.unselected;
+
+            const rowColor = skill.alreadyExists
+              ? inkColors.muted
+              : isSelected
+                ? inkColors.success
+                : isFocused
+                  ? inkColors.accent
+                  : inkColors.primary;
+
+            return (
+              <Text key={skill.name}>
+                <Text color={isFocused ? inkColors.accent : inkColors.muted}>
+                  {renderFocusPrefix(isFocused)}
+                </Text>
+                <Text color={rowColor}>
+                  {checkbox} {skill.name}
+                  {skill.alreadyExists ? ' (already imported)' : ''}
+                </Text>
+              </Text>
+            );
+          })}
           <Text> </Text>
           <Text dimColor>Space:Toggle Enter:Import Esc:Cancel</Text>
         </>
@@ -180,7 +207,7 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
 
       {phase === 'loading' && (
         <Box>
-          <Text color="cyan"><Spinner type="dots" /></Text>
+          <Text color={inkColors.accent}><Spinner type="dots" /></Text>
           <Text> Importing...</Text>
         </Box>
       )}
@@ -188,7 +215,7 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
       {phase === 'result' && (
         <>
           {resultMessages.map(msg => (
-            <Text key={msg.name} color={msg.ok ? 'green' : 'red'}>
+            <Text key={msg.name} color={msg.ok ? inkColors.success : inkColors.error}>
               {msg.ok ? `[OK] ${msg.name}` : `[FAIL] ${msg.name}: ${msg.error}`}
             </Text>
           ))}
