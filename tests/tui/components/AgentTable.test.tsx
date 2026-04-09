@@ -57,6 +57,10 @@ describe('AgentTable', () => {
         claude: { userLevelSkills: [], projectLevelSkills: [] },
         codex: { userLevelSkills: [], projectLevelSkills: [] },
       },
+      agentSummaries: {
+        claude: { userLevelSkillCount: 3, projectLevelSkillCount: 5 },
+        codex: { userLevelSkillCount: 2, projectLevelSkillCount: 4 },
+      },
       loadAgentDetail: vi.fn(),
       loadProjectDetail: vi.fn(),
       ...overrides,
@@ -138,5 +142,16 @@ describe('AgentTable', () => {
     expect(frame).toContain('ID');
     expect(frame).toContain('Name');
     expect(frame).toContain('Path');
+  });
+
+  it('shows resolved counts instead of placeholder question marks', async () => {
+    const { AgentTable } = await import('../../../src/tui/components/AgentTable.js');
+    const store = makeMockStore();
+    const { lastFrame } = render(
+      React.createElement(AgentTable, { store, columns: 100 })
+    );
+    vi.runAllTimers();
+    const frame = lastFrame() || '';
+    expect(frame).not.toContain('?');
   });
 });

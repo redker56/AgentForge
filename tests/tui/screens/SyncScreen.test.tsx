@@ -33,7 +33,7 @@ describe('SyncScreen', () => {
   function makeMockStore(overrides?: Partial<Record<string, unknown>>) {
     const state = {
       syncFormStep: 'select-op',
-      syncFormOperation: null,
+      syncFormOperation: 'sync-agents',
       syncFormSelectedSkillNames: new Set<string>(),
       syncFormSelectedTargetIds: new Set<string>(),
       syncFormSelectedAgentTypes: new Set<string>(),

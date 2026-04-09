@@ -21,10 +21,6 @@ export function AgentsScreen({ store, band, columns }: AgentsScreenProps): React
   const focusedAgentIndex = useStore(store, s => s.focusedAgentIndex);
   const agents = useStore(store, s => s.agents);
 
-  if (band === 'compact') {
-    return null;
-  }
-
   // Load agent detail when focused agent changes
   useEffect(() => {
     const focusedAgent = agents[focusedAgentIndex];

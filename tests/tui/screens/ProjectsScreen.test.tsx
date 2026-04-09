@@ -52,6 +52,10 @@ describe('ProjectsScreen', () => {
       projects: mockProjects,
       focusedProjectIndex: 0,
       projectDetails: {},
+      projectSummaries: {
+        'proj-1': { skillCount: 2 },
+        'proj-2': { skillCount: 1 },
+      },
       expandedProjectIds: new Set<string>(),
       loading: { projects: false },
       loadProjectDetail: vi.fn(),
@@ -80,14 +84,15 @@ describe('ProjectsScreen', () => {
     expect(frame).toContain('proj-1');
   });
 
-  it('returns null in compact band', async () => {
+  it('renders ProjectTable in compact band', async () => {
     const { ProjectsScreen } = await import('../../../src/tui/screens/ProjectsScreen.js');
     const store = makeMockStore();
     const { lastFrame } = render(
       React.createElement(ProjectsScreen, { store, band: 'compact' as const, columns: 60 })
     );
     vi.runAllTimers();
-    expect(lastFrame()).toBe('');
+    const frame = lastFrame() || '';
+    expect(frame).toContain('proj-1');
   });
 
   it('loads project detail when focused project changes', async () => {

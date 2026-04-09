@@ -33,7 +33,7 @@ function createMockStore(overrides: Record<string, unknown> = {}) {
   return {
     getState: () => ({
       importTabStep: 'select-source-type',
-      importTabSourceType: null as string | null,
+      importTabSourceType: 'project' as string | null,
       importTabSourceId: null as string | null,
       importTabSelectedSkillNames: new Set(),
       importTabResults: [],

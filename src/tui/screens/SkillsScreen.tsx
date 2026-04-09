@@ -38,18 +38,10 @@ export function SkillsScreen({ store, band, columns }: SkillsScreenProps): React
     }
   }, [focusedIndex, skills, store]);
 
-  // Compact band: App-level warning banner handles this
-  if (band === 'compact') {
-    return null;
-  }
-
   // Compute summary bar data
   const totalSkills = skills.length;
   const syncedToAgents = skills.filter(s => s.syncedTo && s.syncedTo.length > 0).length;
-  const inProjects = skills.filter(s => {
-    const detail = store.getState().skillDetails[s.name];
-    return detail?.syncedProjects && detail.syncedProjects.length > 0;
-  }).length;
+  const inProjects = skills.filter((s) => (s.syncedProjects?.length ?? 0) > 0).length;
 
   // Last update: most recent createdAt
   let lastUpdate = 'Never';
@@ -89,19 +81,19 @@ export function SkillsScreen({ store, band, columns }: SkillsScreenProps): React
             <SkillList store={store} columns={columns} />
           </Box>
           <Box width="60%" flexDirection="column" borderStyle="single" borderLeft={true} borderRight={false} borderTop={false} borderBottom={false} borderColor={inkColors.muted} minHeight={0} overflow="hidden">
-            <SkillDetail store={store} band="widescreen" />
+            <SkillDetail store={store} band="widescreen" columns={columns} />
           </Box>
         </Box>
       ) : (
-        /* Standard: full-width list + optional slide-over detail */
+        /* Standard/compact: full-width list + optional slide-over detail */
         <Box flexDirection="column" flexGrow={1}>
           <Box flexGrow={1}>
             <SkillList store={store} columns={columns} />
           </Box>
-          {detailOverlayVisible && (
+          {detailOverlayVisible && band === 'standard' && (
             <Box flexDirection="row">
               <Box flexGrow={1} />
-              <SkillDetail store={store} band="standard" />
+              <SkillDetail store={store} band="standard" columns={columns} />
             </Box>
           )}
         </Box>

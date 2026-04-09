@@ -21,10 +21,6 @@ export function ProjectsScreen({ store, band, columns }: ProjectsScreenProps): R
   const focusedProjectIndex = useStore(store, s => s.focusedProjectIndex);
   const projects = useStore(store, s => s.projects);
 
-  if (band === 'compact') {
-    return null;
-  }
-
   // Load project detail when focused project changes
   useEffect(() => {
     const focusedProject = projects[focusedProjectIndex];

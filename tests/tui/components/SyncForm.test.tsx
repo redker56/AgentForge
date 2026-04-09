@@ -34,7 +34,7 @@ function createMockStore(overrides: Record<string, unknown> = {}) {
   return {
     getState: () => ({
       syncFormStep: 'select-op',
-      syncFormOperation: null as string | null,
+      syncFormOperation: 'sync-agents' as string | null,
       syncFormSelectedSkillNames: new Set(),
       syncFormSelectedTargetIds: new Set(),
       syncFormSelectedAgentTypes: new Set(),

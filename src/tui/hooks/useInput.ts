@@ -92,8 +92,8 @@ export function useInputHandler(store: StoreApi<AppStore>): void {
     if (state.detailOverlayVisible && state.activeTab === 'skills') {
       if (key.escape || input === 'q') {
         state.setDetailOverlayVisible(false);
-        return;
       }
+      return;
     }
 
     // === GLOBAL SHORTCUTS ===

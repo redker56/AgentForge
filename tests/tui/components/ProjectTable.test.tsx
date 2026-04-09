@@ -57,6 +57,10 @@ describe('ProjectTable', () => {
         proj1: { skillsByAgent: [] },
         proj2: { skillsByAgent: [] },
       },
+      projectSummaries: {
+        proj1: { skillCount: 4 },
+        proj2: { skillCount: 2 },
+      },
       loadAgentDetail: vi.fn(),
       loadProjectDetail: vi.fn(),
       ...overrides,
@@ -138,5 +142,16 @@ describe('ProjectTable', () => {
     expect(frame).toContain('Path');
     expect(frame).toContain('Added');
     expect(frame).toContain('Skills');
+  });
+
+  it('shows resolved skill counts instead of placeholder question marks', async () => {
+    const { ProjectTable } = await import('../../../src/tui/components/ProjectTable.js');
+    const store = makeMockStore();
+    const { lastFrame } = render(
+      React.createElement(ProjectTable, { store, columns: 100 })
+    );
+    vi.runAllTimers();
+    const frame = lastFrame() || '';
+    expect(frame).not.toContain('?');
   });
 });

@@ -2,10 +2,29 @@
  * SearchOverlay component test
  */
 
+import { render, cleanup } from 'ink-testing-library';
 import React from 'react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('SearchOverlay', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.doMock('ink', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('ink')>();
+      return {
+        ...actual,
+        useStdout: () => ({
+          stdout: { columns: 100, rows: 30 },
+        }),
+      };
+    });
+  });
+
+  afterEach(() => {
+    vi.doUnmock('ink');
+    cleanup();
+  });
+
   it('exports SearchOverlay component', async () => {
     const { SearchOverlay } = await import('../../../src/tui/components/SearchOverlay.js');
     expect(SearchOverlay).toBeDefined();
@@ -79,5 +98,54 @@ describe('SearchOverlay', () => {
 
     // Should display result count text
     expect(source).toContain('result');
+  });
+
+  it('keeps a stable result area height when result counts change', async () => {
+    const { SearchOverlay } = await import('../../../src/tui/components/SearchOverlay.js');
+    const oneResultState = {
+      searchQuery: 'obsi',
+      searchResultIndex: 0,
+      skills: [{ name: 'obsidian-cli' }],
+      agents: [],
+      projects: [],
+      activeTab: 'skills',
+      showSearch: true,
+      setShowSearch: vi.fn(),
+      setActiveTab: vi.fn(),
+      setFocusedSkillIndex: vi.fn(),
+      setFocusedAgentIndex: vi.fn(),
+      setFocusedProjectIndex: vi.fn(),
+      setSearchResultIndex: vi.fn(),
+      setSearchQuery: vi.fn(),
+    };
+    const oneResultStore = {
+      getState: () => oneResultState,
+      subscribe: () => () => {},
+    };
+    const threeResultState = {
+      searchQuery: 'obsi',
+      searchResultIndex: 0,
+      skills: [{ name: 'obsidian-cli' }, { name: 'obsidian-bases' }, { name: 'obsidian-markdown' }],
+      agents: [],
+      projects: [],
+      activeTab: 'skills',
+      showSearch: true,
+      setShowSearch: vi.fn(),
+      setActiveTab: vi.fn(),
+      setFocusedSkillIndex: vi.fn(),
+      setFocusedAgentIndex: vi.fn(),
+      setFocusedProjectIndex: vi.fn(),
+      setSearchResultIndex: vi.fn(),
+      setSearchQuery: vi.fn(),
+    };
+    const threeResultStore = {
+      getState: () => threeResultState,
+      subscribe: () => () => {},
+    };
+
+    const oneFrame = render(React.createElement(SearchOverlay, { store: oneResultStore })).lastFrame() ?? '';
+    const threeFrame = render(React.createElement(SearchOverlay, { store: threeResultStore })).lastFrame() ?? '';
+
+    expect(oneFrame.split('\n').length).toBe(threeFrame.split('\n').length);
   });
 });

@@ -101,15 +101,16 @@ describe('SkillsScreen', () => {
     expect(frame).toContain('skills total');
   });
 
-  it('returns null in compact band', async () => {
+  it('renders a compact fallback list in compact band', async () => {
     const { SkillsScreen } = await import('../../../src/tui/screens/SkillsScreen.js');
     const store = makeMockStore();
     const { lastFrame } = render(
       React.createElement(SkillsScreen, { store, band: 'compact' as const, columns: 60 })
     );
     vi.runAllTimers();
-    // Should render nothing (compact is handled at App level)
-    expect(lastFrame()).toBe('');
+    const frame = lastFrame() || '';
+    expect(frame).toContain('alpha');
+    expect(frame).toContain('skills total');
   });
 
   it('renders split-pane layout in widescreen', async () => {

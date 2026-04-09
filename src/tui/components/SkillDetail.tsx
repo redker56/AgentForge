@@ -1,30 +1,56 @@
 /**
- * Skill detail panel (right pane of Skills tab).
- * Accepts a band prop: widescreen = inline rendering (standard split-pane right pane),
- * standard = renders as a bordered slide-over overlay panel.
- * Modern Claude Code aesthetic with subtle color hierarchy.
+ * Skill detail panel for the Skills tab.
  *
- * Fixed height for standard overlay mode to prevent terminal window jitter.
+ * Standard band renders a fixed-height scrollable overlay to prevent terminal
+ * jumping while async detail data arrives or the focused skill changes.
+ * Widescreen renders a stable inline preview with a larger fixed body.
  */
 
-import { Box, Text } from 'ink';
-import React from 'react';
+import { Box, Text, useInput } from 'ink';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
 import type { AppStore } from '../store/index.js';
-import { inkColors, symbols } from '../theme.js';
+import { inkColors } from '../theme.js';
 
 interface SkillDetailProps {
   store: StoreApi<AppStore>;
   band?: WidthBand;
+  columns?: number;
 }
 
-// Maximum visible content lines for standard overlay mode (excluding border and hint)
-const MAX_CONTENT_LINES = 10;
+interface DetailLine {
+  key: string;
+  text: string;
+  color?: string;
+  bold?: boolean;
+}
 
-export function SkillDetail({ store, band }: SkillDetailProps): React.ReactElement {
+const STANDARD_VISIBLE_LINES = 10;
+const WIDESCREEN_VISIBLE_LINES = 18;
+const STANDARD_OVERLAY_WIDTH_RATIO = 0.68;
+
+function truncateText(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) return '';
+  if (text.length <= maxWidth) return text;
+  if (maxWidth <= 3) return text.slice(0, maxWidth);
+  return `${text.slice(0, maxWidth - 3)}...`;
+}
+
+function blankLines(count: number, prefix: string): DetailLine[] {
+  return Array.from({ length: Math.max(count, 0) }, (_, index) => ({
+    key: `${prefix}-${index}`,
+    text: ' ',
+  }));
+}
+
+export function SkillDetail({
+  store,
+  band,
+  columns = 100,
+}: SkillDetailProps): React.ReactElement {
   const focusedIndex = useStore(store, (s) => s.focusedSkillIndex);
   const skills = useStore(store, (s) => s.skills);
   const skillDetails = useStore(store, (s) => s.skillDetails);
@@ -32,145 +58,234 @@ export function SkillDetail({ store, band }: SkillDetailProps): React.ReactEleme
   const focusedSkill = skills[focusedIndex] ?? null;
   const detail = focusedSkill ? skillDetails[focusedSkill.name] : undefined;
 
-  // Build content lines as an array
-  const contentLines: React.ReactNode[] = [];
+  const panelWidth = Math.max(
+    Math.min(Math.floor(columns * STANDARD_OVERLAY_WIDTH_RATIO), columns - 4),
+    32
+  );
+  const contentWidth =
+    band === 'standard'
+      ? Math.max(panelWidth - 4, 24)
+      : Math.max(Math.floor(columns * 0.56) - 4, 36);
 
-  if (focusedSkill) {
-    contentLines.push(
-      <Text key="name" bold color={inkColors.accent}>
-        {detail?.name ?? focusedSkill.name}
-      </Text>
-    );
+  const detailLines = useMemo(() => {
+    const lines: DetailLine[] = [];
 
-    if (detail) {
-      contentLines.push(
-        <Text key="source">
-          <Text color={inkColors.muted}>Source: </Text>
-          <Text color={detail.source.type === 'git' ? inkColors.git : inkColors.muted}>
-            [{detail.source.type}]
-          </Text>
-          <Text color={inkColors.secondary}>
-            {' '}{detail.source.type === 'git' ? detail.source.url : detail.source.type === 'local' ? 'local' : detail.source.projectId}
-          </Text>
-        </Text>
-      );
-      contentLines.push(
-        <Text key="created">
-          <Text color={inkColors.muted}>Created: </Text>
-          <Text color={inkColors.secondary}>{detail.createdAt}</Text>
-        </Text>
-      );
-      contentLines.push(<Text key="blank1"> </Text>);
-
-      contentLines.push(
-        <Text key="sync-header" bold color={inkColors.primary}>Synced to:</Text>
-      );
-      if (detail.syncStatus.length === 0) {
-        contentLines.push(
-          <Text key="sync-empty" color={inkColors.muted}>  Not synced to any agent</Text>
-        );
-      } else {
-        detail.syncStatus.forEach((entry, idx) => {
-          contentLines.push(
-            <Text key={`sync-${idx}`}>
-              <Text color={inkColors.muted}>  {entry.agentName}</Text>
-              <Text color={inkColors.muted}>  {entry.mode}  </Text>
-              <Text color={entry.status === 'synced' ? inkColors.success : inkColors.error}>
-                ({entry.status})
-              </Text>
-            </Text>
-          );
-        });
-      }
-
-      contentLines.push(<Text key="blank2"> </Text>);
-
-      contentLines.push(
-        <Text key="proj-header" bold color={inkColors.primary}>Projects:</Text>
-      );
-      if (detail.projectDistribution.length === 0) {
-        contentLines.push(
-          <Text key="proj-empty" color={inkColors.muted}>  Not distributed to any project</Text>
-        );
-      } else {
-        detail.projectDistribution.forEach((proj) => {
-          contentLines.push(
-            <Text key={`proj-${proj.projectId}`} color={inkColors.secondary}>
-              {'  '}{proj.projectId}
-            </Text>
-          );
-          proj.agents.forEach((a) => {
-            contentLines.push(
-              <Text key={`proj-agent-${a.id}`} color={inkColors.muted}>
-                {'    '}{a.name}
-                <Text color={a.isDifferentVersion ? inkColors.warning : inkColors.success}>
-                  {' '}({a.isDifferentVersion ? 'different version' : 'synced'})
-                </Text>
-              </Text>
-            );
-          });
-        });
-      }
-
-      if (detail.skillMdPreview) {
-        contentLines.push(<Text key="blank3"> </Text>);
-        contentLines.push(
-          <Text key="md-header" bold color={inkColors.primary}>SKILL.md preview:</Text>
-        );
-        // Split preview into lines
-        const previewLines = detail.skillMdPreview.split('\n');
-        previewLines.forEach((line, idx) => {
-          contentLines.push(
-            <Text key={`md-line-${idx}`} color={inkColors.muted}>{line}</Text>
-          );
-        });
-      }
-    } else {
-      contentLines.push(
-        <Text key="loading" color={inkColors.muted}>Loading...</Text>
-      );
+    if (!focusedSkill) {
+      return [
+        {
+          key: 'empty',
+          text: truncateText('Select a skill to view details.', contentWidth),
+          color: inkColors.muted,
+        },
+      ];
     }
-  } else {
-    contentLines.push(
-      <Text key="empty" color={inkColors.muted}>Select a skill to view details</Text>
-    );
-  }
 
-  // Add hint for standard band
-  if (band === 'standard') {
-    contentLines.push(<Text key="blank-hint"> </Text>);
-    contentLines.push(
-      <Text key="hint-line" color={inkColors.muted}>{symbols.horizontal.repeat(30)}</Text>
-    );
-    contentLines.push(
-      <Text key="hint" color={inkColors.muted}>[Esc] Back</Text>
-    );
-  }
+    lines.push({
+      key: 'name',
+      text: truncateText(detail?.name ?? focusedSkill.name, contentWidth),
+      color: inkColors.accent,
+      bold: true,
+    });
 
-  // For standard band: limit content height
-  const totalLines = contentLines.length;
-  const hasOverflow = band === 'standard' && totalLines > MAX_CONTENT_LINES;
-  const visibleLines = hasOverflow ? contentLines.slice(0, MAX_CONTENT_LINES - 1) : contentLines;
-  const hiddenCount = hasOverflow ? totalLines - MAX_CONTENT_LINES + 1 : 0;
+    if (!detail) {
+      lines.push({
+        key: 'loading',
+        text: truncateText('Loading skill details...', contentWidth),
+        color: inkColors.muted,
+      });
+      return lines;
+    }
 
-  const content = (
-    <Box flexDirection="column" paddingX={1}>
-      {visibleLines}
-      {hasOverflow && (
-        <Text color={inkColors.muted}>  ... {hiddenCount} more lines</Text>
-      )}
-    </Box>
+    lines.push({
+      key: 'source',
+      text: truncateText(
+        `Source: [${detail.source.type}] ${
+          detail.source.type === 'git'
+            ? detail.source.url
+            : detail.source.type === 'local'
+              ? 'local'
+              : detail.source.projectId
+        }`,
+        contentWidth
+      ),
+      color: inkColors.secondary,
+    });
+    lines.push({
+      key: 'created',
+      text: truncateText(`Created: ${detail.createdAt}`, contentWidth),
+      color: inkColors.secondary,
+    });
+    lines.push({ key: 'blank-1', text: ' ' });
+
+    lines.push({
+      key: 'sync-header',
+      text: 'Synced to:',
+      color: inkColors.primary,
+      bold: true,
+    });
+    if (detail.syncStatus.length === 0) {
+      lines.push({
+        key: 'sync-empty',
+        text: truncateText('  Not synced to any agent', contentWidth),
+        color: inkColors.muted,
+      });
+    } else {
+      for (const [index, entry] of detail.syncStatus.entries()) {
+        lines.push({
+          key: `sync-${index}`,
+          text: truncateText(
+            `  ${entry.agentName}  ${entry.mode}  (${entry.status})`,
+            contentWidth
+          ),
+          color: entry.status === 'synced' ? inkColors.success : inkColors.error,
+        });
+      }
+    }
+
+    lines.push({ key: 'blank-2', text: ' ' });
+    lines.push({
+      key: 'projects-header',
+      text: 'Projects:',
+      color: inkColors.primary,
+      bold: true,
+    });
+    if (detail.projectDistribution.length === 0) {
+      lines.push({
+        key: 'projects-empty',
+        text: truncateText('  Not distributed to any project', contentWidth),
+        color: inkColors.muted,
+      });
+    } else {
+      for (const project of detail.projectDistribution) {
+        lines.push({
+          key: `project-${project.projectId}`,
+          text: truncateText(`  ${project.projectId}`, contentWidth),
+          color: inkColors.secondary,
+        });
+        for (const agent of project.agents) {
+          lines.push({
+            key: `project-${project.projectId}-${agent.id}`,
+            text: truncateText(
+              `    ${agent.name} (${agent.isDifferentVersion ? 'different version' : 'synced'})`,
+              contentWidth
+            ),
+            color: agent.isDifferentVersion ? inkColors.warning : inkColors.success,
+          });
+        }
+      }
+    }
+
+    if (detail.skillMdPreview) {
+      lines.push({ key: 'blank-3', text: ' ' });
+      lines.push({
+        key: 'preview-header',
+        text: 'SKILL.md preview:',
+        color: inkColors.primary,
+        bold: true,
+      });
+      detail.skillMdPreview.split('\n').forEach((line, index) => {
+        lines.push({
+          key: `preview-${index}`,
+          text: truncateText(line || ' ', contentWidth),
+          color: inkColors.muted,
+        });
+      });
+    }
+
+    return lines;
+  }, [contentWidth, detail, focusedSkill]);
+
+  const [scrollTop, setScrollTop] = useState(0);
+
+  useEffect(() => {
+    setScrollTop(0);
+  }, [focusedSkill?.name, detail?.createdAt, band]);
+
+  const maxScroll = Math.max(detailLines.length - STANDARD_VISIBLE_LINES, 0);
+
+  useEffect(() => {
+    setScrollTop((current) => Math.min(current, maxScroll));
+  }, [maxScroll]);
+
+  useInput(
+    (_input, key) => {
+      if (band !== 'standard') return;
+
+      if (key.upArrow) {
+        setScrollTop((current) => Math.max(0, current - 1));
+      } else if (key.downArrow) {
+        setScrollTop((current) => Math.min(maxScroll, current + 1));
+      } else if (key.pageUp) {
+        setScrollTop((current) => Math.max(0, current - STANDARD_VISIBLE_LINES));
+      } else if (key.pageDown) {
+        setScrollTop((current) => Math.min(maxScroll, current + STANDARD_VISIBLE_LINES));
+      } else if (key.home) {
+        setScrollTop(0);
+      } else if (key.end) {
+        setScrollTop(maxScroll);
+      }
+    },
+    { isActive: band === 'standard' }
   );
 
-  // Standard band: render as bordered overlay
+  const renderLine = (line: DetailLine): React.ReactElement => (
+    <Text key={line.key} color={line.color} bold={line.bold}>
+      {line.text}
+    </Text>
+  );
+
   if (band === 'standard') {
+    const visibleLines = detailLines.slice(scrollTop, scrollTop + STANDARD_VISIBLE_LINES);
+    const hiddenAbove = scrollTop;
+    const hiddenBelow = Math.max(detailLines.length - scrollTop - visibleLines.length, 0);
+    const paddedLines = [...visibleLines, ...blankLines(STANDARD_VISIBLE_LINES - visibleLines.length, 'pad')];
+
     return (
-      <Box borderStyle="single" width="60%" borderColor={inkColors.muted}>
-        {content}
+      <Box borderStyle="single" width={panelWidth} borderColor={inkColors.muted}>
+        <Box flexDirection="column" paddingX={1}>
+          <Text color={inkColors.muted}>
+            {hiddenAbove > 0
+              ? truncateText(`^ ${hiddenAbove} more above`, contentWidth)
+              : ' '}
+          </Text>
+          {paddedLines.map(renderLine)}
+          <Text color={inkColors.muted}>
+            {hiddenBelow > 0
+              ? truncateText(`v ${hiddenBelow} more below`, contentWidth)
+              : ' '}
+          </Text>
+          <Text color={inkColors.muted}>{'-'.repeat(Math.max(contentWidth, 1))}</Text>
+          <Text color={inkColors.muted}>
+            {truncateText('Up/Down:Scroll  PgUp/PgDn:Jump  Esc:Back', contentWidth)}
+          </Text>
+        </Box>
       </Box>
     );
   }
 
-  // Widescreen (or default): render inline
-  return <>{content}</>;
+  const hasOverflow = detailLines.length > WIDESCREEN_VISIBLE_LINES;
+  const visibleLines = hasOverflow
+    ? detailLines.slice(0, WIDESCREEN_VISIBLE_LINES - 1)
+    : detailLines.slice(0, WIDESCREEN_VISIBLE_LINES);
+  const paddedLines = [
+    ...visibleLines,
+    ...(hasOverflow
+      ? [
+          {
+            key: 'overflow',
+            text: truncateText(
+              `... ${detailLines.length - WIDESCREEN_VISIBLE_LINES + 1} more lines`,
+              contentWidth
+            ),
+            color: inkColors.muted,
+          } satisfies DetailLine,
+        ]
+      : blankLines(WIDESCREEN_VISIBLE_LINES - visibleLines.length, 'wide-pad')),
+  ];
+
+  return (
+    <Box flexDirection="column" paddingX={1}>
+      {paddedLines.map(renderLine)}
+    </Box>
+  );
 }

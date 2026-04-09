@@ -27,6 +27,7 @@ export function AgentTable({ store, columns }: AgentTableProps): React.ReactElem
   const focusedAgentIndex = useStore(store, s => s.focusedAgentIndex);
   const expandedAgentIds = useStore(store, s => s.expandedAgentIds);
   const agentDetails = useStore(store, s => s.agentDetails);
+  const agentSummaries = useStore(store, s => s.agentSummaries);
 
   const { visibleItems, scrollTop, hiddenAbove, hiddenBelow } = useNavigation({ items: agents, focusedIndex: focusedAgentIndex });
 
@@ -41,8 +42,9 @@ export function AgentTable({ store, columns }: AgentTableProps): React.ReactElem
 
   const renderRow = (agent: typeof agents[0], isFocused: boolean): React.ReactElement => {
     const detail: AgentDetailData | undefined = agentDetails[agent.id];
-    const skillCount = detail ? String(detail.userLevelSkills.length) : '?';
-    const projCount = detail ? String(detail.projectLevelSkills.length) : '?';
+    const summary = agentSummaries[agent.id];
+    const skillCount = String(summary?.userLevelSkillCount ?? 0);
+    const projCount = String(summary?.projectLevelSkillCount ?? 0);
 
     const pathDisplay = agent.basePath.length > pathWidth
       ? agent.basePath.slice(0, pathWidth - 3) + '...'

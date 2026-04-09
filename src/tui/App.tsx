@@ -81,24 +81,22 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
       <TabBar store={store} band={band} columns={columns} />
       <BreadcrumbBar segments={breadcrumbSegments} />
       {isCompact && (
-        <Text color="yellow">{"\u26A0"} Terminal too narrow -- need 80+ columns for full layout</Text>
+        <Text color="yellow">{"\u26A0"} Compact terminal layout active -- widen to 80+ columns for the full detail view</Text>
       )}
       <Box flexGrow={1}>
-        {isCompact ? null : (
-          <>
-            {activeTab === 'skills' && <SkillsScreen store={store} band={band} columns={columns} />}
-            {activeTab === 'agents' && <AgentsScreen store={store} band={band} columns={columns} />}
-            {activeTab === 'projects' && <ProjectsScreen store={store} band={band} columns={columns} />}
-            {activeTab === 'sync' && <SyncScreen store={store} />}
-            {activeTab === 'import' && <ImportScreen store={store} ctx={ctx} />}
-          </>
-        )}
+        <>
+          {activeTab === 'skills' && <SkillsScreen store={store} band={band} columns={columns} />}
+          {activeTab === 'agents' && <AgentsScreen store={store} band={band} columns={columns} />}
+          {activeTab === 'projects' && <ProjectsScreen store={store} band={band} columns={columns} />}
+          {activeTab === 'sync' && <SyncScreen store={store} />}
+          {activeTab === 'import' && <ImportScreen store={store} ctx={ctx} />}
+        </>
       </Box>
       {dirtyConfirmActive && (
         <Text color="yellow">Unsaved changes -- Discard? [y/N]</Text>
       )}
       <StatusBar store={store} band={band} columns={columns} />
-      {updateProgressItems.length > 0 && activeTab === 'skills' && !isCompact && (
+      {updateProgressItems.length > 0 && activeTab === 'skills' && (
         <Box paddingX={1}>
           <ProgressBarStack items={updateProgressItems} />
         </Box>

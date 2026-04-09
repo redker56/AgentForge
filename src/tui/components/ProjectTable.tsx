@@ -39,6 +39,7 @@ export function ProjectTable({ store, columns }: ProjectTableProps): React.React
   const focusedProjectIndex = useStore(store, s => s.focusedProjectIndex);
   const expandedProjectIds = useStore(store, s => s.expandedProjectIds);
   const projectDetails = useStore(store, s => s.projectDetails);
+  const projectSummaries = useStore(store, s => s.projectSummaries);
 
   const { visibleItems, scrollTop, hiddenAbove, hiddenBelow } = useNavigation({ items: projects, focusedIndex: focusedProjectIndex });
 
@@ -52,9 +53,10 @@ export function ProjectTable({ store, columns }: ProjectTableProps): React.React
 
   const renderRow = (project: typeof projects[0], isFocused: boolean): React.ReactElement => {
     const detail: ProjectDetailData | undefined = projectDetails[project.id];
-    const totalSkills = detail
-      ? String(detail.skillsByAgent.reduce((sum, g) => sum + g.skills.length, 0))
-      : '?';
+    const totalSkills = String(
+      projectSummaries[project.id]?.skillCount ??
+      (detail ? detail.skillsByAgent.reduce((sum, g) => sum + g.skills.length, 0) : 0)
+    );
 
     const dateStr = formatDate(project.addedAt);
     const pathDisplay = project.path.length > pathWidth

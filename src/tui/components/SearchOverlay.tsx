@@ -9,7 +9,7 @@
  * Fixed-height results (max 8 visible) to prevent terminal window jitter.
  */
 
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 import React, { useMemo, useState, useEffect } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
@@ -24,6 +24,14 @@ interface SearchOverlayProps {
 
 // Maximum visible results to prevent layout jitter
 const MAX_VISIBLE_RESULTS = 8;
+const SEARCH_HINT = 'Type to search in the current tab';
+
+function truncateText(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) return '';
+  if (text.length <= maxWidth) return text;
+  if (maxWidth <= 3) return text.slice(0, maxWidth);
+  return `${text.slice(0, maxWidth - 3)}...`;
+}
 
 function HighlightedText({ text, matchIndices }: { text: string; matchIndices: number[] }): React.ReactElement {
   const matchSet = useMemo(() => new Set(matchIndices), [matchIndices]);
@@ -54,12 +62,16 @@ function HighlightedText({ text, matchIndices }: { text: string; matchIndices: n
 }
 
 export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement {
+  const { stdout } = useStdout();
   const searchQuery = useStore(store, s => s.searchQuery);
   const skills = useStore(store, s => s.skills);
   const agents = useStore(store, s => s.agents);
   const projects = useStore(store, s => s.projects);
   const searchResultIndex = useStore(store, s => s.searchResultIndex);
   const activeTab = useStore(store, s => s.activeTab);
+  const overlayWidth = Math.max((stdout?.columns ?? 100) - 4, 24);
+  const resultWidth = Math.max(overlayWidth - 2, 20);
+  const displayQuery = truncateText(searchQuery || '', Math.max(overlayWidth - 12, 8));
 
   const results = useMemo(
     () => computeSearchResults(searchQuery, skills, agents, projects, activeTab),
@@ -92,6 +104,21 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
   }, [clampedIdx, scrollTop]);
 
   const visibleResults = results.slice(scrollTop, scrollTop + MAX_VISIBLE_RESULTS);
+  const summaryLine = !searchQuery.trim()
+    ? SEARCH_HINT
+    : results.length === 0
+      ? `No results for "${searchQuery}"`
+      : `${results.length} result${results.length !== 1 ? 's' : ''} for "${searchQuery}"${
+          hasMoreAbove || hasMoreBelow
+            ? ` (${hasMoreAbove ? `^${scrollTop}` : ''}${hasMoreAbove && hasMoreBelow ? ', ' : ''}${
+                hasMoreBelow ? `v${totalResults - scrollTop - visibleResults.length}` : ''
+              })`
+            : ''
+        }`;
+  const paddedResults = [
+    ...visibleResults,
+    ...Array.from({ length: MAX_VISIBLE_RESULTS - visibleResults.length }, () => null),
+  ];
 
   // Local input handler for search keys
   useInput((input, key) => {
@@ -166,43 +193,40 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
     <Box flexDirection="column" marginTop={1}>
       <Box borderStyle="single" paddingLeft={1} paddingRight={1} borderColor={inkColors.muted}>
         <Text color={inkColors.accent}>Search: </Text>
-        <Text>{searchQuery || ''}</Text>
+        <Text>{displayQuery}</Text>
         <Text color={inkColors.accent}>{'\u2588'}</Text>
       </Box>
-      {results.length > 0 && (
-        <Box flexDirection="column">
-          <Text color={inkColors.muted}>  {results.length} result{results.length !== 1 ? 's' : ''} for "{searchQuery}"</Text>
-          {hasMoreAbove && (
-            <Text color={inkColors.muted}>  ^ {scrollTop} more above</Text>
-          )}
-          {visibleResults.map((result, i) => {
-            const actualIndex = scrollTop + i;
-            return (
-              <Box key={`${result.tabId}-${result.itemId}`}>
-                <Text
-                  color={actualIndex === clampedIdx ? inkColors.accent : inkColors.secondary}
-                  bold={actualIndex === clampedIdx}
-                >
-                  <HighlightedText text={result.name} matchIndices={result.matchIndices} />
-                  {'  '}
-                </Text>
-                <Text
-                  color={actualIndex === clampedIdx ? inkColors.accent : inkColors.muted}
-                  bold={actualIndex === clampedIdx}
-                >
-                  [{result.tabLabel}]
-                </Text>
-              </Box>
-            );
-          })}
-          {hasMoreBelow && (
-            <Text color={inkColors.muted}>  v {totalResults - scrollTop - MAX_VISIBLE_RESULTS} more below</Text>
-          )}
-        </Box>
-      )}
-      {searchQuery.trim() && results.length === 0 && (
-        <Text color={inkColors.muted}>  No results found</Text>
-      )}
+      <Box flexDirection="column" minHeight={MAX_VISIBLE_RESULTS + 1}>
+        <Text color={inkColors.muted}>{truncateText(`  ${summaryLine}`, resultWidth)}</Text>
+        {paddedResults.map((result, i) => {
+          if (!result) {
+            return <Text key={`empty-${i}`}> </Text>;
+          }
+
+          const actualIndex = scrollTop + i;
+          const availableNameWidth = Math.max(resultWidth - result.tabLabel.length - 6, 8);
+          const displayName = truncateText(result.name, availableNameWidth);
+          const displayMatchIndices = result.matchIndices.filter((index) => index < displayName.length);
+
+          return (
+            <Box key={`${result.tabId}-${result.itemId}`}>
+              <Text
+                color={actualIndex === clampedIdx ? inkColors.accent : inkColors.secondary}
+                bold={actualIndex === clampedIdx}
+              >
+                <HighlightedText text={displayName} matchIndices={displayMatchIndices} />
+                {'  '}
+              </Text>
+              <Text
+                color={actualIndex === clampedIdx ? inkColors.accent : inkColors.muted}
+                bold={actualIndex === clampedIdx}
+              >
+                [{result.tabLabel}]
+              </Text>
+            </Box>
+          );
+        })}
+      </Box>
     </Box>
   );
 }

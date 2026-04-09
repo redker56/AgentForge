@@ -33,7 +33,7 @@ describe('ImportScreen', () => {
   function makeMockStore(overrides?: Partial<Record<string, unknown>>) {
     const state = {
       importTabStep: 'select-source-type',
-      importTabSourceType: null,
+      importTabSourceType: 'project',
       importTabSourceId: null,
       importTabSelectedSkillNames: new Set<string>(),
       importTabResults: [],

@@ -16,6 +16,7 @@ import type {
   Agent,
   ProjectConfig,
 } from '../../types.js';
+import { getAgentProjectSkillsDir } from '../../types.js';
 
 import type { SkillListItem, StoreState } from './index.js';
 
@@ -73,6 +74,15 @@ export interface ProjectDetailData {
       isDifferentVersion: boolean;
     }>;
   }>;
+}
+
+export interface AgentSummaryData {
+  userLevelSkillCount: number;
+  projectLevelSkillCount: number;
+}
+
+export interface ProjectSummaryData {
+  skillCount: number;
 }
 
 export interface ServiceContext {
@@ -205,6 +215,8 @@ export interface DataSlice {
   // NEW: Agent/project detail caches
   agentDetails: Record<string, AgentDetailData | undefined>;
   projectDetails: Record<string, ProjectDetailData | undefined>;
+  agentSummaries: Record<string, AgentSummaryData | undefined>;
+  projectSummaries: Record<string, ProjectSummaryData | undefined>;
 
   // Actions
   loadAllData: () => void;
@@ -219,6 +231,56 @@ export interface DataSlice {
 }
 
 export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [], [], DataSlice> {
+  const countValidSkillDirs = (dirPath: string): number => {
+    if (!ctx.fileOps.pathExists(dirPath)) return 0;
+
+    return ctx.fileOps.listSubdirectories(dirPath).filter((skillDir) => {
+      const skillPath = path.join(dirPath, skillDir);
+      return (
+        ctx.fileOps.fileExists(path.join(skillPath, 'SKILL.md')) ||
+        ctx.fileOps.fileExists(path.join(skillPath, 'skill.md'))
+      );
+    }).length;
+  };
+
+  const buildAgentSummaries = (
+    agents: Agent[],
+    projects: ProjectConfig[]
+  ): Record<string, AgentSummaryData> => {
+    const summaries: Record<string, AgentSummaryData> = {};
+
+    for (const agent of agents) {
+      let projectLevelSkillCount = 0;
+      for (const project of projects) {
+        projectLevelSkillCount += countValidSkillDirs(getAgentProjectSkillsDir(project.path, agent));
+      }
+
+      summaries[agent.id] = {
+        userLevelSkillCount: countValidSkillDirs(agent.basePath),
+        projectLevelSkillCount,
+      };
+    }
+
+    return summaries;
+  };
+
+  const buildProjectSummaries = (
+    projects: ProjectConfig[],
+    agents: Agent[]
+  ): Record<string, ProjectSummaryData> => {
+    const summaries: Record<string, ProjectSummaryData> = {};
+
+    for (const project of projects) {
+      let skillCount = 0;
+      for (const agent of agents) {
+        skillCount += countValidSkillDirs(getAgentProjectSkillsDir(project.path, agent));
+      }
+      summaries[project.id] = { skillCount };
+    }
+
+    return summaries;
+  };
+
   return (set, _get) => ({
     skills: [],
     agents: [],
@@ -230,6 +292,8 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
     // NEW: Agent/project detail caches
     agentDetails: {},
     projectDetails: {},
+    agentSummaries: {},
+    projectSummaries: {},
 
     loadAllData(): void {
       set({ loading: { skills: true, agents: true, projects: true }, error: null });
@@ -237,10 +301,14 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
         const skills = ctx.skillService.list();
         const agents = ctx.storage.listAgents();
         const projects = ctx.storage.listProjects();
+        const agentSummaries = buildAgentSummaries(agents, projects);
+        const projectSummaries = buildProjectSummaries(projects, agents);
         set({
           skills: skills.map((s) => ({ ...s })),
           agents,
           projects,
+          agentSummaries,
+          projectSummaries,
           loading: { skills: false, agents: false, projects: false },
         });
       } catch (e: unknown) {
@@ -446,13 +514,25 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
     // NEW: Refresh agents
     refreshAgents(): void {
       const agents = ctx.storage.listAgents();
-      set({ agents, agentDetails: {} });
+      const projects = ctx.storage.listProjects();
+      set({
+        agents,
+        agentDetails: {},
+        agentSummaries: buildAgentSummaries(agents, projects),
+        projectSummaries: buildProjectSummaries(projects, agents),
+      });
     },
 
     // NEW: Refresh projects
     refreshProjects(): void {
       const projects = ctx.storage.listProjects();
-      set({ projects, projectDetails: {} });
+      const agents = ctx.storage.listAgents();
+      set({
+        projects,
+        projectDetails: {},
+        agentSummaries: buildAgentSummaries(agents, projects),
+        projectSummaries: buildProjectSummaries(projects, agents),
+      });
     },
   });
 }

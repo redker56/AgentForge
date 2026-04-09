@@ -52,6 +52,10 @@ describe('AgentsScreen', () => {
       agents: mockAgents,
       focusedAgentIndex: 0,
       agentDetails: {},
+      agentSummaries: {
+        claude: { userLevelSkillCount: 1, projectLevelSkillCount: 0 },
+        codex: { userLevelSkillCount: 1, projectLevelSkillCount: 0 },
+      },
       expandedAgentIds: new Set<string>(),
       loading: { agents: false },
       loadAgentDetail: vi.fn(),
@@ -80,14 +84,15 @@ describe('AgentsScreen', () => {
     expect(frame).toContain('Claude Code');
   });
 
-  it('returns null in compact band', async () => {
+  it('renders AgentTable in compact band', async () => {
     const { AgentsScreen } = await import('../../../src/tui/screens/AgentsScreen.js');
     const store = makeMockStore();
     const { lastFrame } = render(
       React.createElement(AgentsScreen, { store, band: 'compact' as const, columns: 60 })
     );
     vi.runAllTimers();
-    expect(lastFrame()).toBe('');
+    const frame = lastFrame() || '';
+    expect(frame).toContain('Claude Code');
   });
 
   it('loads agent detail when focused agent changes', async () => {

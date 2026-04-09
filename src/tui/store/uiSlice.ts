@@ -287,7 +287,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
 
   // Sync tab form state
   syncFormStep: 'select-op',
-  syncFormOperation: null,
+  syncFormOperation: 'sync-agents',
   syncFormSelectedSkillNames: new Set(),
   syncFormSelectedTargetIds: new Set(),
   syncFormSelectedAgentTypes: new Set(),
@@ -297,7 +297,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
 
   // Import tab form state
   importTabStep: 'select-source-type',
-  importTabSourceType: null,
+  importTabSourceType: 'project',
   importTabSourceId: null,
   importTabSelectedSkillNames: new Set(),
   importTabResults: [],
@@ -438,7 +438,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
   resetSyncForm: () =>
     set({
       syncFormStep: 'select-op',
-      syncFormOperation: null,
+      syncFormOperation: 'sync-agents',
       syncFormSelectedSkillNames: new Set(),
       syncFormSelectedTargetIds: new Set(),
       syncFormSelectedAgentTypes: new Set(),
@@ -463,7 +463,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
   resetImportTab: () =>
     set({
       importTabStep: 'select-source-type',
-      importTabSourceType: null,
+      importTabSourceType: 'project',
       importTabSourceId: null,
       importTabSelectedSkillNames: new Set(),
       importTabResults: [],

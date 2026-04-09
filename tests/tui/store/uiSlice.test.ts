@@ -55,7 +55,7 @@ describe('createUISlice', () => {
     expect(slice.conflictState).toBeNull();
     expect(slice.focusedConflictIndex).toBe(0);
     expect(slice.syncFormStep).toBe('select-op');
-    expect(slice.syncFormOperation).toBeNull();
+    expect(slice.syncFormOperation).toBe('sync-agents');
     expect(slice.syncFormSelectedSkillNames).toEqual(new Set());
     expect(slice.syncFormSelectedTargetIds).toEqual(new Set());
     expect(slice.syncFormSelectedAgentTypes).toEqual(new Set());
@@ -63,7 +63,7 @@ describe('createUISlice', () => {
     expect(slice.syncFormResults).toEqual([]);
     expect(slice.syncFormFocusedIndex).toBe(0);
     expect(slice.importTabStep).toBe('select-source-type');
-    expect(slice.importTabSourceType).toBeNull();
+    expect(slice.importTabSourceType).toBe('project');
     expect(slice.importTabSourceId).toBeNull();
     expect(slice.importTabSelectedSkillNames).toEqual(new Set());
     expect(slice.importTabResults).toEqual([]);
@@ -159,7 +159,7 @@ describe('createUISlice', () => {
 
     expect(set).toHaveBeenCalledWith({
       syncFormStep: 'select-op',
-      syncFormOperation: null,
+      syncFormOperation: 'sync-agents',
       syncFormSelectedSkillNames: new Set(),
       syncFormSelectedTargetIds: new Set(),
       syncFormSelectedAgentTypes: new Set(),
@@ -177,7 +177,7 @@ describe('createUISlice', () => {
 
     expect(set).toHaveBeenCalledWith({
       importTabStep: 'select-source-type',
-      importTabSourceType: null,
+      importTabSourceType: 'project',
       importTabSourceId: null,
       importTabSelectedSkillNames: new Set(),
       importTabResults: [],
