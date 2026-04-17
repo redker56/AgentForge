@@ -4,26 +4,24 @@
  * Searches across skill names, agent names, and project IDs using
  * fzf-style character subsequence matching. Matched characters are
  * highlighted in bold accent color.
- * Modern Claude Code aesthetic.
  *
  * Fixed-height results (max 8 visible) to prevent terminal window jitter.
  */
 
 import { Box, Text, useInput, useStdout } from 'ink';
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
-import { getVisibleSkills } from '../utils/skillsView.js';
 import { computeSearchResults } from '../utils/search.js';
+import { getVisibleSkills } from '../utils/skillsView.js';
 
 interface SearchOverlayProps {
   store: StoreApi<AppStore>;
 }
 
-// Maximum visible results to prevent layout jitter
 const MAX_VISIBLE_RESULTS = 8;
 const SEARCH_HINT = 'Type to search in the current tab';
 
@@ -34,13 +32,20 @@ function truncateText(text: string, maxWidth: number): string {
   return `${text.slice(0, maxWidth - 3)}...`;
 }
 
-function HighlightedText({ text, matchIndices }: { text: string; matchIndices: number[] }): React.ReactElement {
+function HighlightedText({
+  text,
+  matchIndices,
+  selected,
+}: {
+  text: string;
+  matchIndices: number[];
+  selected: boolean;
+}): React.ReactElement {
   const matchSet = useMemo(() => new Set(matchIndices), [matchIndices]);
 
   const segments: React.ReactElement[] = [];
   let i = 0;
   while (i < text.length) {
-    // Find contiguous run of matched or unmatched characters
     const isMatch = matchSet.has(i);
     let j = i;
     while (j < text.length && matchSet.has(j) === isMatch) {
@@ -53,7 +58,9 @@ function HighlightedText({ text, matchIndices }: { text: string; matchIndices: n
       );
     } else {
       segments.push(
-        <Text color={inkColors.secondary} key={`u-${i}`}>{segment}</Text>
+        <Text color={selected ? inkColors.focusText : inkColors.secondary} key={`u-${i}`}>
+          {segment}
+        </Text>
       );
     }
     i = j;
@@ -64,13 +71,13 @@ function HighlightedText({ text, matchIndices }: { text: string; matchIndices: n
 
 export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement {
   const { stdout } = useStdout();
-  const searchQuery = useStore(store, s => s.searchQuery);
-  const skills = useStore(store, s => s.skills);
-  const activeSkillCategoryFilter = useStore(store, s => s.activeSkillCategoryFilter);
-  const agents = useStore(store, s => s.agents);
-  const projects = useStore(store, s => s.projects);
-  const searchResultIndex = useStore(store, s => s.searchResultIndex);
-  const activeTab = useStore(store, s => s.activeTab);
+  const searchQuery = useStore(store, (s) => s.searchQuery);
+  const skills = useStore(store, (s) => s.skills);
+  const activeSkillCategoryFilter = useStore(store, (s) => s.activeSkillCategoryFilter);
+  const agents = useStore(store, (s) => s.agents);
+  const projects = useStore(store, (s) => s.projects);
+  const searchResultIndex = useStore(store, (s) => s.searchResultIndex);
+  const activeTab = useStore(store, (s) => s.activeTab);
   const overlayWidth = Math.max((stdout?.columns ?? 100) - 4, 24);
   const resultWidth = Math.max(overlayWidth - 2, 20);
   const displayQuery = truncateText(searchQuery || '', Math.max(overlayWidth - 12, 8));
@@ -83,23 +90,17 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
     [searchQuery, searchableSkills, agents, projects, activeTab]
   );
 
-  // Clamp focus index to results length
   const clampedIdx = Math.min(searchResultIndex, Math.max(results.length - 1, 0));
-
-  // Internal scroll state for fixed-height results
   const [scrollTop, setScrollTop] = useState(0);
 
-  // Calculate visible range
   const totalResults = results.length;
   const hasMoreAbove = scrollTop > 0;
   const hasMoreBelow = totalResults > scrollTop + MAX_VISIBLE_RESULTS;
 
-  // Reset scroll when results change
   useEffect(() => {
     setScrollTop(0);
   }, [results.length]);
 
-  // Sync scroll with focused index (keyboard navigation)
   useEffect(() => {
     if (clampedIdx < scrollTop) {
       setScrollTop(clampedIdx);
@@ -125,7 +126,6 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
     ...Array.from({ length: MAX_VISIBLE_RESULTS - visibleResults.length }, () => null),
   ];
 
-  // Local input handler for search keys
   useInput((input, key) => {
     const state = store.getState();
 
@@ -157,13 +157,13 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
         state.setActiveTab(result.tabId);
 
         if (result.tabId === 'skills') {
-          const skillIndex = state.skills.findIndex(s => s.name === result.itemId);
+          const skillIndex = state.skills.findIndex((s) => s.name === result.itemId);
           if (skillIndex >= 0) state.setFocusedSkillIndex(skillIndex);
         } else if (result.tabId === 'agents') {
-          const agentIndex = state.agents.findIndex(a => a.id === result.itemId);
+          const agentIndex = state.agents.findIndex((a) => a.id === result.itemId);
           if (agentIndex >= 0) state.setFocusedAgentIndex(agentIndex);
         } else if (result.tabId === 'projects') {
-          const projectIndex = state.projects.findIndex(p => p.id === result.itemId);
+          const projectIndex = state.projects.findIndex((p) => p.id === result.itemId);
           if (projectIndex >= 0) state.setFocusedProjectIndex(projectIndex);
         }
       }
@@ -212,10 +212,20 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Box borderStyle="single" paddingLeft={1} paddingRight={1} borderColor={inkColors.muted}>
-        <Text color={inkColors.accent}>Search: </Text>
-        <Text>{displayQuery}</Text>
-        <Text color={inkColors.accent}>{'\u2588'}</Text>
+      <Box
+        flexDirection="column"
+        borderStyle="single"
+        paddingLeft={1}
+        paddingRight={1}
+        borderColor={inkColors.borderActive}
+      >
+        <Text color={inkColors.muted}>Search</Text>
+        <Box>
+          <Text color={inkColors.accent}>Query</Text>
+          <Text color={inkColors.muted}> / </Text>
+          <Text color={inkColors.primary}>{displayQuery}</Text>
+          <Text color={inkColors.accent}>{'\u2588'}</Text>
+        </Box>
       </Box>
       <Box flexDirection="column" minHeight={MAX_VISIBLE_RESULTS + 1}>
         <Text color={inkColors.muted}>{truncateText(`  ${summaryLine}`, resultWidth)}</Text>
@@ -228,19 +238,26 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
           const availableNameWidth = Math.max(resultWidth - result.tabLabel.length - 6, 8);
           const displayName = truncateText(result.name, availableNameWidth);
           const displayMatchIndices = result.matchIndices.filter((index) => index < displayName.length);
+          const isSelected = actualIndex === clampedIdx;
 
           return (
             <Box key={`${result.tabId}-${result.itemId}`}>
               <Text
-                color={actualIndex === clampedIdx ? inkColors.accent : inkColors.secondary}
-                bold={actualIndex === clampedIdx}
+                color={isSelected ? inkColors.focusText : inkColors.secondary}
+                backgroundColor={isSelected ? inkColors.paper : undefined}
+                bold={isSelected}
               >
-                <HighlightedText text={displayName} matchIndices={displayMatchIndices} />
+                <HighlightedText
+                  text={displayName}
+                  matchIndices={displayMatchIndices}
+                  selected={isSelected}
+                />
                 {'  '}
               </Text>
               <Text
-                color={actualIndex === clampedIdx ? inkColors.accent : inkColors.muted}
-                bold={actualIndex === clampedIdx}
+                color={isSelected ? inkColors.focusText : inkColors.muted}
+                backgroundColor={isSelected ? inkColors.paper : undefined}
+                bold={isSelected}
               >
                 [{result.tabLabel}]
               </Text>

@@ -180,4 +180,28 @@ describe('SkillList', () => {
     expect(frame).toContain('[git]');
     expect(frame).toContain('[local]');
   });
+
+  it('truncates long selected rows to avoid wrapping on narrow widths', async () => {
+    const { SkillList } = await import('../../../src/tui/components/SkillList.js');
+    const store = makeMockStore({
+      skills: [
+        {
+          name: 'super-long-skill-name-that-would-otherwise-wrap',
+          syncedTo: ['claude'],
+          source: { type: 'git' as const },
+          exists: true,
+          createdAt: '2025-01-01',
+          categories: ['very-long-category-name', 'another-category-name'],
+        },
+      ],
+      selectedSkillNames: new Set(['super-long-skill-name-that-would-otherwise-wrap']),
+    });
+    const { lastFrame } = render(
+      React.createElement(SkillList, { store, columns: 28 })
+    );
+    vi.runAllTimers();
+    const frame = lastFrame() || '';
+    expect(frame).toContain('[+]');
+    expect(frame).toContain('...');
+  });
 });

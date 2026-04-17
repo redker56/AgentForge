@@ -46,7 +46,7 @@ function defaultSegmentColor(hint: HintSpec): string {
 export function rankAndTruncateHints(
   contextHints: HintSpec[],
   band: WidthBand,
-  _availableWidth: number
+  availableWidth: number
 ): HintResult {
   // Sort context hints by priority (lower = more important)
   const sortedContext = [...contextHints].sort((a, b) => a.priority - b.priority);
@@ -90,23 +90,19 @@ export function rankAndTruncateHints(
   // Combine: context hints first, then global hints
   const allHints = [...selectedContext, ...selectedGlobal];
 
-  // Filter by available width: drop lowest-priority hints first
-  let finalHints = allHints;
-  if (_availableWidth > 0) {
-    let totalWidth = 0;
-    finalHints = [];
-    // Process from highest priority (lowest number) to lowest
-    const ordered = [...allHints].sort((a, b) => a.priority - b.priority);
-    for (const hint of ordered) {
-      const segmentWidth = hint.key.length + hint.label.length + 3; // "k:label | "
-      if (finalHints.length === 0) {
-        totalWidth = hint.key.length + hint.label.length + 1; // "k:label"
-        finalHints.push(hint);
-      } else if (totalWidth + segmentWidth <= _availableWidth) {
-        totalWidth += segmentWidth;
-        finalHints.push(hint);
-      }
-      // else drop this and remaining hints (they are lower priority)
+  if (availableWidth <= 0) {
+    return { segments: [] };
+  }
+
+  let totalWidth = 0;
+  const finalHints: HintSpec[] = [];
+  const ordered = [...allHints].sort((a, b) => a.priority - b.priority);
+  for (const hint of ordered) {
+    const baseWidth = hint.key.length + 1 + hint.label.length; // "k:label"
+    const separatorWidth = finalHints.length === 0 ? 0 : 4; // " / "
+    if (totalWidth + separatorWidth + baseWidth <= availableWidth) {
+      totalWidth += separatorWidth + baseWidth;
+      finalHints.push(hint);
     }
   }
 

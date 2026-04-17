@@ -71,7 +71,9 @@ export function ProjectTable({ store, columns }: ProjectTableProps): React.React
         <>
           <Text color={inkColors.accent}>{prefix}</Text>
           <Text> </Text>
-          <Text backgroundColor={inkColors.focusBg}>{rowText}</Text>
+          <Text backgroundColor={inkColors.focusBg} color={inkColors.focusText} bold>
+            {rowText}
+          </Text>
         </>
       );
     }

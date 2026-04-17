@@ -94,4 +94,9 @@ describe('rankAndTruncateHints', () => {
     expect(keys).toContain('?');
     expect(keys).toContain('q');
   });
+
+  it('non-positive available width returns no segments', () => {
+    const result = rankAndTruncateHints(sampleContextHints, 'widescreen', 0);
+    expect(result.segments).toHaveLength(0);
+  });
 });

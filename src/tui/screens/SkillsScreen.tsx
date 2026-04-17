@@ -35,20 +35,12 @@ function formatSummaryDate(value?: string): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-function truncateText(text: string, maxWidth: number): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
-}
-
 export function SkillsScreen({ store, band, columns }: SkillsScreenProps): React.ReactElement | null {
   const focusedIndex = useStore(store, (s) => s.focusedSkillIndex);
   const skills = useStore(store, (s) => s.skills);
   const activeSkillCategoryFilter = useStore(store, (s) => s.activeSkillCategoryFilter);
   const detailOverlayVisible = useStore(store, (s) => s.detailOverlayVisible);
 
-  // Load skill detail when focused skill changes
   useEffect(() => {
     const focusedSkill = getFocusedVisibleSkill(skills, activeSkillCategoryFilter, focusedIndex);
     if (focusedSkill) {
@@ -59,11 +51,9 @@ export function SkillsScreen({ store, band, columns }: SkillsScreenProps): React
     }
   }, [activeSkillCategoryFilter, focusedIndex, skills, store]);
 
-  // Compute summary bar data
   const totalSkills = skills.length;
-  const syncedToAgents = skills.filter(s => s.syncedTo && s.syncedTo.length > 0).length;
+  const syncedToAgents = skills.filter((s) => s.syncedTo && s.syncedTo.length > 0).length;
   const inProjects = skills.filter((s) => (s.syncedProjects?.length ?? 0) > 0).length;
-
   const lastUpdate = formatSummaryDate(
     skills
       .map((s) => s.updatedAt)
@@ -71,63 +61,87 @@ export function SkillsScreen({ store, band, columns }: SkillsScreenProps): React
       .sort()
       .at(-1)
   );
-  const categoryBar = truncateText(
-    `Browse: ${getSkillCategoryCounts(skills)
-      .filter(
-        (entry) =>
-          entry.key === activeSkillCategoryFilter ||
-          entry.count > 0 ||
-          entry.label === 'All' ||
-          entry.label === 'Uncategorized'
-      )
-      .map((entry) =>
-        entry.key === activeSkillCategoryFilter
-          ? `[${entry.label}:${entry.count}]`
-          : `${entry.label}:${entry.count}`
-      )
-      .join(' | ')}`,
-    Math.max(columns - 2, 24)
+  const categoryEntries = getSkillCategoryCounts(skills).filter(
+    (entry) =>
+      entry.key === activeSkillCategoryFilter ||
+      entry.count > 0 ||
+      entry.label === 'All' ||
+      entry.label === 'Uncategorized'
   );
+  const actionItems = [
+    ['u', 'update selected'],
+    ['U', 'update all git'],
+    ['x', 'unsync'],
+    ['c', 'categorize'],
+    ['[ ]', 'browse category'],
+  ] as const;
 
   return (
     <Box flexDirection="column" height="100%" paddingX={1}>
-      {/* Summary bar */}
-      <Text color={inkColors.muted}>
-        <Text bold color={inkColors.accent}>{totalSkills}</Text> skills total
-        <Text> | </Text>
-        <Text bold color={inkColors.success}>{syncedToAgents}</Text> synced to agents
-        <Text> | </Text>
-        <Text bold color={inkColors.info}>{inProjects}</Text> in projects
-        <Text> | </Text>
-        Last update: <Text color={inkColors.secondary}>{lastUpdate}</Text>
-      </Text>
-      <Text color={inkColors.muted}>
-        {categoryBar}
-      </Text>
-      <Text color={inkColors.muted}>
-        Actions: <Text color={inkColors.secondary}>u</Text> update selected
-        <Text> | </Text>
-        <Text color={inkColors.secondary}>U</Text> update all git
-        <Text> | </Text>
-        <Text color={inkColors.secondary}>x</Text> unsync
-        <Text> | </Text>
-        <Text color={inkColors.secondary}>c</Text> categorize
-        <Text> | </Text>
-        <Text color={inkColors.secondary}>[</Text>/<Text color={inkColors.secondary}>]</Text> browse category
-      </Text>
+      <Box flexWrap="wrap">
+        <Text color={inkColors.muted}>Library: </Text>
+        <Text bold color={inkColors.accent}>{totalSkills}</Text>
+        <Text color={inkColors.secondary}> skills total</Text>
+        <Text color={inkColors.muted}> / </Text>
+        <Text bold color={inkColors.success}>{syncedToAgents}</Text>
+        <Text color={inkColors.secondary}> synced to agents</Text>
+        <Text color={inkColors.muted}> / </Text>
+        <Text bold color={inkColors.info}>{inProjects}</Text>
+        <Text color={inkColors.secondary}> in projects</Text>
+        <Text color={inkColors.muted}> / </Text>
+        <Text color={inkColors.muted}>Last update: </Text>
+        <Text color={inkColors.secondary}>{lastUpdate}</Text>
+      </Box>
+      <Box flexWrap="wrap">
+        <Text color={inkColors.muted}>Browse: </Text>
+        {categoryEntries.map((entry, index) => {
+          const isActive = entry.key === activeSkillCategoryFilter;
+          return (
+            <React.Fragment key={entry.key}>
+              {index > 0 && <Text color={inkColors.muted}> | </Text>}
+              <Text
+                color={isActive ? inkColors.focusText : inkColors.secondary}
+                backgroundColor={isActive ? inkColors.paper : undefined}
+                bold={isActive}
+              >
+                {isActive ? ` ${entry.label}:${entry.count} ` : `${entry.label}:${entry.count}`}
+              </Text>
+            </React.Fragment>
+          );
+        })}
+      </Box>
+      <Box flexWrap="wrap">
+        <Text color={inkColors.muted}>Actions: </Text>
+        {actionItems.map(([key, label], index) => (
+          <React.Fragment key={key}>
+            {index > 0 && <Text color={inkColors.muted}> | </Text>}
+            <Text color={inkColors.accent}>{key}</Text>
+            <Text color={inkColors.secondary}> {label}</Text>
+          </React.Fragment>
+        ))}
+      </Box>
 
       {band === 'widescreen' ? (
-        /* Widescreen: 40/60 split-pane with independent scrolling */
         <Box flexDirection="row" flexGrow={1} minHeight={0} overflow="hidden">
           <Box width="40%" flexDirection="column" minHeight={0}>
             <SkillList store={store} columns={columns} />
           </Box>
-          <Box width="60%" flexDirection="column" borderStyle="single" borderLeft={true} borderRight={false} borderTop={false} borderBottom={false} borderColor={inkColors.muted} minHeight={0} overflow="hidden">
+          <Box
+            width="60%"
+            flexDirection="column"
+            borderStyle="single"
+            borderLeft={true}
+            borderRight={false}
+            borderTop={false}
+            borderBottom={false}
+            borderColor={inkColors.border}
+            minHeight={0}
+            overflow="hidden"
+          >
             <SkillDetail store={store} band="widescreen" columns={columns} />
           </Box>
         </Box>
       ) : (
-        /* Standard/compact: full-width list + optional slide-over detail */
         <Box flexDirection="column" flexGrow={1}>
           <Box flexGrow={1}>
             <SkillList store={store} columns={columns} />

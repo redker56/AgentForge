@@ -4,11 +4,10 @@
  * Shows a fuzzy-searchable list of all available commands.
  * Enter triggers the selected command. Escape closes.
  * Focus index tracked in local component state.
- * Modern Claude Code aesthetic with coral accent color.
  */
 
-import { Box, Text , useInput } from 'ink';
-import React, { useState, useMemo } from 'react';
+import { Box, Text, useInput } from 'ink';
+import React, { useMemo, useState } from 'react';
 import type { StoreApi } from 'zustand';
 
 import type { AppStore } from '../store/index.js';
@@ -213,12 +212,11 @@ export function CommandPalette({ store }: CommandPaletteProps): React.ReactEleme
 
   const filteredCommands = useMemo(() => {
     if (!query.trim()) {
-      return COMMANDS.map(cmd => ({ item: cmd, score: 0, matchIndices: [] }));
+      return COMMANDS.map((cmd) => ({ item: cmd, score: 0, matchIndices: [] }));
     }
-    return fuzzyMatch(query, COMMANDS, cmd => cmd.label);
+    return fuzzyMatch(query, COMMANDS, (cmd) => cmd.label);
   }, [query]);
 
-  // Clamp focus index
   const clampedIndex = Math.min(focusedIndex, Math.max(filteredCommands.length - 1, 0));
 
   useInput((input, key) => {
@@ -240,22 +238,22 @@ export function CommandPalette({ store }: CommandPaletteProps): React.ReactEleme
     }
 
     if (key.upArrow) {
-      setFocusedIndex(prev => Math.max(0, prev - 1));
+      setFocusedIndex((prev) => Math.max(0, prev - 1));
       return;
     }
     if (key.downArrow) {
-      setFocusedIndex(prev => Math.min(filteredCommands.length - 1, prev + 1));
+      setFocusedIndex((prev) => Math.min(filteredCommands.length - 1, prev + 1));
       return;
     }
 
     if (key.backspace || key.delete) {
-      setQuery(prev => prev.slice(0, -1));
+      setQuery((prev) => prev.slice(0, -1));
       setFocusedIndex(0);
       return;
     }
 
     if (input && input.length === 1 && !key.ctrl && !key.meta) {
-      setQuery(prev => prev + input);
+      setQuery((prev) => prev + input);
       setFocusedIndex(0);
     }
   }, {
@@ -264,17 +262,35 @@ export function CommandPalette({ store }: CommandPaletteProps): React.ReactEleme
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Box borderStyle="single" paddingLeft={1} paddingRight={1} borderColor={inkColors.border}>
-        <Text color={inkColors.accent}>{'>'} </Text>
-        <Text>{query}</Text>
-        <Text color={inkColors.muted}>|</Text>
+      <Box
+        flexDirection="column"
+        borderStyle="single"
+        paddingLeft={1}
+        paddingRight={1}
+        borderColor={inkColors.borderActive}
+      >
+        <Text color={inkColors.muted}>Command palette</Text>
+        <Box>
+          <Text color={inkColors.accent}>Command</Text>
+          <Text color={inkColors.muted}> / </Text>
+          <Text color={inkColors.primary}>{query}</Text>
+          <Text color={inkColors.accent}>|</Text>
+        </Box>
       </Box>
       {filteredCommands.length > 0 && (
-        <Box flexDirection="column" borderStyle="single" borderTop={false} paddingLeft={1} paddingRight={1} borderColor={inkColors.border}>
+        <Box
+          flexDirection="column"
+          borderStyle="single"
+          borderTop={false}
+          paddingLeft={1}
+          paddingRight={1}
+          borderColor={inkColors.borderActive}
+        >
           {filteredCommands.map((result, i) => (
             <Text
               key={result.item.id}
-              color={i === clampedIndex ? inkColors.accent : inkColors.secondary}
+              color={i === clampedIndex ? inkColors.focusText : inkColors.secondary}
+              backgroundColor={i === clampedIndex ? inkColors.paper : undefined}
               bold={i === clampedIndex}
             >
               {renderFocusPrefix(i === clampedIndex)}{result.item.label}

@@ -1,6 +1,6 @@
 /**
  * Tab navigation bar at the top of the TUI screen.
- * Modern Claude Code aesthetic with subtle focus indicators.
+ * Uses a warm editorial "desk" treatment inspired by Anthropic brand tones.
  */
 
 import { Box, Text } from 'ink';
@@ -40,32 +40,35 @@ export function TabBar({ store, band, columns }: TabBarProps): React.ReactElemen
   const useSymbols = band === 'compact' || columns < 60;
   const tabs = useSymbols ? SYMBOL_TABS : FULL_TABS;
   const showHints = !useSymbols && columns >= 60;
-
+  const showSubtitle = !useSymbols && columns >= 88;
   const gap = ' '.repeat(spacing.tabGap);
 
   return (
-    <Box>
+    <Box flexWrap="wrap">
       <Text bold color={inkColors.accent}>AgentForge</Text>
-      <Text>{gap}</Text>
+      {showSubtitle && (
+        <>
+          <Text color={inkColors.muted}> / </Text>
+          <Text color={inkColors.secondary}>skill workbench</Text>
+        </>
+      )}
+      <Text>{`${gap}  `}</Text>
       {tabs.map((tab, index) => {
         const isActive = tab.id === activeTab;
         return (
           <React.Fragment key={tab.id}>
             {showHints && (
-              <Text dimColor>{index + 1}</Text>
+              <>
+                <Text color={inkColors.subtle}>{index + 1}</Text>
+                <Text color={inkColors.subtle}> </Text>
+              </>
             )}
             <Text
-              color={isActive ? inkColors.accent : inkColors.muted}
+              color={isActive ? inkColors.focusText : inkColors.secondary}
+              backgroundColor={isActive ? inkColors.paper : undefined}
               bold={isActive}
             >
-              {isActive ? '[' : ' '}
-              <Text
-                color={isActive ? 'white' : inkColors.secondary}
-                bold={isActive}
-              >
-                {tab.label}
-              </Text>
-              {isActive ? ']' : ' '}
+              {isActive ? `[${tab.label}]` : tab.label}
             </Text>
             {index < tabs.length - 1 && <Text>{gap}</Text>}
           </React.Fragment>

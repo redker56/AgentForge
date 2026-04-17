@@ -10,8 +10,8 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { AddForm } from './components/AddForm.js';
 import { BreadcrumbBar } from './components/BreadcrumbBar.js';
-import { CommandPalette } from './components/CommandPalette.js';
 import { CategoryForm } from './components/CategoryForm.js';
+import { CommandPalette } from './components/CommandPalette.js';
 import { CompletionModal } from './components/CompletionModal.js';
 import { ConfirmModal } from './components/ConfirmModal.js';
 import { ConflictPanel } from './components/ConflictPanel.js';
@@ -23,14 +23,15 @@ import { StatusBar } from './components/StatusBar.js';
 import { TabBar } from './components/TabBar.js';
 import { UpdateForm } from './components/UpdateForm.js';
 import { useInputHandler } from './hooks/useInput.js';
-import { useTerminalDimensions } from './hooks/useTerminalDimensions.js';
 import type { WidthBand } from './hooks/useTerminalDimensions.js';
+import { useTerminalDimensions } from './hooks/useTerminalDimensions.js';
 import { AgentsScreen } from './screens/AgentsScreen.js';
 import { ImportScreen } from './screens/ImportScreen.js';
 import { ProjectsScreen } from './screens/ProjectsScreen.js';
 import { SkillsScreen } from './screens/SkillsScreen.js';
 import { SyncScreen } from './screens/SyncScreen.js';
 import type { AppStore } from './store/index.js';
+import { inkColors } from './theme.js';
 import { deriveBreadcrumbs } from './utils/breadcrumbs.js';
 
 interface AppProps {
@@ -54,7 +55,6 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
 
   const dimensions = useTerminalDimensions();
 
-  // Sync width band to Zustand store so all downstream hooks can read state.widthBand
   useEffect(() => {
     setWidthBand(dimensions.band);
   }, [dimensions.band, setWidthBand]);
@@ -62,9 +62,9 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
   const band = dimensions.band as WidthBand;
   const columns = dimensions.columns;
   const isCompact = band === 'compact';
-  const updateFormOpen = formState?.formType === 'updateSelected' || formState?.formType === 'updateAllGit';
+  const updateFormOpen =
+    formState?.formType === 'updateSelected' || formState?.formType === 'updateAllGit';
 
-  // Derive breadcrumb segments from store state
   const breadcrumbState = useStore(store, useShallow((s) => ({
     activeTab: s.activeTab,
     showSearch: s.showSearch,
@@ -84,7 +84,9 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
       <TabBar store={store} band={band} columns={columns} />
       <BreadcrumbBar segments={breadcrumbSegments} />
       {isCompact && (
-        <Text color="yellow">{"\u26A0"} Compact terminal layout active -- widen to 80+ columns for the full detail view</Text>
+        <Text color={inkColors.warning}>
+          {"\u26A0"} Compact terminal layout active -- widen to 80+ columns for the full detail view
+        </Text>
       )}
       <Box flexGrow={1}>
         <>
@@ -96,7 +98,7 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
         </>
       </Box>
       {dirtyConfirmActive && (
-        <Text color="yellow">Unsaved changes -- Discard? [y/N]</Text>
+        <Text color={inkColors.warning}>Unsaved changes -- Discard? [y/N]</Text>
       )}
       <StatusBar store={store} band={band} columns={columns} />
       {updateProgressItems.length > 0 && activeTab === 'skills' && !updateFormOpen && (

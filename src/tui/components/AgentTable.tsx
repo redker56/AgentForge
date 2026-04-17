@@ -58,7 +58,9 @@ export function AgentTable({ store, columns }: AgentTableProps): React.ReactElem
         <>
           <Text color={inkColors.accent}>{prefix}</Text>
           <Text> </Text>
-          <Text backgroundColor={inkColors.focusBg}>{rowText}</Text>
+          <Text backgroundColor={inkColors.focusBg} color={inkColors.focusText} bold>
+            {rowText}
+          </Text>
         </>
       );
     }

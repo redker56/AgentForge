@@ -1,134 +1,127 @@
 /**
- * AgentForge TUI Theme - Modern Claude Code aesthetic
+ * AgentForge TUI Theme - Anthropic editorial terminal aesthetic.
  *
- * Design Philosophy:
- * - Clean, minimal color palette with high contrast
- * - Subtle use of accent colors for focus and emphasis
- * - Consistent visual hierarchy
- * - Dark-mode optimized with soft highlights
+ * Design translation for terminal UI:
+ * - Warm graphite base instead of cold black
+ * - Paper-toned focus surfaces for primary interactions
+ * - Restrained orange / blue / green accents for hierarchy
+ * - Editorial information density with gentle contrast
  */
 
-// Primary accent - warm coral/peach for focus states
 export const colors = {
-  // Brand / Accent
-  accent: '#FF6B6B', // Warm coral - primary accent
-  accentBright: '#FF8787', // Lighter coral for hover/active
-  accentMuted: '#E85555', // Darker coral for pressed
+  // Brand accents
+  accent: '#d97757',
+  accentBright: '#e08b6f',
+  accentMuted: '#b86447',
 
-  // Status colors
-  success: '#4ADE80', // Soft green
-  successMuted: '#22C55E', // Darker green
-  warning: '#FBBF24', // Amber
-  error: '#F87171', // Soft red
-  info: '#60A5FA', // Soft blue
+  // Supporting accents
+  info: '#6a9bcc',
+  infoMuted: '#5b87b5',
+  success: '#788c5d',
+  successMuted: '#64754d',
+  warning: '#c89a57',
+  error: '#c56b55',
 
-  // Neutral palette
-  textPrimary: '#FAFAFA', // Near white
-  textSecondary: '#A1A1AA', // Muted gray
-  textTertiary: '#71717A', // Dim gray
-  textDisabled: '#52525B', // Very dim
+  // Warm neutral text
+  textPrimary: '#faf9f5',
+  textSecondary: '#b0aea5',
+  textTertiary: '#8f8b80',
+  textDisabled: '#6e6a62',
 
-  // Background
-  bgPrimary: '#18181B', // Near black (zinc-900)
-  bgSecondary: '#27272A', // Dark gray (zinc-800)
-  bgTertiary: '#3F3F46', // Medium gray (zinc-700)
+  // Surfaces
+  bgPrimary: '#141413',
+  bgSecondary: '#1c1b18',
+  bgTertiary: '#26241f',
+  surface: '#201f1c',
+  surfaceMuted: '#292721',
+  paper: '#e8e6dc',
+  paperText: '#141413',
 
-  // Focus highlight
-  focusBar: '#FF6B6B', // Coral focus indicator (▎)
-  focusBg: '#3F3F46', // Medium gray background for focused row
+  // Borders and focus
+  border: '#5d584f',
+  borderActive: '#b0aea5',
+  focusBar: '#d97757',
+  focusBg: '#e8e6dc',
+  focusText: '#141413',
 
-  // Borders
-  border: '#3F3F46', // Subtle border
-  borderActive: '#52525B', // Active border
-
-  // Syntax / semantic
-  gitSource: '#C084FC', // Purple for git sources
-  localSource: '#A1A1AA', // Gray for local sources
-  projectSource: '#60A5FA', // Blue for project sources
-
-  // Sync status
-  synced: '#4ADE80', // Green for synced
-  notSynced: '#71717A', // Gray for not synced
-  differentVersion: '#FBBF24', // Amber for different version
+  // Sources and sync states
+  gitSource: '#6a9bcc',
+  localSource: '#b0aea5',
+  projectSource: '#788c5d',
+  synced: '#788c5d',
+  notSynced: '#8f8b80',
+  differentVersion: '#c89a57',
 } as const;
 
-// Semantic color mappings for Ink components
 export const inkColors = {
-  // Text colors
-  primary: 'white',
-  secondary: 'gray',
-  muted: 'gray',
-  accent: '#FF6B6B',
-  success: '#4ADE80',
-  warning: '#FBBF24',
-  error: '#F87171',
-  info: '#60A5FA',
-  git: '#C084FC',
-
-  // Background colors (for focused rows)
-  focusBg: '#3F3F46',
-
-  // Focus bar character
-  focusBar: '#FF6B6B',
-
-  // Borders
-  border: '#3F3F46',
+  primary: colors.textPrimary,
+  secondary: colors.textSecondary,
+  muted: colors.textTertiary,
+  subtle: colors.textDisabled,
+  accent: colors.accent,
+  accentSoft: colors.accentBright,
+  success: colors.success,
+  warning: colors.warning,
+  error: colors.error,
+  info: colors.info,
+  git: colors.gitSource,
+  project: colors.projectSource,
+  focusBg: colors.focusBg,
+  focusText: colors.focusText,
+  focusBar: colors.focusBar,
+  border: colors.border,
+  borderActive: colors.borderActive,
+  panel: colors.surface,
+  paper: colors.paper,
 } as const;
 
-// Spacing constants
 export const spacing = {
-  paddingX: 1,        // Left/right content padding (1 space)
-  tabGap: 2,          // Gap between tab labels
-  listIndent: 2,      // Indent for unfocused list items (replaces prefix)
-  sectionGap: 1,      // Blank lines between sections
+  paddingX: 1,
+  tabGap: 1,
+  listIndent: 2,
+  sectionGap: 1,
 } as const;
 
-// Selection markers (standardized across all lists)
 export const selectionMarkers = {
-  selected: '[+]',    // Green
-  unselected: '[ ]',  // Gray
+  selected: '[+]',
+  unselected: '[ ]',
 } as const;
 
-// Empty state guidance text per tab
 export const emptyStateText = {
   skills: 'No skills installed. Press `a` to add one.',
   agents: 'No agents registered. Press `a` to add a custom agent.',
   projects: 'No projects registered. Press `a` to add a project.',
 } as const;
 
-// Focus row rendering helper
 export function renderFocusPrefix(isFocused: boolean): string {
-  return isFocused ? '\u258E' : '  '; // ▎ or 2-space indent
+  return isFocused ? '\u258E' : '  ';
 }
 
-// Status dot characters
 export const statusDots = {
-  active: '\u25CF', // ● filled
-  inactive: '\u25CB', // ○ hollow
-  partial: '\u25D0', // ◐ half
+  active: '\u25CF',
+  inactive: '\u25CB',
+  partial: '\u25D0',
 } as const;
 
-// Progress bar status colors (semantic mapping for ProgressBar component)
 export const progressStatusColors = {
-  pending: inkColors.muted,      // gray
-  running: inkColors.warning,    // amber
-  success: inkColors.success,    // green
-  error: inkColors.error,        // red
+  pending: inkColors.muted,
+  running: inkColors.accent,
+  success: inkColors.success,
+  error: inkColors.error,
 } as const;
 
-// Unicode symbols
 export const symbols = {
-  focusBar: '\u258E', // ▎
-  checkMark: '\u2713', // ✓
-  crossMark: '\u2717', // ✗
-  bullet: '\u2022', // •
-  arrow: '\u2192', // →
-  ellipsis: '\u2026', // …
-  separator: '\u2500', // ─
-  cornerTL: '\u250C', // ┌
-  cornerTR: '\u2510', // ┐
-  cornerBL: '\u2514', // └
-  cornerBR: '\u2518', // ┘
-  vertical: '\u2502', // │
-  horizontal: '\u2500', // ─
+  focusBar: '\u258E',
+  checkMark: '\u2713',
+  crossMark: '\u2717',
+  bullet: '\u2022',
+  arrow: '\u2192',
+  ellipsis: '\u2026',
+  separator: '\u2500',
+  cornerTL: '\u250C',
+  cornerTR: '\u2510',
+  cornerBL: '\u2514',
+  cornerBR: '\u2518',
+  vertical: '\u2502',
+  horizontal: '\u2500',
 } as const;

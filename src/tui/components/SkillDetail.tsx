@@ -87,6 +87,11 @@ export function SkillDetail({
     }
 
     lines.push({
+      key: 'kicker',
+      text: truncateText('Skill dossier', contentWidth),
+      color: inkColors.muted,
+    });
+    lines.push({
       key: 'name',
       text: truncateText(detail?.name ?? focusedSkill.name, contentWidth),
       color: inkColors.accent,
@@ -139,7 +144,7 @@ export function SkillDetail({
     lines.push({
       key: 'sync-header',
       text: 'Synced to:',
-      color: inkColors.primary,
+      color: inkColors.accent,
       bold: true,
     });
     if (detail.syncStatus.length === 0) {
@@ -165,7 +170,7 @@ export function SkillDetail({
     lines.push({
       key: 'projects-header',
       text: 'Projects:',
-      color: inkColors.primary,
+      color: inkColors.accent,
       bold: true,
     });
     if (detail.projectDistribution.length === 0) {
@@ -199,7 +204,7 @@ export function SkillDetail({
       lines.push({
         key: 'preview-header',
         text: 'SKILL.md preview:',
-        color: inkColors.primary,
+        color: inkColors.accent,
         bold: true,
       });
       detail.skillMdPreview.split('\n').forEach((line, index) => {
@@ -257,10 +262,13 @@ export function SkillDetail({
     const visibleLines = detailLines.slice(scrollTop, scrollTop + STANDARD_VISIBLE_LINES);
     const hiddenAbove = scrollTop;
     const hiddenBelow = Math.max(detailLines.length - scrollTop - visibleLines.length, 0);
-    const paddedLines = [...visibleLines, ...blankLines(STANDARD_VISIBLE_LINES - visibleLines.length, 'pad')];
+    const paddedLines = [
+      ...visibleLines,
+      ...blankLines(STANDARD_VISIBLE_LINES - visibleLines.length, 'pad'),
+    ];
 
     return (
-      <Box borderStyle="single" width={panelWidth} borderColor={inkColors.muted}>
+      <Box borderStyle="single" width={panelWidth} borderColor={inkColors.borderActive}>
         <Box flexDirection="column" paddingX={1}>
           <Text color={inkColors.muted}>
             {hiddenAbove > 0
