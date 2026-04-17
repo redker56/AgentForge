@@ -10,7 +10,7 @@ import type { CommandContext } from './index.js';
 export function register(program: Command, ctx: CommandContext): void {
   program
     .command('update [name]')
-    .description('Update skills (pull from Git and re-sync)')
+    .description('Update git-backed skills from source repositories and re-sync')
     .action(async (name?: string) => {
       if (name) {
         const meta = ctx.skills.get(name);
@@ -24,8 +24,13 @@ export function register(program: Command, ctx: CommandContext): void {
         }
 
         console.log(chalk.cyan(`Updating ${name}...`));
-        await ctx.skills.update(name);
+        const updated = await ctx.skills.update(name);
+        if (!updated) {
+          console.log(chalk.dim('Local skills do not need updating'));
+          return;
+        }
         await ctx.sync.resync(name);
+        await ctx.projectSync.resync(name);
         console.log(chalk.green(`Updated ${name}`));
       } else {
         const list = ctx.skills.list().filter((s) => s.source.type === 'git');
@@ -37,8 +42,13 @@ export function register(program: Command, ctx: CommandContext): void {
 
         for (const s of list) {
           console.log(chalk.cyan(`Updating ${s.name}...`));
-          await ctx.skills.update(s.name);
+          const updated = await ctx.skills.update(s.name);
+          if (!updated) {
+            console.log(chalk.dim(`Skipped ${s.name}: local skills do not need updating`));
+            continue;
+          }
           await ctx.sync.resync(s.name);
+          await ctx.projectSync.resync(s.name);
           console.log(chalk.green(`Updated ${s.name}`));
         }
       }

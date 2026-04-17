@@ -11,6 +11,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { AddForm } from './components/AddForm.js';
 import { BreadcrumbBar } from './components/BreadcrumbBar.js';
 import { CommandPalette } from './components/CommandPalette.js';
+import { CategoryForm } from './components/CategoryForm.js';
 import { CompletionModal } from './components/CompletionModal.js';
 import { ConfirmModal } from './components/ConfirmModal.js';
 import { ConflictPanel } from './components/ConflictPanel.js';
@@ -20,6 +21,7 @@ import { ProgressBarStack } from './components/ProgressBar.js';
 import { SearchOverlay } from './components/SearchOverlay.js';
 import { StatusBar } from './components/StatusBar.js';
 import { TabBar } from './components/TabBar.js';
+import { UpdateForm } from './components/UpdateForm.js';
 import { useInputHandler } from './hooks/useInput.js';
 import { useTerminalDimensions } from './hooks/useTerminalDimensions.js';
 import type { WidthBand } from './hooks/useTerminalDimensions.js';
@@ -60,6 +62,7 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
   const band = dimensions.band as WidthBand;
   const columns = dimensions.columns;
   const isCompact = band === 'compact';
+  const updateFormOpen = formState?.formType === 'updateSelected' || formState?.formType === 'updateAllGit';
 
   // Derive breadcrumb segments from store state
   const breadcrumbState = useStore(store, useShallow((s) => ({
@@ -96,7 +99,7 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
         <Text color="yellow">Unsaved changes -- Discard? [y/N]</Text>
       )}
       <StatusBar store={store} band={band} columns={columns} />
-      {updateProgressItems.length > 0 && activeTab === 'skills' && (
+      {updateProgressItems.length > 0 && activeTab === 'skills' && !updateFormOpen && (
         <Box paddingX={1}>
           <ProgressBarStack items={updateProgressItems} />
         </Box>
@@ -105,7 +108,9 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
       {showSearch && <SearchOverlay store={store} />}
       {showHelp && <HelpOverlay store={store} />}
       {formState && formState.formType.startsWith('add') && <AddForm store={store} />}
+      {formState?.formType === 'categorizeSkills' && <CategoryForm store={store} />}
       {formState && formState.formType.startsWith('import') && <ImportForm store={store} />}
+      {updateFormOpen && <UpdateForm store={store} />}
       {conflictState && <ConflictPanel store={store} />}
       {confirmState && <ConfirmModal store={store} />}
       {completionModalOpen && <CompletionModal store={store} />}

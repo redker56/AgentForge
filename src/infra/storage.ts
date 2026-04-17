@@ -21,6 +21,7 @@ import {
   type Agent,
   type RegistryData,
   type SkillMeta,
+  normalizeSkillCategories,
   type SkillSource,
   type ProjectConfig,
   type SyncRecord,
@@ -77,10 +78,13 @@ export class Storage implements StorageInterface {
 
   /** Register a new skill with its source information and persist to disk. */
   saveSkill(name: string, source: SkillSource): void {
+    const now = new Date().toISOString();
     this.data.skills[name] = {
       name,
       source,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
+      categories: [],
       syncedTo: [],
     };
     this.persist();
@@ -92,7 +96,10 @@ export class Storage implements StorageInterface {
    * original createdAt, syncedTo, and syncedProjects values.
    */
   saveSkillMeta(name: string, meta: SkillMeta): void {
-    this.data.skills[name] = meta;
+    this.data.skills[name] = {
+      ...meta,
+      categories: normalizeSkillCategories(meta.categories),
+    };
     this.persist();
   }
 
@@ -228,8 +235,49 @@ export class Storage implements StorageInterface {
     try {
       if (fs.existsSync(REGISTRY_FILE)) {
         const content = fs.readFileSync(REGISTRY_FILE, 'utf-8');
-        const data = JSON.parse(content);
-        return { ...DEFAULT_REGISTRY, ...data };
+        const data = JSON.parse(content) as Partial<RegistryData>;
+        let migrated = false;
+
+        const skills = Object.fromEntries(
+          Object.entries(data.skills ?? {}).map(([name, skill]) => {
+            const normalizedCategories = normalizeSkillCategories(skill.categories ?? []);
+            const normalized: SkillMeta = {
+              ...skill,
+              categories: normalizedCategories,
+              syncedTo: skill.syncedTo ?? [],
+              ...(skill.syncedProjects ? { syncedProjects: skill.syncedProjects } : {}),
+              ...(skill.updatedAt || !skill.createdAt
+                ? {}
+                : { updatedAt: skill.createdAt }),
+            };
+
+            if (
+              (!skill.updatedAt && skill.createdAt) ||
+              !Array.isArray(skill.categories) ||
+              normalizedCategories.length !== (skill.categories ?? []).length ||
+              normalizedCategories.some((category, index) => category !== (skill.categories ?? [])[index])
+            ) {
+              migrated = true;
+            }
+
+            return [name, normalized];
+          })
+        );
+
+        const registry: RegistryData = {
+          ...DEFAULT_REGISTRY,
+          ...data,
+          skills,
+          agents: data.agents ?? {},
+          projects: data.projects ?? {},
+        };
+
+        if (migrated) {
+          fs.ensureDirSync(FORGE_DIR);
+          fs.writeFileSync(REGISTRY_FILE, JSON.stringify(registry, null, 2));
+        }
+
+        return registry;
       }
     } catch {
       // ignore

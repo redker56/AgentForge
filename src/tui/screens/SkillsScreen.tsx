@@ -10,11 +10,13 @@ import React, { useEffect } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
+import { getSkillCategoryCounts } from '../../types.js';
 import { SkillDetail } from '../components/SkillDetail.js';
 import { SkillList } from '../components/SkillList.js';
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
+import { getFocusedVisibleSkill } from '../utils/skillsView.js';
 
 interface SkillsScreenProps {
   store: StoreApi<AppStore>;
@@ -22,44 +24,70 @@ interface SkillsScreenProps {
   columns: number;
 }
 
+function formatSummaryDate(value?: string): string {
+  if (!value) return 'Never';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown';
+  }
+
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function truncateText(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) return '';
+  if (text.length <= maxWidth) return text;
+  if (maxWidth <= 3) return text.slice(0, maxWidth);
+  return `${text.slice(0, maxWidth - 3)}...`;
+}
+
 export function SkillsScreen({ store, band, columns }: SkillsScreenProps): React.ReactElement | null {
   const focusedIndex = useStore(store, (s) => s.focusedSkillIndex);
   const skills = useStore(store, (s) => s.skills);
+  const activeSkillCategoryFilter = useStore(store, (s) => s.activeSkillCategoryFilter);
   const detailOverlayVisible = useStore(store, (s) => s.detailOverlayVisible);
 
   // Load skill detail when focused skill changes
   useEffect(() => {
-    const focusedSkill = skills[focusedIndex];
+    const focusedSkill = getFocusedVisibleSkill(skills, activeSkillCategoryFilter, focusedIndex);
     if (focusedSkill) {
       const detail = store.getState().skillDetails[focusedSkill.name];
       if (!detail) {
         void store.getState().loadSkillDetail(focusedSkill.name);
       }
     }
-  }, [focusedIndex, skills, store]);
+  }, [activeSkillCategoryFilter, focusedIndex, skills, store]);
 
   // Compute summary bar data
   const totalSkills = skills.length;
   const syncedToAgents = skills.filter(s => s.syncedTo && s.syncedTo.length > 0).length;
   const inProjects = skills.filter((s) => (s.syncedProjects?.length ?? 0) > 0).length;
 
-  // Last update: most recent createdAt
-  let lastUpdate = 'Never';
-  if (skills.length > 0) {
-    const dates = skills
-      .map(s => s.createdAt)
-      .filter(Boolean)
+  const lastUpdate = formatSummaryDate(
+    skills
+      .map((s) => s.updatedAt)
+      .filter((value): value is string => Boolean(value))
       .sort()
-      .reverse();
-    if (dates.length > 0) {
-      try {
-        const d = new Date(dates[0]);
-        lastUpdate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      } catch {
-        lastUpdate = 'Unknown';
-      }
-    }
-  }
+      .at(-1)
+  );
+  const categoryBar = truncateText(
+    `Browse: ${getSkillCategoryCounts(skills)
+      .filter(
+        (entry) =>
+          entry.key === activeSkillCategoryFilter ||
+          entry.count > 0 ||
+          entry.label === 'All' ||
+          entry.label === 'Uncategorized'
+      )
+      .map((entry) =>
+        entry.key === activeSkillCategoryFilter
+          ? `[${entry.label}:${entry.count}]`
+          : `${entry.label}:${entry.count}`
+      )
+      .join(' | ')}`,
+    Math.max(columns - 2, 24)
+  );
 
   return (
     <Box flexDirection="column" height="100%" paddingX={1}>
@@ -72,6 +100,20 @@ export function SkillsScreen({ store, band, columns }: SkillsScreenProps): React
         <Text bold color={inkColors.info}>{inProjects}</Text> in projects
         <Text> | </Text>
         Last update: <Text color={inkColors.secondary}>{lastUpdate}</Text>
+      </Text>
+      <Text color={inkColors.muted}>
+        {categoryBar}
+      </Text>
+      <Text color={inkColors.muted}>
+        Actions: <Text color={inkColors.secondary}>u</Text> update selected
+        <Text> | </Text>
+        <Text color={inkColors.secondary}>U</Text> update all git
+        <Text> | </Text>
+        <Text color={inkColors.secondary}>x</Text> unsync
+        <Text> | </Text>
+        <Text color={inkColors.secondary}>c</Text> categorize
+        <Text> | </Text>
+        <Text color={inkColors.secondary}>[</Text>/<Text color={inkColors.secondary}>]</Text> browse category
       </Text>
 
       {band === 'widescreen' ? (

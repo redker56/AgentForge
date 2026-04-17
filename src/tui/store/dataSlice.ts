@@ -7,16 +7,21 @@ import path from 'path';
 import fs from 'fs-extra';
 import type { StateCreator } from 'zustand';
 
-import type {
-  SkillMeta,
-  SyncRecord,
-  ProjectSyncRecord,
-  SkillSource,
-  SyncMode,
-  Agent,
-  ProjectConfig,
+import {
+  ALL_SKILL_CATEGORY_FILTER,
+  getSkillCategoryCounts,
+  getAgentProjectSkillsDir,
+  type SkillMeta,
+  type SyncRecord,
+  type ProjectSyncRecord,
+  type SkillCategoryFilter,
+  type SkillSource,
+  type SyncMode,
+  type Agent,
+  type ProjectConfig,
 } from '../../types.js';
-import { getAgentProjectSkillsDir } from '../../types.js';
+import { ReconcileService } from '../../app/reconcile-service.js';
+import type { SkillCategoryUpdateMode } from '../../app/skill-service.js';
 
 import type { SkillListItem, StoreState } from './index.js';
 
@@ -25,6 +30,8 @@ export interface SkillDetailData {
   path: string;
   source: SkillSource;
   createdAt: string;
+  updatedAt?: string;
+  categories: string[];
   syncedTo: SyncRecord[];
   syncedProjects?: ProjectSyncRecord[];
   syncStatus: Array<{
@@ -93,12 +100,14 @@ export interface ServiceContext {
       path: string;
       source: SkillSource;
       createdAt: string;
+      updatedAt?: string;
+      categories: string[];
       syncedTo: SyncRecord[];
       syncedProjects?: ProjectSyncRecord[];
     } | null;
     exists(name: string): boolean;
     install(url: string, name?: string, subPath?: string): Promise<string>;
-    installFromDirectory(url: string, name: string, sourceDir: string): Promise<string>;
+    installFromDirectory(url: string, name: string, sourceDir: string, subPath?: string): Promise<string>;
     importFromPath(sourcePath: string, name: string, source: SkillSource): Promise<void>;
     delete(name: string): Promise<void>;
     cloneRepoToTemp(repoUrl: string): Promise<string>;
@@ -107,7 +116,12 @@ export interface ServiceContext {
       repoUrl: string
     ): Array<{ name: string; subPath: string }>;
     removeTempRepo(tempDir: string): Promise<void>;
-    update(name: string): Promise<boolean>; // git pull on skill. Returns false if not a git skill or not a repo.
+    update(name: string): Promise<boolean>; // Refresh a git-backed skill from source. Returns false if not git-backed.
+    updateCategories(
+      name: string,
+      categories: string[],
+      mode?: SkillCategoryUpdateMode
+    ): SkillMeta;
   };
   scanService: {
     getSkillProjectDistributionWithStatus(skillName: string): Promise<
@@ -144,6 +158,7 @@ export interface ServiceContext {
     getProject(id: string): ProjectConfig | undefined;
     getSkill(name: string): SkillMeta | undefined;
     listSkills(): SkillMeta[];
+    saveSkill(name: string, source: SkillMeta['source']): void;
     addAgent(id: string, name: string, basePath: string, skillsDirName?: string): void;
     removeAgent(id: string): boolean;
     addProject(id: string, path: string, addedAt?: string): void;
@@ -175,6 +190,7 @@ export interface ServiceContext {
   };
   projectSyncService: {
     unsync(skillName: string, targetIds?: string[]): Promise<void>;
+    unsyncFromProject(skillName: string, projectId: string, agentTypes?: string[]): Promise<void>;
     syncToProject(
       skillName: string,
       projectId: string,
@@ -219,7 +235,7 @@ export interface DataSlice {
   projectSummaries: Record<string, ProjectSummaryData | undefined>;
 
   // Actions
-  loadAllData: () => void;
+  loadAllData: () => Promise<void>;
   loadSkillDetail: (name: string) => Promise<void>;
   refreshSkills: () => void;
 
@@ -231,6 +247,20 @@ export interface DataSlice {
 }
 
 export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [], [], DataSlice> {
+  const resolveSkillCategoryFilter = (
+    activeFilter: SkillCategoryFilter,
+    skills: SkillMeta[]
+  ): SkillCategoryFilter => {
+    if (
+      activeFilter === ALL_SKILL_CATEGORY_FILTER ||
+      getSkillCategoryCounts(skills).some((entry) => entry.key === activeFilter)
+    ) {
+      return activeFilter;
+    }
+
+    return ALL_SKILL_CATEGORY_FILTER;
+  };
+
   const countValidSkillDirs = (dirPath: string): number => {
     if (!ctx.fileOps.pathExists(dirPath)) return 0;
 
@@ -281,6 +311,8 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
     return summaries;
   };
 
+  const reconcileService = new ReconcileService(ctx.storage, ctx.scanService);
+
   return (set, _get) => ({
     skills: [],
     agents: [],
@@ -295,27 +327,45 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
     agentSummaries: {},
     projectSummaries: {},
 
-    loadAllData(): void {
+    loadAllData(): Promise<void> {
       set({ loading: { skills: true, agents: true, projects: true }, error: null });
+      const reconcileResult = reconcileService.reconcile().catch((error: unknown) => {
+        set({ error: error instanceof Error ? error.message : String(error) });
+      });
+
       try {
-        const skills = ctx.skillService.list();
-        const agents = ctx.storage.listAgents();
-        const projects = ctx.storage.listProjects();
-        const agentSummaries = buildAgentSummaries(agents, projects);
-        const projectSummaries = buildProjectSummaries(projects, agents);
-        set({
-          skills: skills.map((s) => ({ ...s })),
-          agents,
-          projects,
-          agentSummaries,
-          projectSummaries,
-          loading: { skills: false, agents: false, projects: false },
-        });
+        return reconcileResult
+          .then(async () => {
+            const skills = ctx.skillService.list();
+            const agents = ctx.storage.listAgents();
+            const projects = ctx.storage.listProjects();
+            const agentSummaries = buildAgentSummaries(agents, projects);
+            const projectSummaries = buildProjectSummaries(projects, agents);
+            set({
+              skills: skills.map((s) => ({ ...s })),
+              activeSkillCategoryFilter: resolveSkillCategoryFilter(
+                _get().activeSkillCategoryFilter,
+                skills
+              ),
+              agents,
+              projects,
+              agentSummaries,
+              projectSummaries,
+              loading: { skills: false, agents: false, projects: false },
+            });
+          })
+          .catch((error: unknown) => {
+            set({
+              error: error instanceof Error ? error.message : String(error),
+              loading: { skills: false, agents: false, projects: false },
+            });
+          });
       } catch (e: unknown) {
         set({
           error: e instanceof Error ? e.message : String(e),
           loading: { skills: false, agents: false, projects: false },
         });
+        return Promise.resolve();
       }
     },
 
@@ -371,6 +421,8 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
             path: skill.path,
             source: skill.source,
             createdAt: skill.createdAt,
+            updatedAt: skill.updatedAt,
+            categories: skill.categories,
             syncedTo: skill.syncedTo,
             syncedProjects: skill.syncedProjects,
             syncStatus,
@@ -386,6 +438,10 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
       const skills = ctx.skillService.list();
       set((state) => ({
         skills: skills.map((s) => ({ ...s })),
+        activeSkillCategoryFilter: resolveSkillCategoryFilter(
+          state.activeSkillCategoryFilter,
+          skills
+        ),
         loading: { ...state.loading, skills: false },
       }));
     },

@@ -98,7 +98,8 @@ describe('add command', () => {
       expect(installFromDirectory).toHaveBeenCalledWith(
         'https://github.com/kvarnelis/deep-recon',
         'deep-recon',
-        'C:/temp/repo'
+        'C:/temp/repo',
+        ''
       );
       expect(removeTempRepo).toHaveBeenCalledWith('C:/temp/repo');
       expect(resolveAndRecordSyncLinks).toHaveBeenCalledWith('deep-recon');

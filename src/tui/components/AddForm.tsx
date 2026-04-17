@@ -162,13 +162,12 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
   }, [formState]);
 
   const handleSubmit = useCallback(() => {
-    // Force-validate all fields with validators
-    const blurErrors: Record<string, string> = {};
+    const validationErrors: Record<string, string> = {};
     for (const field of fields) {
-      if (field.validate && fieldValidation[field.key]) {
-        const validation = fieldValidation[field.key];
-        if (!validation.valid && validation.error) {
-          blurErrors[field.key] = validation.error;
+      if (field.validate) {
+        const error = field.validate(fieldValues[field.key] || '');
+        if (error) {
+          validationErrors[field.key] = error;
         }
       }
     }
@@ -176,7 +175,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
     // Run inline validation as well (covers fields without BlurValidatedInput validators)
     const inlineErrors = validate(formType, fieldValues);
 
-    const allErrors = { ...blurErrors, ...(inlineErrors ?? {}) };
+    const allErrors = { ...validationErrors, ...(inlineErrors ?? {}) };
     if (Object.keys(allErrors).length > 0) {
       setFieldErrors(allErrors);
       return;
@@ -220,7 +219,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
         setPhase('result');
       });
     }
-  }, [formType, fieldValues, store]);
+  }, [fieldValues, fields, formType, store]);
 
   const handleDiscoverSubmit = useCallback(() => {
     const state = store.getState();
@@ -285,6 +284,13 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
                         }
                       }}
                       validate={field.validate ?? ((v: string): string | null => v.trim() ? null : 'Required')}
+                      onSubmit={() => {
+                        if (i < fields.length - 1) {
+                          setFocusedField(i + 1);
+                        } else {
+                          handleSubmit();
+                        }
+                      }}
                       placeholder={field.placeholder}
                       label=""
                       hasFocus={fieldHasFocus}

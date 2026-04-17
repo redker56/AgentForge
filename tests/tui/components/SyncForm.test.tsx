@@ -36,19 +36,26 @@ function createMockStore(overrides: Record<string, unknown> = {}) {
       syncFormStep: 'select-op',
       syncFormOperation: 'sync-agents' as string | null,
       syncFormSelectedSkillNames: new Set(),
+      syncFormUnsyncScope: null,
       syncFormSelectedTargetIds: new Set(),
+      syncFormProjectUnsyncMode: null,
       syncFormSelectedAgentTypes: new Set(),
+      syncFormLoadingTargets: false,
       syncFormMode: 'copy',
       syncFormResults: [],
       syncFormFocusedIndex: 0,
       skills: [],
+      skillDetails: {},
       agents: [{ id: 'claude', name: 'Claude Code' }],
       projects: [],
       setSyncFormStep: vi.fn(),
       setSyncFormOperation: vi.fn(),
       setSyncFormSelectedSkillNames: vi.fn(),
+      setSyncFormUnsyncScope: vi.fn(),
       setSyncFormSelectedTargetIds: vi.fn(),
+      setSyncFormProjectUnsyncMode: vi.fn(),
       setSyncFormSelectedAgentTypes: vi.fn(),
+      setSyncFormLoadingTargets: vi.fn(),
       setSyncFormMode: vi.fn(),
       setSyncFormResults: vi.fn(),
       setSyncFormFocusedIndex: vi.fn(),
@@ -63,10 +70,12 @@ function createMockStore(overrides: Record<string, unknown> = {}) {
       toggleSyncFormSkill: vi.fn(),
       toggleSyncFormTarget: vi.fn(),
       toggleSyncFormAgentType: vi.fn(),
+      loadSkillDetail: vi.fn(),
       refreshSkills: vi.fn(),
       syncSkillsToAgents: vi.fn(),
       syncSkillsToProjects: vi.fn(),
       unsyncFromAgents: vi.fn(),
+      unsyncFromProjects: vi.fn(),
       ...overrides,
     }),
     subscribe: vi.fn(() => () => {}),
@@ -134,16 +143,17 @@ describe('SyncForm', () => {
   });
 
   it('renders StepIndicator with correct steps for sync-agents operation', () => {
-    const steps = ['Select Operation', 'Select Skills', 'Select Targets', 'Confirm', 'Executing', 'Results'];
+    const steps = ['Select Operation', 'Select Skills', 'Select Targets', 'Select Mode', 'Confirm', 'Executing', 'Results'];
     const { lastFrame } = render(React.createElement(StepIndicator, { steps, currentStep: 0 }));
     const output = lastFrame() ?? '';
     expect(output).toContain('Select Operation');
     expect(output).toContain('Select Skills');
+    expect(output).toContain('Select Mode');
     expect(output).toContain('Confirm');
     expect(output).toContain('Results');
-    // 6 steps total
+    // 7 steps total
     const nonEmptyLines = output.split('\n').filter(l => l.trim().length > 0);
-    expect(nonEmptyLines.length).toBe(6);
+    expect(nonEmptyLines.length).toBe(7);
   });
 
   it('renders StepIndicator with correct steps for sync-projects operation', () => {
@@ -155,6 +165,16 @@ describe('SyncForm', () => {
     expect(nonEmptyLines.length).toBe(8);
     expect(output).toContain('Select Agent Types');
     expect(output).toContain('Select Mode');
+  });
+
+  it('renders StepIndicator with correct steps for project unsync operation', () => {
+    const steps = ['Select Operation', 'Select Skills', 'Select Scope', 'Select Targets', 'Select Unsync Mode', 'Confirm', 'Executing', 'Results'];
+    const { lastFrame } = render(React.createElement(StepIndicator, { steps, currentStep: 0 }));
+    const output = lastFrame() ?? '';
+    const nonEmptyLines = output.split('\n').filter(l => l.trim().length > 0);
+    expect(nonEmptyLines.length).toBe(8);
+    expect(output).toContain('Select Scope');
+    expect(output).toContain('Select Unsync Mode');
   });
 
   it('step indicator updates when navigating from select-op to select-skills', () => {

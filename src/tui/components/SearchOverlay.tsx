@@ -16,6 +16,7 @@ import type { StoreApi } from 'zustand';
 
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
+import { getVisibleSkills } from '../utils/skillsView.js';
 import { computeSearchResults } from '../utils/search.js';
 
 interface SearchOverlayProps {
@@ -65,6 +66,7 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
   const { stdout } = useStdout();
   const searchQuery = useStore(store, s => s.searchQuery);
   const skills = useStore(store, s => s.skills);
+  const activeSkillCategoryFilter = useStore(store, s => s.activeSkillCategoryFilter);
   const agents = useStore(store, s => s.agents);
   const projects = useStore(store, s => s.projects);
   const searchResultIndex = useStore(store, s => s.searchResultIndex);
@@ -73,9 +75,12 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
   const resultWidth = Math.max(overlayWidth - 2, 20);
   const displayQuery = truncateText(searchQuery || '', Math.max(overlayWidth - 12, 8));
 
+  const searchableSkills = activeTab === 'skills'
+    ? getVisibleSkills(skills, activeSkillCategoryFilter)
+    : skills;
   const results = useMemo(
-    () => computeSearchResults(searchQuery, skills, agents, projects, activeTab),
-    [searchQuery, skills, agents, projects, activeTab]
+    () => computeSearchResults(searchQuery, searchableSkills, agents, projects, activeTab),
+    [searchQuery, searchableSkills, agents, projects, activeTab]
   );
 
   // Clamp focus index to results length
@@ -136,7 +141,15 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
         return;
       }
 
-      const currentResults = computeSearchResults(query, state.skills, state.agents, state.projects, state.activeTab);
+      const currentResults = computeSearchResults(
+        query,
+        state.activeTab === 'skills'
+          ? getVisibleSkills(state.skills, state.activeSkillCategoryFilter)
+          : state.skills,
+        state.agents,
+        state.projects,
+        state.activeTab
+      );
       const idx = Math.min(state.searchResultIndex, Math.max(currentResults.length - 1, 0));
 
       if (currentResults[idx]) {
@@ -167,7 +180,15 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
       return;
     }
     if (key.downArrow) {
-      const currentResults = computeSearchResults(state.searchQuery, state.skills, state.agents, state.projects, state.activeTab);
+      const currentResults = computeSearchResults(
+        state.searchQuery,
+        state.activeTab === 'skills'
+          ? getVisibleSkills(state.skills, state.activeSkillCategoryFilter)
+          : state.skills,
+        state.agents,
+        state.projects,
+        state.activeTab
+      );
       const currentIdx = store.getState().searchResultIndex;
       if (currentIdx < currentResults.length - 1) {
         state.setSearchResultIndex(currentIdx + 1);

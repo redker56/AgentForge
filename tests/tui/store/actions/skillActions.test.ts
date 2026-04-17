@@ -52,7 +52,8 @@ describe('createSkillActions', () => {
       expect(mockCtx.skillService.installFromDirectory).toHaveBeenCalledWith(
         'https://github.com/example/repo.git',
         'auto-skill',
-        '/tmp/repo/'
+        '/tmp/repo',
+        ''
       );
     });
 
@@ -317,6 +318,34 @@ describe('createSkillActions', () => {
     });
   });
 
+  describe('categorizeSkills', () => {
+    it('updates categories for selected skills', async () => {
+      const actions = createSkillActions(store, mockCtx);
+
+      vi.mocked(mockCtx.skillService.updateCategories)
+        .mockReturnValueOnce(createMockSkill({ name: 'alpha', categories: ['research', 'writing'] }))
+        .mockReturnValueOnce(createMockSkill({ name: 'beta', categories: ['research', 'writing'] }));
+      vi.mocked(mockCtx.skillService.list).mockReturnValue([
+        createMockSkill({ name: 'alpha', categories: ['research', 'writing'] }),
+        createMockSkill({ name: 'beta', categories: ['research', 'writing'] }),
+      ]);
+
+      const results = await actions.categorizeSkills(['alpha', 'beta'], 'set', ['research', 'writing']);
+
+      expect(mockCtx.skillService.updateCategories).toHaveBeenCalledTimes(2);
+      expect(mockCtx.skillService.updateCategories).toHaveBeenNthCalledWith(
+        1,
+        'alpha',
+        ['research', 'writing'],
+        'set'
+      );
+      expect(results).toEqual([
+        { skillName: 'alpha', success: true, categories: ['research', 'writing'] },
+        { skillName: 'beta', success: true, categories: ['research', 'writing'] },
+      ]);
+    });
+  });
+
   describe('restoreSkill', () => {
     it('writes skill metadata back to storage', () => {
       const actions = createSkillActions(store, mockCtx);
@@ -327,6 +356,7 @@ describe('createSkillActions', () => {
         name: 'restored-skill',
         source: { type: 'git', url: 'https://example.com/repo.git' },
         createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-02-01T00:00:00.000Z',
         syncedTo: [{ agentId: 'claude', mode: 'copy' }],
       });
 
@@ -334,7 +364,10 @@ describe('createSkillActions', () => {
         name: 'restored-skill',
         source: { type: 'git', url: 'https://example.com/repo.git' },
         createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-02-01T00:00:00.000Z',
+        categories: [],
         syncedTo: [{ agentId: 'claude', mode: 'copy' }],
+        syncedProjects: undefined,
       });
     });
 
@@ -357,7 +390,10 @@ describe('createSkillActions', () => {
         name: 'minimal-skill',
         source: { type: 'local' },
         createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        categories: [],
         syncedTo: [],
+        syncedProjects: undefined,
       });
     });
 
@@ -375,6 +411,8 @@ describe('createSkillActions', () => {
         name: 'skill-with-projects',
         source: { type: 'local' },
         createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        categories: [],
         syncedTo: [],
         syncedProjects: [{ projectId: 'proj1', agentType: 'claude', mode: 'copy' }],
       });

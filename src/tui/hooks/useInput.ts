@@ -8,6 +8,7 @@ import type { StoreApi } from 'zustand';
 import { BUILTIN_AGENTS } from '../../types.js';
 import type { AppStore } from '../store/index.js';
 import { TAB_IDS } from '../store/index.js';
+import { getFocusedVisibleSkill } from '../utils/skillsView.js';
 
 export function useInputHandler(store: StoreApi<AppStore>): void {
   useInput((input, key) => {
@@ -247,6 +248,21 @@ function handleSkillsKeys(
   key: { upArrow?: boolean; downArrow?: boolean; return?: boolean; escape?: boolean },
   state: AppStore
 ): void {
+  const focusedVisibleSkill = getFocusedVisibleSkill(
+    state.skills,
+    state.activeSkillCategoryFilter,
+    state.focusedSkillIndex
+  );
+  const openUpdateForm = (skillNames: string[], formType: 'updateSelected' | 'updateAllGit'): void => {
+    if (skillNames.length === 0) return;
+    state.setFormState({
+      formType,
+      data: {
+        skillNames: JSON.stringify(skillNames),
+      },
+    });
+  };
+
   if (key.upArrow) {
     state.moveFocusUp();
     return;
@@ -255,11 +271,19 @@ function handleSkillsKeys(
     state.moveFocusDown(state.skills.length);
     return;
   }
+  if (input === '[') {
+    state.cycleSkillCategoryFilter(-1);
+    return;
+  }
+  if (input === ']') {
+    state.cycleSkillCategoryFilter(1);
+    return;
+  }
   if (key.return) {
     if (state.widthBand === 'standard') {
       if (!state.detailOverlayVisible) {
         state.setDetailOverlayVisible(true);
-        const focused = state.skills[state.focusedSkillIndex];
+        const focused = focusedVisibleSkill;
         if (focused && !state.skillDetails[focused.name]) {
           void store.getState().loadSkillDetail(focused.name);
         }
@@ -270,7 +294,7 @@ function handleSkillsKeys(
     return;
   }
   if (input === ' ') {
-    const focused = state.skills[state.focusedSkillIndex];
+    const focused = focusedVisibleSkill;
     if (focused) state.toggleSkillSelection(focused.name);
     return;
   }
@@ -278,11 +302,26 @@ function handleSkillsKeys(
     state.setFormState({ formType: 'addSkill', data: {} });
     return;
   }
+  if (input === 'c') {
+    const names =
+      state.selectedSkillNames.size > 0
+        ? [...state.selectedSkillNames]
+        : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
+    if (names.length > 0) {
+      state.setFormState({
+        formType: 'categorizeSkills',
+        data: {
+          skillNames: JSON.stringify(names),
+        },
+      });
+    }
+    return;
+  }
   if (input === 'd' || input === 'r') {
     const names =
       state.selectedSkillNames.size > 0
         ? [...state.selectedSkillNames]
-        : ([state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[]);
+        : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
     if (names.length > 0) {
       const agentSyncCount = names.reduce(
         (sum, n) => sum + (state.skillDetails[n]?.syncedTo.length ?? 0),
@@ -333,7 +372,7 @@ function handleSkillsKeys(
     const names =
       state.selectedSkillNames.size > 0
         ? [...state.selectedSkillNames]
-        : ([state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[]);
+        : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
     if (names.length > 0) {
       state.setSyncFormSelectedSkillNames(new Set(names));
       state.setSyncFormOperation('sync-agents');
@@ -347,7 +386,7 @@ function handleSkillsKeys(
     const names =
       state.selectedSkillNames.size > 0
         ? [...state.selectedSkillNames]
-        : ([state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[]);
+        : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
     if (names.length > 0) {
       state.setSyncFormSelectedSkillNames(new Set(names));
       state.setSyncFormOperation('sync-projects');
@@ -357,16 +396,18 @@ function handleSkillsKeys(
     return;
   }
   if (input === 'u') {
-    // Update focused skill in place (no tab switch) -- call unconditionally
-    const skill = state.skills[state.focusedSkillIndex];
-    if (skill) {
-      void store.getState().updateSkill(skill.name);
-    }
+    const names =
+      state.selectedSkillNames.size > 0
+        ? [...state.selectedSkillNames]
+        : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
+    openUpdateForm(names, 'updateSelected');
     return;
   }
   if (input === 'U') {
-    // Update all git-sourced skills in place
-    void store.getState().updateAllSkills();
+    const names = state.skills
+      .filter((skill) => skill.source.type === 'git')
+      .map((skill) => skill.name);
+    openUpdateForm(names, 'updateAllGit');
     return;
   }
   if (input === 'x') {
@@ -374,11 +415,15 @@ function handleSkillsKeys(
     const names =
       state.selectedSkillNames.size > 0
         ? [...state.selectedSkillNames]
-        : ([state.skills[state.focusedSkillIndex]?.name].filter(Boolean) as string[]);
+        : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
     if (names.length > 0) {
       state.setSyncFormSelectedSkillNames(new Set(names));
       state.setSyncFormOperation('unsync');
-      state.setSyncFormStep('select-targets');
+      state.setSyncFormUnsyncScope(null);
+      state.setSyncFormProjectUnsyncMode(null);
+      state.setSyncFormSelectedTargetIds(new Set());
+      state.setSyncFormSelectedAgentTypes(new Set());
+      state.setSyncFormStep('select-unsync-scope');
       state.setActiveTab('sync');
     }
     return;

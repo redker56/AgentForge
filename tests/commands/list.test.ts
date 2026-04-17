@@ -42,6 +42,7 @@ describe('list command', () => {
             name,
             source: { type: 'local' },
             createdAt: '2026-03-30T00:00:00.000Z',
+            categories: [],
             syncedTo: [],
             syncedProjects: [],
           })),
@@ -96,6 +97,7 @@ describe('list command', () => {
             name: 'lonely-skill',
             source: { type: 'local' },
             createdAt: '2026-03-30T00:00:00.000Z',
+            categories: [],
             syncedTo: [],
             syncedProjects: [],
           })),
@@ -124,6 +126,7 @@ describe('list command', () => {
             name: 'synced-skill',
             source: { type: 'local' },
             createdAt: '2026-03-30T00:00:00.000Z',
+            categories: [],
             syncedTo: [{ agentId: 'claude', mode: 'copy' }],
             syncedProjects: [],
           })),
@@ -145,6 +148,40 @@ describe('list command', () => {
 
       const loggedText = consoleLog.mock.calls.flat().join('\n');
       expect(loggedText).toContain('User-level');
+    });
+
+    it('filters skills by category', async () => {
+      const program = new Command();
+
+      register(program, {
+        skills: {
+          list: vi.fn().mockReturnValue([
+            { name: 'frontend-design', exists: true, categories: ['design'] },
+            { name: 'docx', exists: true, categories: ['documents'] },
+          ]),
+        },
+        storage: {
+          getSkill: vi.fn((name: string) => ({
+            name,
+            source: { type: 'local' },
+            createdAt: '2026-03-30T00:00:00.000Z',
+            categories: name === 'frontend-design' ? ['design'] : ['documents'],
+            syncedTo: [],
+            syncedProjects: [],
+          })),
+        },
+        scan: {
+          getSkillProjectDistributionWithStatus: vi.fn().mockResolvedValue([]),
+        },
+        fileOps: mockFileOps,
+      } as never);
+
+      await program.parseAsync(['list', 'skills', '--category', 'design'], { from: 'user' });
+
+      const loggedText = consoleLog.mock.calls.flat().join('\n');
+      expect(loggedText).toContain('frontend-design');
+      expect(loggedText).toContain('Categories: design');
+      expect(loggedText).not.toContain('docx');
     });
   });
 
@@ -249,6 +286,31 @@ describe('list command', () => {
       await program.parseAsync(['list', 'invalid'], { from: 'user' });
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Invalid target'));
+    });
+  });
+
+  describe('list categories', () => {
+    it('shows category counts and uncategorized totals', async () => {
+      const program = new Command();
+
+      register(program, {
+        skills: {
+          list: vi.fn().mockReturnValue([
+            { name: 'frontend-design', exists: true, categories: ['design'] },
+            { name: 'docx', exists: true, categories: ['documents'] },
+            { name: 'misc-skill', exists: true, categories: [] },
+          ]),
+        },
+        fileOps: mockFileOps,
+      } as never);
+
+      await program.parseAsync(['list', 'categories'], { from: 'user' });
+
+      const loggedText = consoleLog.mock.calls.flat().join('\n');
+      expect(loggedText).toContain('Category List');
+      expect(loggedText).toContain('design');
+      expect(loggedText).toContain('documents');
+      expect(loggedText).toContain('Uncategorized');
     });
   });
 

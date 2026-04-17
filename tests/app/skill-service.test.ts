@@ -119,4 +119,111 @@ describe('SkillService core functionality', () => {
       }
     });
   });
+
+  describe('update', () => {
+    it('updates a git-backed skill by re-cloning the repository root', async () => {
+      const skillPath = path.join(TEST_DIR, 'skills', 'deep-recon');
+      await fs.ensureDir(skillPath);
+      await fs.writeFile(path.join(skillPath, 'SKILL.md'), '# old');
+      await fs.writeFile(path.join(skillPath, 'old.txt'), 'stale');
+
+      const saveSkillMeta = vi.fn();
+      const storage = {
+        getSkillsDir: () => path.join(TEST_DIR, 'skills'),
+        getSkillPath: (name: string) => path.join(TEST_DIR, 'skills', name),
+        getSkill: vi.fn(() => ({
+          name: 'deep-recon',
+          source: { type: 'git', url: 'https://github.com/kvarnelis/deep-recon' },
+          createdAt: '2024-01-01T00:00:00.000Z',
+          syncedTo: [],
+        })),
+        saveSkillMeta,
+      } as never;
+
+      const cloneSpy = vi
+        .spyOn(git, 'clone')
+        .mockImplementation(async (_repoUrl: string, dest: string) => {
+          await fs.ensureDir(dest);
+          await fs.writeFile(path.join(dest, 'SKILL.md'), '# new');
+          await fs.writeFile(path.join(dest, 'notes.md'), 'fresh');
+        });
+
+      try {
+        const service = new SkillService(storage);
+
+        await expect(service.update('deep-recon')).resolves.toBe(true);
+
+        expect(await fs.readFile(path.join(skillPath, 'SKILL.md'), 'utf8')).toContain('# new');
+        expect(await fs.pathExists(path.join(skillPath, 'notes.md'))).toBe(true);
+        expect(await fs.pathExists(path.join(skillPath, 'old.txt'))).toBe(false);
+        expect(saveSkillMeta).toHaveBeenCalledWith('deep-recon', {
+          name: 'deep-recon',
+          source: { type: 'git', url: 'https://github.com/kvarnelis/deep-recon' },
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: expect.any(String),
+          syncedTo: [],
+        });
+      } finally {
+        cloneSpy.mockRestore();
+      }
+    });
+
+    it('updates a git-backed skill installed from a repository subpath and records the subPath', async () => {
+      const skillPath = path.join(TEST_DIR, 'skills', 'glmv-stock-analyst');
+      await fs.ensureDir(skillPath);
+      await fs.writeFile(path.join(skillPath, 'SKILL.md'), '# old');
+
+      const saveSkillMeta = vi.fn();
+      const storage = {
+        getSkillsDir: () => path.join(TEST_DIR, 'skills'),
+        getSkillPath: (name: string) => path.join(TEST_DIR, 'skills', name),
+        getSkill: vi.fn(() => ({
+          name: 'glmv-stock-analyst',
+          source: {
+            type: 'git',
+            url: 'https://github.com/zai-org/GLM-skills/tree/main/skills/glmv-stock-analyst',
+          },
+          createdAt: '2024-01-01T00:00:00.000Z',
+          syncedTo: [],
+        })),
+        saveSkillMeta,
+      } as never;
+
+      const cloneSpy = vi
+        .spyOn(git, 'clone')
+        .mockImplementation(async (_repoUrl: string, dest: string) => {
+          await fs.ensureDir(path.join(dest, 'skills', 'glmv-stock-analyst'));
+          await fs.writeFile(
+            path.join(dest, 'skills', 'glmv-stock-analyst', 'SKILL.md'),
+            '# updated'
+          );
+          await fs.writeFile(
+            path.join(dest, 'skills', 'glmv-stock-analyst', 'report.md'),
+            'fresh'
+          );
+        });
+
+      try {
+        const service = new SkillService(storage);
+
+        await expect(service.update('glmv-stock-analyst')).resolves.toBe(true);
+
+        expect(await fs.readFile(path.join(skillPath, 'SKILL.md'), 'utf8')).toContain('# updated');
+        expect(await fs.pathExists(path.join(skillPath, 'report.md'))).toBe(true);
+        expect(saveSkillMeta).toHaveBeenCalledWith('glmv-stock-analyst', {
+          name: 'glmv-stock-analyst',
+          source: {
+            type: 'git',
+            url: 'https://github.com/zai-org/GLM-skills',
+            subPath: 'skills/glmv-stock-analyst',
+          },
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: expect.any(String),
+          syncedTo: [],
+        });
+      } finally {
+        cloneSpy.mockRestore();
+      }
+    });
+  });
 });

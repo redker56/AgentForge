@@ -58,6 +58,15 @@ af list agents
 # List registered projects
 af list projects
 
+# List skill categories and counts
+af list categories
+
+# Filter skills by category
+af list skills --category design
+
+# Show only uncategorized skills
+af list skills --uncategorized
+
 # Show skill details
 af show skills <name>
 
@@ -211,15 +220,36 @@ af remove agents <agent-id>
 ### Other Commands
 
 ```bash
+# Set skill categories
+af categorize skills <skill-name> design frontend
+
+# Batch set categories for multiple skills
+af categorize skills --skills docx xlsx pptx --categories office files
+
+# Add categories without replacing existing ones
+af categorize skills <skill-name> docs --add
+
+# Remove specific categories
+af categorize skills <skill-name> docs --remove
+
+# Clear all categories
+af categorize skills <skill-name> --clear
+
 # Enable shell completion
 af completion --install
 
 # Print shell completion script without installing it
 af completion bash
 
-# Update skill (pull from Git)
+# Update skill (refresh from Git source and re-sync)
 af update [skill-name]
 ```
+
+### TUI Category Shortcuts
+
+- `[` / `]`: Switch category filter in the Skills tab
+- `c`: Open category editor for the selected skill(s)
+- Skills tab category bar: browse `All`, `Uncategorized`, and every defined category
 
 ## Skill Levels
 

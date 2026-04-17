@@ -7,6 +7,8 @@ import { render, cleanup } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
+import { ALL_SKILL_CATEGORY_FILTER } from '../../../src/types.js';
+
 describe('SkillsScreen', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -43,8 +45,24 @@ describe('SkillsScreen', () => {
   });
 
   const mockSkills = [
-    { name: 'alpha', syncedTo: ['claude'], source: { type: 'git' as const }, exists: true, createdAt: '2025-01-01' },
-    { name: 'beta', syncedTo: [], source: { type: 'git' as const }, exists: true, createdAt: '2025-02-01' },
+    {
+      name: 'alpha',
+      syncedTo: ['claude'],
+      source: { type: 'git' as const },
+      exists: true,
+      createdAt: '2025-01-01',
+      updatedAt: '2025-03-15T00:00:00.000Z',
+      categories: ['research'],
+    },
+    {
+      name: 'beta',
+      syncedTo: [],
+      source: { type: 'git' as const },
+      exists: true,
+      createdAt: '2025-02-01',
+      updatedAt: '2025-02-20T00:00:00.000Z',
+      categories: [],
+    },
   ];
 
   function makeMockStore(overrides?: Partial<Record<string, unknown>>) {
@@ -52,6 +70,7 @@ describe('SkillsScreen', () => {
     const state = {
       skills: mockSkills,
       focusedSkillIndex: 0,
+      activeSkillCategoryFilter: ALL_SKILL_CATEGORY_FILTER,
       selectedSkillNames: new Set<string>(),
       detailOverlayVisible: false,
       skillDetails: {},
@@ -87,6 +106,7 @@ describe('SkillsScreen', () => {
     expect(frame).toContain('skills total');
     expect(frame).toContain('synced to agents');
     expect(frame).toContain('Last update');
+    expect(frame).toContain('2025-03-15');
   });
 
   it('renders full list in standard band', async () => {

@@ -18,6 +18,7 @@ export interface BlurValidatedInputProps {
   value: string;
   onChange: (value: string) => void;
   validate: (value: string) => string | null;
+  onSubmit?: () => void;
   placeholder?: string;
   label?: string;
   width?: number;
@@ -30,6 +31,7 @@ export function BlurValidatedInput({
   value,
   onChange,
   validate,
+  onSubmit,
   placeholder,
   label,
   width: _width,
@@ -76,7 +78,14 @@ export function BlurValidatedInput({
           placeholder={placeholder}
           focus={hasFocus}
           onSubmit={() => {
-            // Clear error on valid submit
+            const error = validate(value);
+            setErrorMessage(error);
+            if (onValidationResult) {
+              onValidationResult(error === null, error);
+            }
+            if (error === null) {
+              onSubmit?.();
+            }
           }}
         />
       </Box>

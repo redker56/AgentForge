@@ -44,6 +44,7 @@ describe('command registry', () => {
     expect(commandNames).toContain('remove');
     expect(commandNames).toContain('sync');
     expect(commandNames).toContain('add');
+    expect(commandNames).toContain('categorize');
     expect(commandNames).toContain('completion');
     expect(commandNames).toContain('__complete');
     expect(commandNames).toContain('unsync');

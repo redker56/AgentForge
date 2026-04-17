@@ -19,14 +19,98 @@ import fs from 'fs-extra';
 import { files } from '../infra/files.js';
 import { git } from '../infra/git.js';
 import { Storage } from '../infra/storage.js';
-import type { Skill, SkillMeta, SkillSource } from '../types.js';
+import {
+  normalizeSkillCategories,
+  type Skill,
+  type SkillMeta,
+  type SkillSource,
+} from '../types.js';
+
+export type SkillCategoryUpdateMode = 'set' | 'add' | 'remove' | 'clear';
 
 export class SkillService {
   constructor(private readonly storage: Storage) {}
 
+  private buildNextCategories(
+    currentCategories: string[],
+    nextCategories: string[],
+    mode: SkillCategoryUpdateMode
+  ): string[] {
+    const normalizedCurrent = normalizeSkillCategories(currentCategories);
+    const normalizedNext = normalizeSkillCategories(nextCategories);
+
+    if (mode === 'clear') {
+      return [];
+    }
+
+    if (mode === 'set') {
+      return normalizedNext;
+    }
+
+    if (mode === 'add') {
+      return normalizeSkillCategories([...normalizedCurrent, ...normalizedNext]);
+    }
+
+    const categoriesToRemove = new Set(normalizedNext.map((category) => category.toLocaleLowerCase()));
+    return normalizedCurrent.filter((category) => !categoriesToRemove.has(category.toLocaleLowerCase()));
+  }
+
   /** Extract the skill name from the last path segment, normalizing backslashes. */
   private getSkillNameFromSubPath(subPath: string): string {
     return path.posix.basename(subPath.replace(/\\/g, '/'));
+  }
+
+  private parseGitSource(source: Extract<SkillSource, { type: 'git' }>): {
+    repoUrl: string;
+    subPath: string;
+  } {
+    let repoUrl = source.url;
+    let subPath = source.subPath ?? '';
+
+    if (source.url.includes('/tree/')) {
+      const match = source.url.match(/(https?:\/\/[^/]+\/[^/]+\/[^/]+)\/tree\/[^/]+\/(.+)/);
+      if (match) {
+        repoUrl = match[1];
+        if (!subPath) {
+          subPath = match[2];
+        }
+      }
+    }
+
+    return { repoUrl, subPath: subPath.replace(/\\/g, '/') };
+  }
+
+  private resolveGitSkillSubPath(
+    repoDir: string,
+    source: Extract<SkillSource, { type: 'git' }>,
+    skillName: string
+  ): { repoUrl: string; subPath: string } {
+    const parsed = this.parseGitSource(source);
+    if (parsed.subPath) {
+      return parsed;
+    }
+
+    const discovered = this.discoverSkillsInDirectory(repoDir, parsed.repoUrl);
+    const exactMatches = discovered.filter((entry) => entry.name === skillName);
+
+    if (exactMatches.length === 1) {
+      return { repoUrl: parsed.repoUrl, subPath: exactMatches[0].subPath };
+    }
+
+    if (discovered.length === 1) {
+      return { repoUrl: parsed.repoUrl, subPath: discovered[0].subPath };
+    }
+
+    throw new Error(`Could not determine repository path for skill '${skillName}'`);
+  }
+
+  private async replaceSkillDirectory(skillPath: string, sourceDir: string): Promise<void> {
+    if (fs.existsSync(skillPath)) {
+      await files.remove(skillPath);
+    }
+
+    await files.copy(sourceDir, skillPath);
+    await files.cleanupSkillDir(skillPath);
   }
 
   /** Clone a remote repository into a temporary directory under the skills folder. */
@@ -177,7 +261,11 @@ export class SkillService {
     }
 
     await files.cleanupSkillDir(skillPath);
-    this.storage.saveSkill(skillName, { type: 'git', url });
+    this.storage.saveSkill(skillName, {
+      type: 'git',
+      url: repoUrl,
+      ...(resolvedSubPath ? { subPath: resolvedSubPath.replace(/\\/g, '/') } : {}),
+    });
 
     return skillName;
   }
@@ -189,7 +277,12 @@ export class SkillService {
    *
    * @returns The skill name.
    */
-  async installFromDirectory(url: string, name: string, sourceDir: string): Promise<string> {
+  async installFromDirectory(
+    url: string,
+    name: string,
+    sourceDir: string,
+    subPath?: string
+  ): Promise<string> {
     const skillPath = this.storage.getSkillPath(name);
 
     if (files.exists(skillPath)) {
@@ -198,15 +291,19 @@ export class SkillService {
 
     await files.copy(sourceDir, skillPath);
     await files.cleanupSkillDir(skillPath);
-    this.storage.saveSkill(name, { type: 'git', url });
+    this.storage.saveSkill(name, {
+      type: 'git',
+      url,
+      ...(subPath ? { subPath: subPath.replace(/\\/g, '/') } : {}),
+    });
 
     return name;
   }
 
   /**
-   * Pull latest changes for a git-backed skill.
+   * Refresh a git-backed skill from its remote repository.
    *
-   * @returns `true` if updated, `false` if the skill is not git-backed or not a repo.
+   * @returns `true` if updated, `false` if the skill is not git-backed.
    */
   async update(name: string): Promise<boolean> {
     const meta = this.storage.getSkill(name);
@@ -217,12 +314,36 @@ export class SkillService {
     }
 
     const skillPath = this.storage.getSkillPath(name);
-    if (!git.isRepo(skillPath)) {
-      return false;
-    }
+    const tempDir = await this.cloneRepoToTemp(this.parseGitSource(meta.source).repoUrl);
+    const updatedAt = new Date().toISOString();
 
-    await git.pull(skillPath);
-    return true;
+    try {
+      const { repoUrl, subPath } = this.resolveGitSkillSubPath(tempDir, meta.source, name);
+      const sourceDir = subPath ? path.join(tempDir, subPath) : tempDir;
+
+      if (!fs.existsSync(sourceDir)) {
+        throw new Error(
+          subPath
+            ? `Skill path not found in repository: ${subPath}`
+            : `Skill root not found in repository: ${name}`
+        );
+      }
+
+      await this.replaceSkillDirectory(skillPath, sourceDir);
+      this.storage.saveSkillMeta(name, {
+        ...meta,
+        source: {
+          type: 'git',
+          url: repoUrl,
+          ...(subPath ? { subPath } : {}),
+        },
+        updatedAt,
+      });
+
+      return true;
+    } finally {
+      await this.removeTempRepo(tempDir);
+    }
   }
 
   /** Delete a skill -- removes the on-disk directory and the registry entry. */
@@ -254,5 +375,24 @@ export class SkillService {
     await files.copy(sourcePath, skillPath);
     await files.cleanupSkillDir(skillPath);
     this.storage.saveSkill(name, source);
+  }
+
+  updateCategories(
+    name: string,
+    categories: string[],
+    mode: SkillCategoryUpdateMode = 'set'
+  ): SkillMeta {
+    const meta = this.storage.getSkill(name);
+    if (!meta) {
+      throw new Error(`Skill not found: ${name}`);
+    }
+
+    const nextMeta: SkillMeta = {
+      ...meta,
+      categories: this.buildNextCategories(meta.categories, categories, mode),
+    };
+
+    this.storage.saveSkillMeta(name, nextMeta);
+    return nextMeta;
   }
 }

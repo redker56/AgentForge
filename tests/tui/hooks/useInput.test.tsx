@@ -89,4 +89,19 @@ describe('useInput global key handlers', () => {
     expect(source).toMatch(/pushToast\(msg/);
     expect(source).toMatch(/Deleted/);
   });
+
+  it('u/U key handlers open update form instead of executing immediately', () => {
+    expect(source).toMatch(/input\s*===\s*['"]u['"]/);
+    expect(source).toMatch(/input\s*===\s*['"]U['"]/);
+    expect(source).toMatch(/openUpdateForm\(names,\s*['"]updateSelected['"]\)/);
+    expect(source).toMatch(/openUpdateForm\(names,\s*['"]updateAllGit['"]\)/);
+    expect(source).not.toMatch(/updateSkill\(/);
+    expect(source).not.toMatch(/updateAllSkills\(/);
+  });
+
+  it('x key handler routes unsync through scope selection', () => {
+    expect(source).toMatch(/input\s*===\s*['"]x['"]/);
+    expect(source).toMatch(/setSyncFormStep\(\s*['"]select-unsync-scope['"]\s*\)/);
+    expect(source).toMatch(/setSyncFormUnsyncScope\(null\)/);
+  });
 });

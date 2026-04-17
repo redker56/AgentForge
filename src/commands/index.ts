@@ -45,6 +45,7 @@ export interface CommandModule {
 
 // Import all commands
 import { register as registerAdd } from './add.js';
+import { register as registerCategorize } from './categorize.js';
 import { register as registerComplete } from './complete.js';
 import { register as registerCompletion } from './completion.js';
 import { register as registerImport } from './import.js';
@@ -62,6 +63,7 @@ const commands: CommandModule[] = [
   { register: registerRemove },
   { register: registerSync },
   { register: registerAdd },
+  { register: registerCategorize },
   { register: registerCompletion },
   { register: registerComplete },
   { register: registerUnsync },

@@ -34,12 +34,17 @@ const FORM_LABELS: Record<FormType, string> = {
   addProject: 'Add Project',
   importProject: 'Import',
   importAgent: 'Import',
+  categorizeSkills: 'Categorize',
+  updateSelected: 'Update',
+  updateAllGit: 'Update',
 };
 
 const SYNC_STEP_LABELS: Record<SyncFormStep, string> = {
   'select-op': '',
   'select-skills': 'Select Skills',
+  'select-unsync-scope': 'Select Scope',
   'select-targets': 'Select Targets',
+  'select-unsync-project-mode': 'Select Unsync Mode',
   'select-agent-types': 'Select Agent Types',
   'select-mode': 'Select Mode',
   confirm: 'Confirm',

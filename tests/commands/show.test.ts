@@ -14,6 +14,8 @@ function createSkillMeta(overrides: Partial<SkillMeta> = {}): SkillMeta {
     name: 'test-skill',
     source: { type: 'local' },
     createdAt: '2026-03-30T00:00:00.000Z',
+    updatedAt: '2026-04-01T12:34:56.000Z',
+    categories: [],
     syncedTo: [],
     syncedProjects: [],
     ...overrides,
@@ -120,6 +122,7 @@ describe('show command', () => {
     const meta = createSkillMeta({
       name: 'git-skill',
       source: { type: 'git', url: 'https://github.com/example/skill' },
+      categories: ['design', 'frontend'],
       syncedTo: [{ agentId: 'claude', mode: 'copy' }],
     });
 
@@ -147,6 +150,10 @@ describe('show command', () => {
     expect(consoleLog).toHaveBeenCalledWith(
       expect.stringContaining('https://github.com/example/skill')
     );
+    expect(consoleLog).toHaveBeenCalledWith(
+      expect.stringContaining('Updated: 2026-04-01T12:34:56.000Z')
+    );
+    expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Categories: design, frontend'));
     expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Claude Code'));
   });
 

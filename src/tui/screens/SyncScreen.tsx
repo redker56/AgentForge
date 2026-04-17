@@ -18,11 +18,20 @@ interface SyncScreenProps {
 
 export function SyncScreen({ store }: SyncScreenProps): React.ReactElement {
   const updateProgressItems = useStore(store, (s) => s.updateProgressItems);
+  const syncFormOperation = useStore(store, (s) => s.syncFormOperation);
+  const syncFormUnsyncScope = useStore(store, (s) => s.syncFormUnsyncScope);
+
+  const title =
+    syncFormOperation === 'unsync' && syncFormUnsyncScope === 'projects'
+      ? 'Unsync from Projects'
+      : syncFormOperation === 'unsync' && syncFormUnsyncScope === 'agents'
+        ? 'Unsync from Agents'
+        : 'Sync Skills';
 
   return (
     <Box flexDirection="column" height="100%">
       <Box paddingX={1}>
-        <Text bold color={inkColors.accent}>Sync Skills</Text>
+        <Text bold color={inkColors.accent}>{title}</Text>
       </Box>
       <Box flexGrow={1}>
         <SyncForm store={store} />

@@ -5,9 +5,17 @@
 import type { StoreApi } from 'zustand';
 
 import type { SkillMeta } from '../../../types.js';
+import type { SkillCategoryUpdateMode } from '../../../app/skill-service.js';
 import type { ServiceContext } from '../dataSlice.js';
 import type { AppStore } from '../index.js';
 import type { ConflictEntry } from '../uiSlice.js';
+
+export interface CategoryActionResult {
+  skillName: string;
+  success: boolean;
+  categories: string[];
+  error?: string;
+}
 
 export interface SkillActions {
   addSkillFromUrl: (url: string, name?: string) => Promise<void>;
@@ -16,6 +24,11 @@ export interface SkillActions {
     selectedSkills: Array<{ name: string; subPath: string }>,
     tempRepoPath: string
   ) => Promise<void>;
+  categorizeSkills: (
+    skillNames: string[],
+    mode: SkillCategoryUpdateMode,
+    categories: string[]
+  ) => Promise<CategoryActionResult[]>;
   removeSkill: (skillName: string) => Promise<void>;
   restoreSkill: (snapshot: Record<string, unknown>) => void;
 }
@@ -107,7 +120,8 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
               skillName = await ctx.skillService.installFromDirectory(
                 url,
                 discovered[0].name,
-                `${tempPath}/${discovered[0].subPath}`
+                discovered[0].subPath ? `${tempPath}/${discovered[0].subPath}` : tempPath,
+                discovered[0].subPath
               );
               await ctx.skillService.removeTempRepo(tempPath);
             } else {
@@ -144,8 +158,8 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
         let lastInstalledName: string | undefined;
 
         for (const skill of selectedSkills) {
-          const sourceDir = `${tempRepoPath}/${skill.subPath}`;
-          await ctx.skillService.installFromDirectory(url, skill.name, sourceDir);
+          const sourceDir = skill.subPath ? `${tempRepoPath}/${skill.subPath}` : tempRepoPath;
+          await ctx.skillService.installFromDirectory(url, skill.name, sourceDir, skill.subPath);
           lastInstalledName = skill.name;
         }
 
@@ -166,6 +180,48 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
           data: { error: message },
         });
       }
+    },
+
+    categorizeSkills: async (skillNames, mode, categories): Promise<CategoryActionResult[]> => {
+      const results: CategoryActionResult[] = [];
+
+      for (const skillName of skillNames) {
+        try {
+          const updated = ctx.skillService.updateCategories(skillName, categories, mode);
+          results.push({
+            skillName,
+            success: true,
+            categories: updated.categories,
+          });
+        } catch (e: unknown) {
+          results.push({
+            skillName,
+            success: false,
+            categories: [],
+            error: e instanceof Error ? e.message : String(e),
+          });
+        }
+      }
+
+      store.setState((state) => {
+        const updatedDetails = { ...state.skillDetails };
+        for (const result of results) {
+          const currentDetail = updatedDetails[result.skillName];
+          if (result.success && currentDetail) {
+            updatedDetails[result.skillName] = {
+              ...currentDetail,
+              categories: result.categories,
+            };
+          }
+        }
+
+        return {
+          skillDetails: updatedDetails,
+        };
+      });
+
+      store.getState().refreshSkills();
+      return results;
     },
 
     removeSkill: async (skillName): Promise<void> => {
@@ -194,11 +250,14 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
     restoreSkill: (snapshot): void => {
       const name = snapshot.name as string;
       if (!name) return;
+      const createdAt = (snapshot.createdAt ?? new Date().toISOString()) as string;
       // Write the full SkillMeta back to registry preserving original fields
       ctx.storage.saveSkillMeta(name, {
         name,
         source: (snapshot.source ?? { type: 'local' }) as SkillMeta['source'],
-        createdAt: (snapshot.createdAt ?? new Date().toISOString()) as string,
+        createdAt,
+        updatedAt: (snapshot.updatedAt ?? createdAt) as string,
+        categories: (snapshot.categories ?? []) as SkillMeta['categories'],
         syncedTo: (snapshot.syncedTo ?? []) as SkillMeta['syncedTo'],
         syncedProjects: (snapshot.syncedProjects ?? undefined) as SkillMeta['syncedProjects'],
       });

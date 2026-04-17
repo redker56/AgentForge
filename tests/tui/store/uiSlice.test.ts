@@ -57,8 +57,11 @@ describe('createUISlice', () => {
     expect(slice.syncFormStep).toBe('select-op');
     expect(slice.syncFormOperation).toBe('sync-agents');
     expect(slice.syncFormSelectedSkillNames).toEqual(new Set());
+    expect(slice.syncFormUnsyncScope).toBeNull();
     expect(slice.syncFormSelectedTargetIds).toEqual(new Set());
+    expect(slice.syncFormProjectUnsyncMode).toBeNull();
     expect(slice.syncFormSelectedAgentTypes).toEqual(new Set());
+    expect(slice.syncFormLoadingTargets).toBe(false);
     expect(slice.syncFormMode).toBe('copy');
     expect(slice.syncFormResults).toEqual([]);
     expect(slice.syncFormFocusedIndex).toBe(0);
@@ -161,8 +164,11 @@ describe('createUISlice', () => {
       syncFormStep: 'select-op',
       syncFormOperation: 'sync-agents',
       syncFormSelectedSkillNames: new Set(),
+      syncFormUnsyncScope: null,
       syncFormSelectedTargetIds: new Set(),
+      syncFormProjectUnsyncMode: null,
       syncFormSelectedAgentTypes: new Set(),
+      syncFormLoadingTargets: false,
       syncFormMode: 'copy',
       syncFormResults: [],
       syncFormFocusedIndex: 0,

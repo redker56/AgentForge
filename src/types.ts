@@ -58,7 +58,7 @@ export interface ProjectConfig {
 
 export type SkillSource =
   | { type: 'local'; importedFrom?: { agent: string; path: string } }
-  | { type: 'git'; url: string }
+  | { type: 'git'; url: string; subPath?: string }
   | { type: 'project'; projectId: string }; // Project source, path info detected at runtime
 
 export interface SyncRecord {
@@ -70,12 +70,115 @@ export interface SkillMeta {
   readonly name: string;
   readonly source: SkillSource;
   readonly createdAt: string;
+  readonly updatedAt?: string;
+  categories: string[];
   syncedTo: SyncRecord[];
   syncedProjects?: ProjectSyncRecord[];
 }
 
 export interface Skill extends SkillMeta {
   readonly path: string;
+}
+
+export const ALL_SKILL_CATEGORY_FILTER = '__all__';
+export const UNCATEGORIZED_SKILL_CATEGORY_FILTER = '__uncategorized__';
+
+export type SkillCategoryFilter =
+  | typeof ALL_SKILL_CATEGORY_FILTER
+  | typeof UNCATEGORIZED_SKILL_CATEGORY_FILTER
+  | string;
+
+export interface SkillCategoryCount {
+  key: SkillCategoryFilter;
+  label: string;
+  count: number;
+}
+
+export function normalizeSkillCategories(categories: string[]): string[] {
+  const deduped = new Map<string, string>();
+
+  for (const category of categories) {
+    const trimmed = category.trim();
+    if (!trimmed) continue;
+
+    const normalizedKey = trimmed.toLocaleLowerCase();
+    if (!deduped.has(normalizedKey)) {
+      deduped.set(normalizedKey, trimmed);
+    }
+  }
+
+  return Array.from(deduped.values()).sort((left, right) =>
+    left.localeCompare(right, undefined, { sensitivity: 'base' })
+  );
+}
+
+export function skillCategoryEquals(left: string, right: string): boolean {
+  return left.trim().toLocaleLowerCase() === right.trim().toLocaleLowerCase();
+}
+
+export function skillMatchesCategoryFilter(
+  skill: Pick<SkillMeta, 'categories'>,
+  filter: SkillCategoryFilter
+): boolean {
+  const categories = skill.categories ?? [];
+
+  if (filter === ALL_SKILL_CATEGORY_FILTER) {
+    return true;
+  }
+
+  if (filter === UNCATEGORIZED_SKILL_CATEGORY_FILTER) {
+    return categories.length === 0;
+  }
+
+  return categories.some((category) => skillCategoryEquals(category, filter));
+}
+
+export function getSkillCategoryCounts<T extends Pick<SkillMeta, 'categories'>>(
+  skills: T[]
+): SkillCategoryCount[] {
+  const counts = new Map<string, { label: string; count: number }>();
+  let uncategorizedCount = 0;
+
+  for (const skill of skills) {
+    const categories = skill.categories ?? [];
+
+    if (categories.length === 0) {
+      uncategorizedCount += 1;
+      continue;
+    }
+
+    for (const category of categories) {
+      const key = category.toLocaleLowerCase();
+      const current = counts.get(key);
+      if (current) {
+        current.count += 1;
+      } else {
+        counts.set(key, { label: category, count: 1 });
+      }
+    }
+  }
+
+  const categoryCounts = Array.from(counts.values())
+    .sort((left, right) => left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }))
+    .map((entry) => ({
+      key: entry.label,
+      label: entry.label,
+      count: entry.count,
+    }));
+
+  return [
+    {
+      key: ALL_SKILL_CATEGORY_FILTER,
+      label: 'All',
+      count: skills.length,
+    },
+    ...categoryCounts,
+    {
+      key: UNCATEGORIZED_SKILL_CATEGORY_FILTER,
+      label: 'Uncategorized',
+      count: uncategorizedCount,
+    },
+  ];
 }
 
 // ========== Registry ==========

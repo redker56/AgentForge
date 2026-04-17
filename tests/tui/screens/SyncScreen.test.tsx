@@ -35,13 +35,17 @@ describe('SyncScreen', () => {
       syncFormStep: 'select-op',
       syncFormOperation: 'sync-agents',
       syncFormSelectedSkillNames: new Set<string>(),
+      syncFormUnsyncScope: null,
       syncFormSelectedTargetIds: new Set<string>(),
+      syncFormProjectUnsyncMode: null,
       syncFormSelectedAgentTypes: new Set<string>(),
+      syncFormLoadingTargets: false,
       syncFormMode: 'copy' as const,
       syncFormResults: [],
       syncFormFocusedIndex: 0,
       updateProgressItems: [],
       skills: [],
+      skillDetails: {},
       agents: [],
       projects: [],
       activeTab: 'sync',
@@ -50,6 +54,26 @@ describe('SyncScreen', () => {
       confirmState: null,
       formState: null,
       conflictState: null,
+      setSyncFormStep: vi.fn(),
+      setSyncFormOperation: vi.fn(),
+      setSyncFormSelectedSkillNames: vi.fn(),
+      toggleSyncFormSkill: vi.fn(),
+      setSyncFormUnsyncScope: vi.fn(),
+      setSyncFormSelectedTargetIds: vi.fn(),
+      toggleSyncFormTarget: vi.fn(),
+      setSyncFormProjectUnsyncMode: vi.fn(),
+      setSyncFormSelectedAgentTypes: vi.fn(),
+      toggleSyncFormAgentType: vi.fn(),
+      setSyncFormLoadingTargets: vi.fn(),
+      setSyncFormMode: vi.fn(),
+      setSyncFormResults: vi.fn(),
+      setSyncFormFocusedIndex: vi.fn(),
+      resetSyncForm: vi.fn(),
+      loadSkillDetail: vi.fn(),
+      syncSkillsToAgents: vi.fn(),
+      syncSkillsToProjects: vi.fn(),
+      unsyncFromAgents: vi.fn(),
+      unsyncFromProjects: vi.fn(),
       ...overrides,
     };
     return {
@@ -73,6 +97,18 @@ describe('SyncScreen', () => {
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('Sync Skills');
+  });
+
+  it('renders unsync project title when project scope is active', async () => {
+    const { SyncScreen } = await import('../../../src/tui/screens/SyncScreen.js');
+    const store = makeMockStore({
+      syncFormOperation: 'unsync',
+      syncFormUnsyncScope: 'projects',
+    });
+    const { lastFrame } = render(React.createElement(SyncScreen, { store }));
+    vi.runAllTimers();
+    const frame = lastFrame() || '';
+    expect(frame).toContain('Unsync from Projects');
   });
 
   it('renders SyncForm content', async () => {

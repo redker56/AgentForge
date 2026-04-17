@@ -14,9 +14,21 @@ import {
   formatAgentList,
   sortAgentNamesByPriority,
 } from '../app/cli-formatting.js';
-import { getAgentProjectSkillsDir, type Agent } from '../types.js';
+import {
+  ALL_SKILL_CATEGORY_FILTER,
+  UNCATEGORIZED_SKILL_CATEGORY_FILTER,
+  getSkillCategoryCounts,
+  getAgentProjectSkillsDir,
+  skillMatchesCategoryFilter,
+  type Agent,
+} from '../types.js';
 
 import type { CommandContext } from './index.js';
+
+interface ListOptions {
+  category?: string;
+  uncategorized?: boolean;
+}
 
 /**
  * Check if user-level skill matches Agent directory skill content
@@ -175,11 +187,22 @@ async function listProjects(ctx: CommandContext): Promise<void> {
   }
 }
 
-async function listSkills(ctx: CommandContext): Promise<void> {
+async function listSkills(ctx: CommandContext, options: ListOptions): Promise<void> {
+  if (options.category && options.uncategorized) {
+    console.error(chalk.red('Use either --category or --uncategorized, not both'));
+    process.exit(1);
+  }
+
   const list = ctx.skills
     .list()
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+  const filter = options.uncategorized
+    ? UNCATEGORIZED_SKILL_CATEGORY_FILTER
+    : options.category?.trim() || null;
+  const filteredList = filter
+    ? list.filter((skill) => skillMatchesCategoryFilter(skill, filter))
+    : list;
 
   if (list.length === 0) {
     console.log(chalk.yellow('\nNo skills yet'));
@@ -190,20 +213,40 @@ async function listSkills(ctx: CommandContext): Promise<void> {
     return;
   }
 
+  if (filteredList.length === 0) {
+    console.log(chalk.yellow('\nNo matching skills'));
+    if (options.uncategorized) {
+      console.log(chalk.dim('No skills are currently uncategorized'));
+    } else if (options.category) {
+      console.log(chalk.dim(`No skills found in category "${options.category}"`));
+    }
+    return;
+  }
+
   console.log(chalk.bold('\nSkill List\n'));
   console.log(chalk.dim('  User-level: Skills synced to Agents'));
   console.log(chalk.dim('  Project-level: Same-name skills in project directories'));
   console.log(chalk.dim('  Not synced: Not synced to any Agent\n'));
 
-  for (const s of list) {
+  if (options.category) {
+    console.log(chalk.dim(`  Filter: category = ${options.category}\n`));
+  } else if (options.uncategorized) {
+    console.log(chalk.dim('  Filter: uncategorized\n'));
+  }
+
+  for (const s of filteredList) {
     const meta = ctx.storage.getSkill(s.name);
     if (!meta) continue;
+    const categories = meta.categories ?? [];
 
     const exists = s.exists ? '📦' : '💔';
 
     // Source: only show git or local (not project)
     const sourceInfo = formatSourceLabel(meta.source);
     console.log(`${exists} ${chalk.cyan(s.name)} ${sourceInfo}`);
+    if (categories.length > 0) {
+      console.log(chalk.dim(`    Categories: ${categories.join(', ')}`));
+    }
 
     // User-level sync status (check actual content)
     const syncedTo = meta.syncedTo;
@@ -263,11 +306,31 @@ async function listSkills(ctx: CommandContext): Promise<void> {
   }
 }
 
+async function listCategories(ctx: CommandContext): Promise<void> {
+  const skills = ctx.skills.list();
+  const categoryCounts = getSkillCategoryCounts(skills);
+  const visibleCounts = categoryCounts.filter(
+    (entry) => entry.key !== ALL_SKILL_CATEGORY_FILTER
+  );
+
+  console.log(chalk.bold('\nCategory List\n'));
+  if (visibleCounts.length === 0) {
+    console.log(chalk.dim('  (none)'));
+    return;
+  }
+
+  for (const entry of visibleCounts) {
+    console.log(`  ${chalk.cyan(entry.label)} ${chalk.dim(`(${entry.count})`)}`);
+  }
+}
+
 export function register(program: Command, ctx: CommandContext): void {
   program
     .command('list <target>')
     .description('List resources (agents/projects/skills)')
-    .action(async (target: string) => {
+    .option('--category <name>', 'Filter skills by category')
+    .option('--uncategorized', 'Show only uncategorized skills')
+    .action(async (target: string, options: ListOptions) => {
       switch (target) {
         case 'agents':
           await listAgents(ctx);
@@ -276,11 +339,14 @@ export function register(program: Command, ctx: CommandContext): void {
           await listProjects(ctx);
           break;
         case 'skills':
-          await listSkills(ctx);
+          await listSkills(ctx, options);
+          break;
+        case 'categories':
+          await listCategories(ctx);
           break;
         default:
           console.error(chalk.red(`Invalid target: ${target}`));
-          console.log(chalk.dim('Available targets: agents, projects, skills'));
+          console.log(chalk.dim('Available targets: agents, projects, skills, categories'));
           console.log(chalk.dim('Example: af list agents'));
       }
     });

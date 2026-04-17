@@ -18,7 +18,7 @@ import { createProjectActions, type ProjectActions } from './actions/projectActi
 import { createSkillActions, type SkillActions } from './actions/skillActions.js';
 import { createSyncActions, type SyncActions } from './actions/syncActions.js';
 import { createDataSlice, type DataSlice, type ServiceContext } from './dataSlice.js';
-import { createUISlice, type UISlice, type TabId } from './uiSlice.js';
+import { createUISlice, type UISlice, type TabId, type UpdateResult } from './uiSlice.js';
 
 // SkillListItem extends SkillMeta with the 'exists' flag from SkillService.list()
 export type SkillListItem = SkillMeta & {
@@ -53,6 +53,7 @@ export function createAppStore(ctx: ServiceContext): StoreApi<AppStore> {
     // This satisfies the type checker during store creation.
     addSkillFromUrl: async (): Promise<void> => {},
     addSkillFromDiscovery: async (): Promise<void> => {},
+    categorizeSkills: async () => [],
     removeSkill: async (): Promise<void> => {},
     importFromProject: async (): Promise<void> => {},
     importFromAgent: async (): Promise<void> => {},
@@ -71,8 +72,7 @@ export function createAppStore(ctx: ServiceContext): StoreApi<AppStore> {
     syncSkillsToProjects: async (): Promise<void> => {},
     unsyncFromAgents: async (): Promise<void> => {},
     unsyncFromProjects: async (): Promise<void> => {},
-    updateSkill: async (): Promise<void> => {},
-    updateAllSkills: async (): Promise<void> => {},
+    updateSkills: async (): Promise<UpdateResult[]> => [],
     // Sprint 3: Restore actions (placeholders for undo system)
     restoreSkill: (): void => {},
     restoreAgent: (): void => {},

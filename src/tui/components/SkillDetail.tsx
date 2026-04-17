@@ -14,6 +14,7 @@ import type { StoreApi } from 'zustand';
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
+import { getFocusedVisibleSkill } from '../utils/skillsView.js';
 
 interface SkillDetailProps {
   store: StoreApi<AppStore>;
@@ -46,6 +47,10 @@ function blankLines(count: number, prefix: string): DetailLine[] {
   }));
 }
 
+function formatTimestamp(value?: string): string {
+  return value ?? 'Never';
+}
+
 export function SkillDetail({
   store,
   band,
@@ -53,9 +58,10 @@ export function SkillDetail({
 }: SkillDetailProps): React.ReactElement {
   const focusedIndex = useStore(store, (s) => s.focusedSkillIndex);
   const skills = useStore(store, (s) => s.skills);
+  const activeSkillCategoryFilter = useStore(store, (s) => s.activeSkillCategoryFilter);
   const skillDetails = useStore(store, (s) => s.skillDetails);
 
-  const focusedSkill = skills[focusedIndex] ?? null;
+  const focusedSkill = getFocusedVisibleSkill(skills, activeSkillCategoryFilter, focusedIndex);
   const detail = focusedSkill ? skillDetails[focusedSkill.name] : undefined;
 
   const panelWidth = Math.max(
@@ -112,7 +118,20 @@ export function SkillDetail({
     });
     lines.push({
       key: 'created',
-      text: truncateText(`Created: ${detail.createdAt}`, contentWidth),
+      text: truncateText(`Created: ${formatTimestamp(detail.createdAt)}`, contentWidth),
+      color: inkColors.secondary,
+    });
+    lines.push({
+      key: 'updated',
+      text: truncateText(`Updated: ${formatTimestamp(detail.updatedAt)}`, contentWidth),
+      color: inkColors.secondary,
+    });
+    lines.push({
+      key: 'categories',
+      text: truncateText(
+        `Categories: ${detail.categories.length > 0 ? detail.categories.join(', ') : '(none)'}`,
+        contentWidth
+      ),
       color: inkColors.secondary,
     });
     lines.push({ key: 'blank-1', text: ' ' });
@@ -199,7 +218,7 @@ export function SkillDetail({
 
   useEffect(() => {
     setScrollTop(0);
-  }, [focusedSkill?.name, detail?.createdAt, band]);
+  }, [focusedSkill?.name, detail?.createdAt, detail?.updatedAt, band]);
 
   const maxScroll = Math.max(detailLines.length - STANDARD_VISIBLE_LINES, 0);
 

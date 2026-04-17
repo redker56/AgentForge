@@ -27,8 +27,10 @@ const CONTEXT_HINTS: Record<TabId, HintSpec[]> = {
     { key: 's', label: 'Sync', priority: 5, category: 'utility' },
     { key: 'p', label: 'ProjSync', priority: 5, category: 'utility' },
     { key: 'u', label: 'Update', priority: 6, category: 'utility' },
-    { key: 'U', label: 'All', priority: 7, category: 'utility' },
+    { key: 'U', label: 'UpdateAll', priority: 7, category: 'utility' },
     { key: 'x', label: 'Unsync', priority: 8, category: 'utility' },
+    { key: 'c', label: 'Categorize', priority: 8, category: 'utility' },
+    { key: '[ ]', label: 'Category', priority: 9, category: 'utility' },
   ],
   agents: [
     { key: 'r', label: 'Remove', priority: 1, category: 'destructive' },

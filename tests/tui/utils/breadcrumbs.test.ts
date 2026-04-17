@@ -68,6 +68,15 @@ describe('deriveBreadcrumbs', () => {
     expect(result).toEqual(['Skills', 'Add Skill']);
   });
 
+  it('includes tab + Update when update form is active', () => {
+    const result = deriveBreadcrumbs(
+      makeState({
+        formState: { formType: 'updateSelected', data: {} },
+      })
+    );
+    expect(result).toEqual(['Skills', 'Update']);
+  });
+
   it('includes tab + Detail when detailOverlayVisible in standard band', () => {
     const result = deriveBreadcrumbs(
       makeState({
@@ -107,6 +116,16 @@ describe('deriveBreadcrumbs', () => {
       })
     );
     expect(result).toEqual(['Sync', 'Select Targets']);
+  });
+
+  it('includes unsync scope step label', () => {
+    const result = deriveBreadcrumbs(
+      makeState({
+        activeTab: 'sync',
+        syncFormStep: 'select-unsync-scope',
+      })
+    );
+    expect(result).toEqual(['Sync', 'Select Scope']);
   });
 
   it('includes import step name when importTabStep is past select-source-type', () => {

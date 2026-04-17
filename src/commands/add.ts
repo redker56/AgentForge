@@ -102,7 +102,12 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
         const sourceDir = skills[0].subPath
           ? path.join(tempRepoPath, skills[0].subPath)
           : tempRepoPath;
-        const skillName = await ctx.skills.installFromDirectory(repoUrl, skills[0].name, sourceDir);
+        const skillName = await ctx.skills.installFromDirectory(
+          repoUrl,
+          skills[0].name,
+          sourceDir,
+          skills[0].subPath
+        );
         console.log(chalk.green(`Installed: ${skillName}`));
         await postInstall(ctx, skillName);
         return;
@@ -122,7 +127,12 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
       for (const skill of selected) {
         try {
           const sourceDir = skill.subPath ? path.join(tempRepoPath, skill.subPath) : tempRepoPath;
-          const installed = await ctx.skills.installFromDirectory(repoUrl, skill.name, sourceDir);
+          const installed = await ctx.skills.installFromDirectory(
+            repoUrl,
+            skill.name,
+            sourceDir,
+            skill.subPath
+          );
           results.push(installed);
         } catch (e: unknown) {
           console.log(

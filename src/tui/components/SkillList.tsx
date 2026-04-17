@@ -13,6 +13,7 @@ import type { StoreApi } from 'zustand';
 import { useNavigation } from '../hooks/useNavigation.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, statusDots, renderFocusPrefix, selectionMarkers, emptyStateText } from '../theme.js';
+import { getVisibleFocusedSkillIndex, getVisibleSkills } from '../utils/skillsView.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
 
@@ -25,11 +26,18 @@ interface SkillListProps {
 export function SkillList({ store, columns }: SkillListProps): React.ReactElement {
   const skills = useStore(store, (s) => s.skills);
   const focusedIndex = useStore(store, (s) => s.focusedSkillIndex);
+  const activeSkillCategoryFilter = useStore(store, (s) => s.activeSkillCategoryFilter);
   const selectedNames = useStore(store, (s) => s.selectedSkillNames);
+  const visibleSkills = getVisibleSkills(skills, activeSkillCategoryFilter);
+  const visibleFocusedIndex = getVisibleFocusedSkillIndex(
+    skills,
+    activeSkillCategoryFilter,
+    focusedIndex
+  );
 
   const { visibleItems, scrollTop, hiddenAbove, hiddenBelow } = useNavigation({
-    items: skills,
-    focusedIndex,
+    items: visibleSkills,
+    focusedIndex: visibleFocusedIndex,
   });
 
   // When detail overlay is visible on standard band, subtract overlay rows from viewport
@@ -38,7 +46,7 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Text bold color={inkColors.accent}>
-        Skills <Text color={inkColors.muted}>({skills.length})</Text>
+        Skills <Text color={inkColors.muted}>({visibleSkills.length})</Text>
       </Text>
 
       {hiddenAbove > 0 && (
@@ -47,8 +55,10 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
 
       {visibleItems.map((skill, i) => {
         const actualIndex = scrollTop + i;
-        const isFocused = actualIndex === focusedIndex;
+        const isFocused = actualIndex === visibleFocusedIndex;
         const isSelected = selectedNames.has(skill.name);
+        const categoriesText =
+          skill.categories.length > 0 ? ` {${skill.categories.join(', ')}}` : '';
 
         // Status indicator - use modern dot style
         let statusDot: string;
@@ -92,6 +102,14 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
                 <Text color={sourceColor} backgroundColor={inkColors.focusBg}>
                   [{skill.source.type}]
                 </Text>
+                {categoriesText ? (
+                  <>
+                    <Text> </Text>
+                    <Text color={inkColors.info} backgroundColor={inkColors.focusBg}>
+                      {categoriesText}
+                    </Text>
+                  </>
+                ) : null}
                 <Text> </Text>
                 <Text color={statusColor} backgroundColor={inkColors.focusBg}>{statusDot}</Text>
               </>
@@ -110,6 +128,12 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
                 <Text color={sourceColor}>
                   [{skill.source.type}]
                 </Text>
+                {categoriesText ? (
+                  <>
+                    <Text> </Text>
+                    <Text color={inkColors.info}>{categoriesText}</Text>
+                  </>
+                ) : null}
                 <Text> </Text>
                 <Text color={statusColor}>{statusDot}</Text>
               </>
@@ -118,7 +142,7 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
         );
       })}
 
-      {skills.length === 0 && (
+      {visibleSkills.length === 0 && (
         <Text color={inkColors.muted}>{emptyStateText.skills}</Text>
       )}
 

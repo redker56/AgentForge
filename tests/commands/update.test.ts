@@ -27,8 +27,9 @@ describe('update command', () => {
   });
 
   it('updates a specific git skill and resyncs', async () => {
-    const update = vi.fn().mockResolvedValue(undefined);
+    const update = vi.fn().mockResolvedValue(true);
     const resync = vi.fn().mockResolvedValue(undefined);
+    const projectResync = vi.fn().mockResolvedValue(undefined);
 
     const program = new Command();
 
@@ -45,12 +46,16 @@ describe('update command', () => {
       sync: {
         resync,
       },
+      projectSync: {
+        resync: projectResync,
+      },
     } as never);
 
     await program.parseAsync(['update', 'git-skill'], { from: 'user' });
 
     expect(update).toHaveBeenCalledWith('git-skill');
     expect(resync).toHaveBeenCalledWith('git-skill');
+    expect(projectResync).toHaveBeenCalledWith('git-skill');
   });
 
   it('shows message for local skills', async () => {
@@ -67,6 +72,9 @@ describe('update command', () => {
         update: vi.fn(),
       },
       sync: {
+        resync: vi.fn(),
+      },
+      projectSync: {
         resync: vi.fn(),
       },
     } as never);
@@ -89,6 +97,9 @@ describe('update command', () => {
       sync: {
         resync: vi.fn(),
       },
+      projectSync: {
+        resync: vi.fn(),
+      },
     } as never);
 
     await expect(program.parseAsync(['update', 'unknown-skill'], { from: 'user' })).rejects.toThrow(
@@ -100,8 +111,9 @@ describe('update command', () => {
   });
 
   it('updates all git skills when no skill name specified', async () => {
-    const update = vi.fn().mockResolvedValue(undefined);
+    const update = vi.fn().mockResolvedValue(true);
     const resync = vi.fn().mockResolvedValue(undefined);
+    const projectResync = vi.fn().mockResolvedValue(undefined);
 
     const program = new Command();
 
@@ -124,6 +136,9 @@ describe('update command', () => {
       sync: {
         resync,
       },
+      projectSync: {
+        resync: projectResync,
+      },
     } as never);
 
     await program.parseAsync(['update'], { from: 'user' });
@@ -132,6 +147,8 @@ describe('update command', () => {
     expect(update).toHaveBeenCalledWith('git-skill-2');
     expect(resync).toHaveBeenCalledWith('git-skill-1');
     expect(resync).toHaveBeenCalledWith('git-skill-2');
+    expect(projectResync).toHaveBeenCalledWith('git-skill-1');
+    expect(projectResync).toHaveBeenCalledWith('git-skill-2');
   });
 
   it('shows message when no git skills available', async () => {
@@ -149,6 +166,9 @@ describe('update command', () => {
         update: vi.fn(),
       },
       sync: {
+        resync: vi.fn(),
+      },
+      projectSync: {
         resync: vi.fn(),
       },
     } as never);
@@ -169,6 +189,9 @@ describe('update command', () => {
       sync: {
         resync: vi.fn(),
       },
+      projectSync: {
+        resync: vi.fn(),
+      },
     } as never);
 
     await program.parseAsync(['update'], { from: 'user' });
@@ -177,8 +200,9 @@ describe('update command', () => {
   });
 
   it('filters out non-git skills when updating all', async () => {
-    const update = vi.fn().mockResolvedValue(undefined);
+    const update = vi.fn().mockResolvedValue(true);
     const resync = vi.fn().mockResolvedValue(undefined);
+    const projectResync = vi.fn().mockResolvedValue(undefined);
 
     const program = new Command();
 
@@ -206,6 +230,9 @@ describe('update command', () => {
       sync: {
         resync,
       },
+      projectSync: {
+        resync: projectResync,
+      },
     } as never);
 
     await program.parseAsync(['update'], { from: 'user' });
@@ -213,5 +240,6 @@ describe('update command', () => {
     expect(update).toHaveBeenCalledTimes(1);
     expect(update).toHaveBeenCalledWith('git-skill');
     expect(resync).toHaveBeenCalledTimes(1);
+    expect(projectResync).toHaveBeenCalledTimes(1);
   });
 });

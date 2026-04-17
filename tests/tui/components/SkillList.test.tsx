@@ -7,6 +7,8 @@ import { render, cleanup } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
+import { ALL_SKILL_CATEGORY_FILTER } from '../../../src/types.js';
+
 describe('SkillList', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -43,9 +45,30 @@ describe('SkillList', () => {
   });
 
   const mockSkills = [
-    { name: 'alpha', syncedTo: ['claude'], source: { type: 'git' as const }, exists: true, createdAt: '2025-01-01' },
-    { name: 'beta', syncedTo: [], source: { type: 'git' as const }, exists: true, createdAt: '2025-02-01' },
-    { name: 'gamma', syncedTo: ['codex'], source: { type: 'local' as const }, exists: true, createdAt: '2025-03-01' },
+    {
+      name: 'alpha',
+      syncedTo: ['claude'],
+      source: { type: 'git' as const },
+      exists: true,
+      createdAt: '2025-01-01',
+      categories: ['research'],
+    },
+    {
+      name: 'beta',
+      syncedTo: [],
+      source: { type: 'git' as const },
+      exists: true,
+      createdAt: '2025-02-01',
+      categories: [],
+    },
+    {
+      name: 'gamma',
+      syncedTo: ['codex'],
+      source: { type: 'local' as const },
+      exists: true,
+      createdAt: '2025-03-01',
+      categories: ['writing'],
+    },
   ];
 
   function makeMockStore(overrides?: Partial<Record<string, unknown>>) {
@@ -53,6 +76,7 @@ describe('SkillList', () => {
     const state = {
       skills: mockSkills,
       focusedSkillIndex: 0,
+      activeSkillCategoryFilter: ALL_SKILL_CATEGORY_FILTER,
       selectedSkillNames: new Set<string>(),
       detailOverlayVisible: false,
       skillDetails: {},

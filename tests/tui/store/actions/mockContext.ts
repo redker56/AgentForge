@@ -28,6 +28,15 @@ export function createMockServiceContext(): ServiceContext {
       discoverSkillsInDirectory: vi.fn(() => []),
       removeTempRepo: vi.fn(),
       update: vi.fn(),
+      updateCategories: vi.fn((name: string, categories: string[]) => ({
+        name,
+        source: { type: 'local' as const },
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+        categories,
+        syncedTo: [],
+        syncedProjects: [],
+      })),
     },
     scanService: {
       getSkillProjectDistributionWithStatus: vi.fn(async () => []),
@@ -42,6 +51,7 @@ export function createMockServiceContext(): ServiceContext {
       getProject: vi.fn(() => undefined),
       getSkill: vi.fn(() => undefined),
       listSkills: vi.fn(() => []),
+      saveSkill: vi.fn(),
       addAgent: vi.fn(),
       removeAgent: vi.fn(() => true),
       addProject: vi.fn(),
@@ -61,6 +71,7 @@ export function createMockServiceContext(): ServiceContext {
     },
     projectSyncService: {
       unsync: vi.fn(),
+      unsyncFromProject: vi.fn(),
       syncToProject: vi.fn(async () => []),
       resync: vi.fn(),
       detectAgentTypes: vi.fn(() => []),
@@ -86,7 +97,10 @@ export function createMockSkill(overrides: Partial<SkillMeta> = {}): SkillMeta {
     name: 'test-skill',
     source: { type: 'local' },
     createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+    categories: [],
     syncedTo: [],
+    syncedProjects: [],
     ...overrides,
   };
 }

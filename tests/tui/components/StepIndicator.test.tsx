@@ -36,11 +36,12 @@ describe('StepIndicator', () => {
     expect(output).toContain('Step Z');
   });
 
-  it('shows 6 steps for sync-agents operation', () => {
-    const steps = ['Select Operation', 'Select Skills', 'Select Targets', 'Confirm', 'Executing', 'Results'];
+  it('shows 7 steps for sync-agents operation', () => {
+    const steps = ['Select Operation', 'Select Skills', 'Select Targets', 'Select Mode', 'Confirm', 'Executing', 'Results'];
     const { lastFrame } = render(<StepIndicator steps={steps} currentStep={0} />);
     const output = lastFrame();
-    expect(output?.split('\n').filter(l => l.trim().length > 0).length).toBe(6);
+    expect(output).toContain('Select Mode');
+    expect(output?.split('\n').filter(l => l.trim().length > 0).length).toBe(7);
   });
 
   it('shows 8 steps for sync-projects operation', () => {
@@ -50,11 +51,11 @@ describe('StepIndicator', () => {
     expect(output?.split('\n').filter(l => l.trim().length > 0).length).toBe(8);
   });
 
-  it('shows 6 steps for unsync operation', () => {
-    const steps = ['Select Operation', 'Select Skills', 'Select Targets', 'Confirm', 'Executing', 'Results'];
+  it('shows 8 steps for project unsync operation', () => {
+    const steps = ['Select Operation', 'Select Skills', 'Select Scope', 'Select Targets', 'Select Unsync Mode', 'Confirm', 'Executing', 'Results'];
     const { lastFrame } = render(<StepIndicator steps={steps} currentStep={0} />);
     const output = lastFrame();
-    expect(output?.split('\n').filter(l => l.trim().length > 0).length).toBe(6);
+    expect(output?.split('\n').filter(l => l.trim().length > 0).length).toBe(8);
   });
 
   it('respects custom width prop', () => {

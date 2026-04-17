@@ -3,7 +3,13 @@ import path from 'path';
 
 import { describe, expect, it } from 'vitest';
 
-import { BUILTIN_AGENTS, getAgentProjectSkillsRelativePath } from '../src/types.js';
+import {
+  ALL_SKILL_CATEGORY_FILTER,
+  UNCATEGORIZED_SKILL_CATEGORY_FILTER,
+  BUILTIN_AGENTS,
+  getAgentProjectSkillsRelativePath,
+  getSkillCategoryCounts,
+} from '../src/types.js';
 
 describe('BUILTIN_AGENTS', () => {
   it('uses the correct OpenClaw user-level skills path', () => {
@@ -38,5 +44,20 @@ describe('BUILTIN_AGENTS', () => {
 
   it('falls back to the Agent ID when a custom project directory name is not provided', () => {
     expect(getAgentProjectSkillsRelativePath({ id: 'custom-agent' })).toBe('.custom-agent/skills');
+  });
+
+  it('places Uncategorized after concrete categories in category counts', () => {
+    const counts = getSkillCategoryCounts([
+      { categories: ['用户级'] },
+      { categories: ['文档'] },
+      { categories: [] },
+    ]);
+
+    expect(counts.map((entry) => entry.key)).toEqual([
+      ALL_SKILL_CATEGORY_FILTER,
+      '文档',
+      '用户级',
+      UNCATEGORIZED_SKILL_CATEGORY_FILTER,
+    ]);
   });
 });

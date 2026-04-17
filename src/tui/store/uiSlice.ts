@@ -4,7 +4,17 @@
 
 import type { StateCreator } from 'zustand';
 
-import type { SyncMode } from '../../types.js';
+import {
+  ALL_SKILL_CATEGORY_FILTER,
+  type SkillCategoryFilter,
+  type SyncMode,
+  getSkillCategoryCounts,
+} from '../../types.js';
+import {
+  getClampedFocusedSkillIndex,
+  getVisibleSkillIndices,
+  resolveNextSkillCategoryFilter,
+} from '../utils/skillsView.js';
 
 export type TabId = 'skills' | 'agents' | 'projects' | 'sync' | 'import';
 
@@ -15,7 +25,9 @@ export type SyncOperation = 'sync-agents' | 'sync-projects' | 'unsync';
 export type SyncFormStep =
   | 'select-op'
   | 'select-skills'
+  | 'select-unsync-scope'
   | 'select-targets'
+  | 'select-unsync-project-mode'
   | 'select-agent-types'
   | 'select-mode'
   | 'confirm'
@@ -36,9 +48,25 @@ export interface OperationResult {
   target: string;
   success: boolean;
   error?: string;
+  outcome?: 'success' | 'error' | 'skipped';
 }
 
-export type FormType = 'addSkill' | 'addAgent' | 'addProject' | 'importProject' | 'importAgent';
+export interface UpdateResult {
+  skillName: string;
+  sourceType: 'git' | 'local' | 'project' | 'unknown';
+  outcome: 'updated' | 'skipped' | 'error';
+  detail?: string;
+}
+
+export type FormType =
+  | 'addSkill'
+  | 'addAgent'
+  | 'addProject'
+  | 'importProject'
+  | 'importAgent'
+  | 'categorizeSkills'
+  | 'updateSelected'
+  | 'updateAllGit';
 
 export interface ConfirmState {
   title: string;
@@ -96,6 +124,7 @@ export interface UISlice {
   focusedSkillIndex: number;
   selectedSkillNames: Set<string>;
   searchQuery: string;
+  activeSkillCategoryFilter: SkillCategoryFilter;
   progressItems: ProgressItem[];
   detailOverlayVisible: boolean;
   widthBand: 'compact' | 'standard' | 'widescreen' | 'warning';
@@ -124,8 +153,11 @@ export interface UISlice {
   syncFormStep: SyncFormStep;
   syncFormOperation: SyncOperation | null;
   syncFormSelectedSkillNames: Set<string>;
+  syncFormUnsyncScope: 'agents' | 'projects' | null;
   syncFormSelectedTargetIds: Set<string>;
+  syncFormProjectUnsyncMode: 'all' | 'specific' | null;
   syncFormSelectedAgentTypes: Set<string>;
+  syncFormLoadingTargets: boolean;
   syncFormMode: SyncMode;
   syncFormResults: OperationResult[];
   syncFormFocusedIndex: number;
@@ -169,6 +201,8 @@ export interface UISlice {
   clearSelection: () => void;
   selectAllSkills: (allNames: string[]) => void;
   setSearchQuery: (query: string) => void;
+  setActiveSkillCategoryFilter: (filter: SkillCategoryFilter) => void;
+  cycleSkillCategoryFilter: (direction: -1 | 1) => void;
   moveFocusUp: () => void;
   moveFocusDown: (listLength: number) => void;
 
@@ -195,10 +229,13 @@ export interface UISlice {
   setSyncFormOperation: (op: SyncOperation | null) => void;
   setSyncFormSelectedSkillNames: (names: Set<string>) => void;
   toggleSyncFormSkill: (name: string) => void;
+  setSyncFormUnsyncScope: (scope: 'agents' | 'projects' | null) => void;
   setSyncFormSelectedTargetIds: (ids: Set<string>) => void;
   toggleSyncFormTarget: (id: string) => void;
+  setSyncFormProjectUnsyncMode: (mode: 'all' | 'specific' | null) => void;
   setSyncFormSelectedAgentTypes: (types: Set<string>) => void;
   toggleSyncFormAgentType: (type: string) => void;
+  setSyncFormLoadingTargets: (loading: boolean) => void;
   setSyncFormMode: (mode: SyncMode) => void;
   setSyncFormResults: (results: OperationResult[]) => void;
   setSyncFormFocusedIndex: (index: number) => void;
@@ -265,6 +302,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
   focusedSkillIndex: 0,
   selectedSkillNames: new Set(),
   searchQuery: '',
+  activeSkillCategoryFilter: ALL_SKILL_CATEGORY_FILTER,
   progressItems: [],
 
   // Agent tab state
@@ -289,8 +327,11 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
   syncFormStep: 'select-op',
   syncFormOperation: 'sync-agents',
   syncFormSelectedSkillNames: new Set(),
+  syncFormUnsyncScope: null,
   syncFormSelectedTargetIds: new Set(),
+  syncFormProjectUnsyncMode: null,
   syncFormSelectedAgentTypes: new Set(),
+  syncFormLoadingTargets: false,
   syncFormMode: 'copy',
   syncFormResults: [],
   syncFormFocusedIndex: 0,
@@ -359,13 +400,56 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
   clearSelection: () => set({ selectedSkillNames: new Set() }),
   selectAllSkills: (allNames) => set({ selectedSkillNames: new Set(allNames) }),
   setSearchQuery: (query) => set({ searchQuery: query }),
-  moveFocusUp: (): void => {
-    const idx = get().focusedSkillIndex;
-    if (idx > 0) set({ focusedSkillIndex: idx - 1 });
+  setActiveSkillCategoryFilter: (filter): void => {
+    const skills = get().skills;
+    set({
+      activeSkillCategoryFilter: filter,
+      focusedSkillIndex: getClampedFocusedSkillIndex(skills, filter, get().focusedSkillIndex),
+      selectedSkillNames: new Set(),
+    });
   },
-  moveFocusDown: (listLength): void => {
-    const idx = get().focusedSkillIndex;
-    if (idx < listLength - 1) set({ focusedSkillIndex: idx + 1 });
+  cycleSkillCategoryFilter: (direction): void => {
+    const skills = get().skills;
+    const categories = getSkillCategoryCounts(skills).map((entry) => entry.key);
+    const nextFilter = resolveNextSkillCategoryFilter(
+      categories,
+      get().activeSkillCategoryFilter,
+      direction
+    );
+
+    set({
+      activeSkillCategoryFilter: nextFilter,
+      focusedSkillIndex: getClampedFocusedSkillIndex(skills, nextFilter, get().focusedSkillIndex),
+      selectedSkillNames: new Set(),
+    });
+  },
+  moveFocusUp: (): void => {
+    const visibleIndices = getVisibleSkillIndices(
+      get().skills,
+      get().activeSkillCategoryFilter
+    );
+    if (visibleIndices.length === 0) return;
+
+    const currentVisibleIndex = visibleIndices.indexOf(
+      getClampedFocusedSkillIndex(get().skills, get().activeSkillCategoryFilter, get().focusedSkillIndex)
+    );
+    if (currentVisibleIndex > 0) {
+      set({ focusedSkillIndex: visibleIndices[currentVisibleIndex - 1] });
+    }
+  },
+  moveFocusDown: (_listLength): void => {
+    const visibleIndices = getVisibleSkillIndices(
+      get().skills,
+      get().activeSkillCategoryFilter
+    );
+    if (visibleIndices.length === 0) return;
+
+    const currentVisibleIndex = visibleIndices.indexOf(
+      getClampedFocusedSkillIndex(get().skills, get().activeSkillCategoryFilter, get().focusedSkillIndex)
+    );
+    if (currentVisibleIndex < visibleIndices.length - 1) {
+      set({ focusedSkillIndex: visibleIndices[currentVisibleIndex + 1] });
+    }
   },
 
   // Agent actions
@@ -418,6 +502,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
     else next.add(name);
     set({ syncFormSelectedSkillNames: next });
   },
+  setSyncFormUnsyncScope: (scope) => set({ syncFormUnsyncScope: scope }),
   setSyncFormSelectedTargetIds: (ids) => set({ syncFormSelectedTargetIds: ids }),
   toggleSyncFormTarget: (id): void => {
     const next = new Set(get().syncFormSelectedTargetIds);
@@ -425,6 +510,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
     else next.add(id);
     set({ syncFormSelectedTargetIds: next });
   },
+  setSyncFormProjectUnsyncMode: (mode) => set({ syncFormProjectUnsyncMode: mode }),
   setSyncFormSelectedAgentTypes: (types) => set({ syncFormSelectedAgentTypes: types }),
   toggleSyncFormAgentType: (type): void => {
     const next = new Set(get().syncFormSelectedAgentTypes);
@@ -432,6 +518,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
     else next.add(type);
     set({ syncFormSelectedAgentTypes: next });
   },
+  setSyncFormLoadingTargets: (loading) => set({ syncFormLoadingTargets: loading }),
   setSyncFormMode: (mode) => set({ syncFormMode: mode }),
   setSyncFormResults: (results) => set({ syncFormResults: results }),
   setSyncFormFocusedIndex: (index) => set({ syncFormFocusedIndex: index }),
@@ -440,8 +527,11 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
       syncFormStep: 'select-op',
       syncFormOperation: 'sync-agents',
       syncFormSelectedSkillNames: new Set(),
+      syncFormUnsyncScope: null,
       syncFormSelectedTargetIds: new Set(),
+      syncFormProjectUnsyncMode: null,
       syncFormSelectedAgentTypes: new Set(),
+      syncFormLoadingTargets: false,
       syncFormMode: 'copy' as SyncMode,
       syncFormResults: [],
       syncFormFocusedIndex: 0,

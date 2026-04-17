@@ -107,6 +107,7 @@ function showSkill(ctx: CommandContext, skillName: string): void {
 
   const meta = ctx.storage.getSkill(skillName);
   if (!meta) return;
+  const categories = meta.categories ?? [];
 
   console.log(chalk.bold(`\n${skillName}\n`));
   console.log(chalk.dim(`Path: ${skill.path}`));
@@ -119,6 +120,11 @@ function showSkill(ctx: CommandContext, skillName: string): void {
   } else if (meta.source.type === 'project') {
     console.log(chalk.dim(`  From project: ${meta.source.projectId}`));
   }
+  console.log(chalk.dim(`  Created: ${meta.createdAt}`));
+  console.log(chalk.dim(`  Updated: ${meta.updatedAt ?? 'Never'}`));
+  console.log(
+    chalk.dim(`  Categories: ${categories.length > 0 ? categories.join(', ') : '(none)'}`)
+  );
 
   // Sync status
   console.log(chalk.dim('\nSynced to:'));
