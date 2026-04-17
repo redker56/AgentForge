@@ -10,9 +10,9 @@ A CLI for managing and syncing skills across Claude Code, Codex, Gemini CLI, Ope
 
 ## Requirements
 
-- Node.js 18 or newer
+- Node.js 20 or newer
 - `git` available in `PATH`
-- CI currently covers Ubuntu and Windows on Node 18 / 20 / 22
+- CI currently covers Ubuntu and Windows on Node 20 / 22
 
 ## Installation
 

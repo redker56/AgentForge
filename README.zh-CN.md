@@ -10,9 +10,9 @@
 
 ## 依赖要求
 
-- Node.js 18 或更高版本
+- Node.js 20 或更高版本
 - 系统 `PATH` 中可用的 `git`
-- 当前 CI 覆盖 Ubuntu 和 Windows，Node 18 / 20 / 22
+- 当前 CI 覆盖 Ubuntu 和 Windows，Node 20 / 22
 
 ## 安装
 
