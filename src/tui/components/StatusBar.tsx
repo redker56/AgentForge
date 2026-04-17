@@ -37,13 +37,13 @@ const CONTEXT_HINTS: Record<TabId, HintSpec[]> = {
   agents: [
     { key: 'r', label: 'Remove', priority: 1, category: 'destructive' },
     { key: 'a', label: 'Add', priority: 3, category: 'creation' },
-    { key: 'Enter', label: 'Expand', priority: 10, category: 'utility' },
+    { key: 'Enter', label: 'Open', priority: 10, category: 'utility' },
   ],
   projects: [
     { key: 'r', label: 'Remove', priority: 1, category: 'destructive' },
     { key: 'a', label: 'Add', priority: 3, category: 'creation' },
     { key: 'i', label: 'Import', priority: 4, category: 'creation' },
-    { key: 'Enter', label: 'Expand', priority: 10, category: 'utility' },
+    { key: 'Enter', label: 'Open', priority: 10, category: 'utility' },
   ],
   sync: [
     { key: 'Space', label: 'Toggle', priority: 5, category: 'utility' },
@@ -155,16 +155,55 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
   const agentsCount = useStore(store, (s) => s.agents.length);
   const projectsCount = useStore(store, (s) => s.projects.length);
   const activeTab = useStore(store, (s) => s.activeTab);
-  const selectedSkillNames = useStore(store, (s) => s.selectedSkillNames);
+  const selectedSkillNames = useStore(store, (s) => s.selectedSkillNames) ?? new Set<string>();
+  const selectedAgentSkillRowIds =
+    useStore(store, (s) => s.selectedAgentSkillRowIds) ?? new Set<string>();
+  const selectedProjectSkillRowIds =
+    useStore(store, (s) => s.selectedProjectSkillRowIds) ?? new Set<string>();
+  const agentViewMode = useStore(store, (s) => s.agentViewMode) ?? 'master';
+  const projectViewMode = useStore(store, (s) => s.projectViewMode) ?? 'master';
   const detailOverlayVisible = useStore(store, (s) => s.detailOverlayVisible);
   const undoActive = useStore(store, (s) => s.undoActive);
   const undoBuffer = useStore(store, (s) => s.undoBuffer);
   const activeToast = useStore(store, (s) => s.activeToast);
-  const selectedCount = selectedSkillNames.size > 0 && activeTab === 'skills' ? selectedSkillNames.size : 0;
+  const selectedCount =
+    activeTab === 'skills'
+      ? selectedSkillNames.size
+      : activeTab === 'agents' && agentViewMode === 'skills'
+        ? selectedAgentSkillRowIds.size
+        : activeTab === 'projects' && projectViewMode === 'skills'
+          ? selectedProjectSkillRowIds.size
+          : 0;
 
   let contextHints = CONTEXT_HINTS[activeTab];
 
-  if (detailOverlayVisible && activeTab === 'skills') {
+  if (activeTab === 'agents' && agentViewMode === 'skills') {
+    contextHints = [
+      { key: 'Space', label: 'Toggle', priority: 3, category: 'utility' },
+      { key: 'Enter', label: 'Detail', priority: 4, category: 'utility' },
+      { key: 'i', label: 'Import', priority: 5, category: 'creation' },
+      { key: 'x', label: 'Unsync', priority: 6, category: 'utility' },
+      { key: 'u', label: 'Update', priority: 7, category: 'utility' },
+      { key: 'c', label: 'Categorize', priority: 8, category: 'utility' },
+      { key: '[ ]', label: 'Browse', priority: 9, category: 'utility' },
+      { key: 'Esc', label: 'Back', priority: 10, category: 'utility' },
+    ];
+  }
+
+  if (activeTab === 'projects' && projectViewMode === 'skills') {
+    contextHints = [
+      { key: 'Space', label: 'Toggle', priority: 3, category: 'utility' },
+      { key: 'Enter', label: 'Detail', priority: 4, category: 'utility' },
+      { key: 'i', label: 'Import', priority: 5, category: 'creation' },
+      { key: 'x', label: 'Unsync', priority: 6, category: 'utility' },
+      { key: 'u', label: 'Update', priority: 7, category: 'utility' },
+      { key: 'c', label: 'Categorize', priority: 8, category: 'utility' },
+      { key: '[ ]', label: 'Browse', priority: 9, category: 'utility' },
+      { key: 'Esc', label: 'Back', priority: 10, category: 'utility' },
+    ];
+  }
+
+  if (detailOverlayVisible) {
     contextHints = [
       { key: 'Esc', label: 'Back', priority: 0, category: 'utility' as const },
       ...contextHints,

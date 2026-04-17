@@ -15,6 +15,7 @@ import {
   getVisibleSkillIndices,
   resolveNextSkillCategoryFilter,
 } from '../utils/skillsView.js';
+import type { ContextSkillFilter } from '../contextTypes.js';
 
 export type TabId = 'skills' | 'agents' | 'projects' | 'sync' | 'import';
 
@@ -64,6 +65,7 @@ export type FormType =
   | 'addProject'
   | 'importProject'
   | 'importAgent'
+  | 'importContextSkills'
   | 'categorizeSkills'
   | 'updateSelected'
   | 'updateAllGit';
@@ -130,14 +132,21 @@ export interface UISlice {
   widthBand: 'compact' | 'standard' | 'widescreen' | 'warning';
   formDirty: boolean;
   breadcrumbSegments: string[];
+  detailSkillName: string | null;
 
   // Agent tab state
   focusedAgentIndex: number;
-  expandedAgentIds: Set<string>;
+  agentViewMode: 'master' | 'skills';
+  focusedAgentSkillIndex: number;
+  selectedAgentSkillRowIds: Set<string>;
+  activeAgentSkillFilter: ContextSkillFilter;
 
   // Project tab state
   focusedProjectIndex: number;
-  expandedProjectIds: Set<string>;
+  projectViewMode: 'master' | 'skills';
+  focusedProjectSkillIndex: number;
+  selectedProjectSkillRowIds: Set<string>;
+  activeProjectSkillFilter: ContextSkillFilter;
 
   // Overlay state
   showSearch: boolean;
@@ -208,11 +217,19 @@ export interface UISlice {
 
   // Agent actions
   setFocusedAgentIndex: (index: number) => void;
-  toggleAgentExpanded: (agentId: string) => void;
+  setAgentViewMode: (mode: 'master' | 'skills') => void;
+  setFocusedAgentSkillIndex: (index: number) => void;
+  toggleAgentSkillSelection: (rowId: string) => void;
+  clearAgentSkillSelection: () => void;
+  setActiveAgentSkillFilter: (filter: ContextSkillFilter) => void;
 
   // Project actions
   setFocusedProjectIndex: (index: number) => void;
-  toggleProjectExpanded: (projectId: string) => void;
+  setProjectViewMode: (mode: 'master' | 'skills') => void;
+  setFocusedProjectSkillIndex: (index: number) => void;
+  toggleProjectSkillSelection: (rowId: string) => void;
+  clearProjectSkillSelection: () => void;
+  setActiveProjectSkillFilter: (filter: ContextSkillFilter) => void;
 
   // Overlay actions
   setShowSearch: (show: boolean) => void;
@@ -279,6 +296,7 @@ export interface UISlice {
 
   // Sprint 1: responsive detail overlay + width band
   setDetailOverlayVisible: (visible: boolean) => void;
+  setDetailSkillName: (skillName: string | null) => void;
   setWidthBand: (band: 'compact' | 'standard' | 'widescreen' | 'warning') => void;
   setFormDirty: (dirty: boolean) => void;
 }
@@ -304,14 +322,21 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
   searchQuery: '',
   activeSkillCategoryFilter: ALL_SKILL_CATEGORY_FILTER,
   progressItems: [],
+  detailSkillName: null,
 
   // Agent tab state
   focusedAgentIndex: 0,
-  expandedAgentIds: new Set(),
+  agentViewMode: 'master',
+  focusedAgentSkillIndex: 0,
+  selectedAgentSkillRowIds: new Set(),
+  activeAgentSkillFilter: 'all',
 
   // Project tab state
   focusedProjectIndex: 0,
-  expandedProjectIds: new Set(),
+  projectViewMode: 'master',
+  focusedProjectSkillIndex: 0,
+  selectedProjectSkillRowIds: new Set(),
+  activeProjectSkillFilter: 'all',
 
   // Overlay state
   showSearch: false,
@@ -381,14 +406,21 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
       selectedSkillNames: new Set(),
       // Reset agent/project focus when switching tabs
       focusedAgentIndex: 0,
-      expandedAgentIds: new Set(),
+      agentViewMode: 'master',
+      focusedAgentSkillIndex: 0,
+      selectedAgentSkillRowIds: new Set(),
+      activeAgentSkillFilter: 'all',
       focusedProjectIndex: 0,
-      expandedProjectIds: new Set(),
+      projectViewMode: 'master',
+      focusedProjectSkillIndex: 0,
+      selectedProjectSkillRowIds: new Set(),
+      activeProjectSkillFilter: 'all',
       // Clear overlay states on tab switch
       confirmState: null,
       formState: null,
       conflictState: null,
       detailOverlayVisible: false,
+      detailSkillName: null,
     }),
   setFocusedSkillIndex: (index) => set({ focusedSkillIndex: index }),
   toggleSkillSelection: (name): void => {
@@ -454,21 +486,39 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
 
   // Agent actions
   setFocusedAgentIndex: (index) => set({ focusedAgentIndex: index }),
-  toggleAgentExpanded: (agentId): void => {
-    const next = new Set(get().expandedAgentIds);
-    if (next.has(agentId)) next.delete(agentId);
-    else next.add(agentId);
-    set({ expandedAgentIds: next });
+  setAgentViewMode: (mode) => set({ agentViewMode: mode }),
+  setFocusedAgentSkillIndex: (index) => set({ focusedAgentSkillIndex: index }),
+  toggleAgentSkillSelection: (rowId): void => {
+    const next = new Set(get().selectedAgentSkillRowIds);
+    if (next.has(rowId)) next.delete(rowId);
+    else next.add(rowId);
+    set({ selectedAgentSkillRowIds: next });
   },
+  clearAgentSkillSelection: () => set({ selectedAgentSkillRowIds: new Set() }),
+  setActiveAgentSkillFilter: (filter) =>
+    set({
+      activeAgentSkillFilter: filter,
+      focusedAgentSkillIndex: 0,
+      selectedAgentSkillRowIds: new Set(),
+    }),
 
   // Project actions
   setFocusedProjectIndex: (index) => set({ focusedProjectIndex: index }),
-  toggleProjectExpanded: (projectId): void => {
-    const next = new Set(get().expandedProjectIds);
-    if (next.has(projectId)) next.delete(projectId);
-    else next.add(projectId);
-    set({ expandedProjectIds: next });
+  setProjectViewMode: (mode) => set({ projectViewMode: mode }),
+  setFocusedProjectSkillIndex: (index) => set({ focusedProjectSkillIndex: index }),
+  toggleProjectSkillSelection: (rowId): void => {
+    const next = new Set(get().selectedProjectSkillRowIds);
+    if (next.has(rowId)) next.delete(rowId);
+    else next.add(rowId);
+    set({ selectedProjectSkillRowIds: next });
   },
+  clearProjectSkillSelection: () => set({ selectedProjectSkillRowIds: new Set() }),
+  setActiveProjectSkillFilter: (filter) =>
+    set({
+      activeProjectSkillFilter: filter,
+      focusedProjectSkillIndex: 0,
+      selectedProjectSkillRowIds: new Set(),
+    }),
 
   // Overlay actions (mutually exclusive with each other)
   setShowSearch: (show) =>
@@ -590,22 +640,30 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
   setTabSwitchPending: (tab) => set({ tabSwitchPending: tab }),
   setDirtyConfirmActive: (active) => set({ dirtyConfirmActive: active }),
 
-  setDetailOverlayVisible: (visible): void => set({ detailOverlayVisible: visible }),
+  setDetailOverlayVisible: (visible): void =>
+    set({
+      detailOverlayVisible: visible,
+      detailSkillName: visible ? get().detailSkillName : null,
+    }),
+  setDetailSkillName: (skillName): void => set({ detailSkillName: skillName }),
 
   setWidthBand: (band): void => {
     const updates: {
       widthBand: 'compact' | 'standard' | 'widescreen' | 'warning';
       detailOverlayVisible?: boolean;
+      detailSkillName?: string | null;
     } = {
       widthBand: band,
     };
     // Detail overlay cannot persist at compact or warning widths
     if (band === 'compact' || band === 'warning') {
       updates.detailOverlayVisible = false;
+      updates.detailSkillName = null;
     }
     // In widescreen, detail is always shown inline in split-pane; clear overlay
     if (band === 'widescreen') {
       updates.detailOverlayVisible = false;
+      updates.detailSkillName = null;
     }
     set(updates);
   },

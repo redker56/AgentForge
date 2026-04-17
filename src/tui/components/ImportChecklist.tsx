@@ -20,6 +20,13 @@ interface ImportChecklistProps {
   columns?: number;
 }
 
+function truncateText(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) return '';
+  if (text.length <= maxWidth) return text;
+  if (maxWidth <= 3) return text.slice(0, maxWidth);
+  return `${text.slice(0, maxWidth - 3)}...`;
+}
+
 /**
  * Checklist preview for import workflow.
  * Shows discovered skills with paths, already-imported markers, and [+]/[ ] toggles.
@@ -27,8 +34,8 @@ interface ImportChecklistProps {
 export function ImportChecklist({
   skills,
   selected,
-  focusedIndex,
   onToggle: _onToggle,
+  focusedIndex,
   onUp: _onUp,
   onDown: _onDown,
   columns = 80,
@@ -44,27 +51,25 @@ export function ImportChecklist({
         const isAlreadyImported = skill.alreadyExists;
 
         const prefix = renderFocusPrefix(isFocused);
-        let checkbox: string;
-        if (isAlreadyImported) {
-          checkbox = '[IMPORTED]';
-        } else {
-          checkbox = isSelected ? selectionMarkers.selected : selectionMarkers.unselected;
-        }
+        const checkbox = isAlreadyImported
+          ? '[IMPORTED]'
+          : isSelected
+            ? selectionMarkers.selected
+            : selectionMarkers.unselected;
 
         const availableWidth = columns - prefix.length - checkbox.length - 1;
         const namePart = skill.name;
         const pathWidth = Math.max(10, availableWidth - namePart.length);
         const pathPart =
           skill.path.length > pathWidth
-            ? '...' + skill.path.slice(skill.path.length - pathWidth + 3)
+            ? `...${skill.path.slice(skill.path.length - pathWidth + 3)}`
             : skill.path;
-
-        let rowContent: string;
-        if (isAlreadyImported) {
-          rowContent = `${checkbox} ${namePart}    ${pathPart}`;
-        } else {
-          rowContent = `${checkbox} ${namePart}    ${pathPart}`;
-        }
+        const rowContent = `${checkbox} ${namePart}    ${pathPart}`;
+        const totalWidth = Math.max(columns - prefix.length - 1, 12);
+        const suffix = isAlreadyImported ? ' (already imported)' : '';
+        const displayContent = suffix
+          ? `${truncateText(rowContent, Math.max(totalWidth - suffix.length, 8))}${suffix}`
+          : truncateText(rowContent, totalWidth);
 
         if (isAlreadyImported) {
           return (
@@ -72,34 +77,22 @@ export function ImportChecklist({
               <Box width={prefix.length}>
                 <Text>{prefix}</Text>
               </Box>
-              <Text dimColor>
-                {rowContent} (already imported)
-              </Text>
+              <Text dimColor>{displayContent}</Text>
             </Box>
           );
         }
 
         return (
           <Box key={skill.name}>
-            {isFocused ? (
-              <Box width={prefix.length}>
-                <Text color={inkColors.accent}>{prefix}</Text>
-              </Box>
-            ) : (
-              <Box width={prefix.length}>
-                <Text>{prefix}</Text>
-              </Box>
-            )}
-            {isSelected ? (
-              <Text color={inkColors.success}>{rowContent}</Text>
-            ) : (
-              <Text>{rowContent}</Text>
-            )}
+            <Box width={prefix.length}>
+              <Text color={isFocused ? inkColors.accent : undefined}>{prefix}</Text>
+            </Box>
+            <Text color={isSelected ? inkColors.success : undefined}>{displayContent}</Text>
           </Box>
         );
       })}
       <Box marginTop={1}>
-        <Text dimColor>Space: toggle │ ↑↓: navigate │ Enter: confirm</Text>
+        <Text dimColor>{truncateText('Space: toggle | Up/Down: navigate | Enter: confirm', columns - 2)}</Text>
       </Box>
     </Box>
   );

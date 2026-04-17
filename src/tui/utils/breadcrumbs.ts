@@ -34,6 +34,7 @@ const FORM_LABELS: Record<FormType, string> = {
   addProject: 'Add Project',
   importProject: 'Import',
   importAgent: 'Import',
+  importContextSkills: 'Import',
   categorizeSkills: 'Categorize',
   updateSelected: 'Update',
   updateAllGit: 'Update',
@@ -103,8 +104,11 @@ export function deriveBreadcrumbs(state: BreadcrumbState): string[] {
     hasOverlay = true;
   }
 
-  // Detail overlay (only in standard band)
-  if (state.detailOverlayVisible && state.widthBand === 'standard') {
+  // Detail overlay
+  if (
+    state.detailOverlayVisible
+    && (state.widthBand !== 'widescreen' || state.activeTab !== 'skills')
+  ) {
     segments.push('Detail');
     hasOverlay = true;
   }

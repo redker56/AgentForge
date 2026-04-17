@@ -1,7 +1,5 @@
 /**
- * Scrollable agent table with expandable rows.
- * Dynamic column widths based on columns prop. Focus highlight with ▎ prefix.
- * Modern Claude Code aesthetic with coral accent color.
+ * Scrollable agent table for the master pane.
  */
 
 import { Box, Text } from 'ink';
@@ -10,147 +8,88 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import { useNavigation } from '../hooks/useNavigation.js';
-import type { AgentDetailData } from '../store/dataSlice.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, renderFocusPrefix, emptyStateText } from '../theme.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
-
 
 interface AgentTableProps {
   store: StoreApi<AppStore>;
   columns: number;
 }
 
+function truncateText(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) return '';
+  if (text.length <= maxWidth) return text;
+  if (maxWidth <= 3) return text.slice(0, maxWidth);
+  return `${text.slice(0, maxWidth - 3)}...`;
+}
+
 export function AgentTable({ store, columns }: AgentTableProps): React.ReactElement {
-  const agents = useStore(store, s => s.agents);
-  const focusedAgentIndex = useStore(store, s => s.focusedAgentIndex);
-  const expandedAgentIds = useStore(store, s => s.expandedAgentIds);
-  const agentDetails = useStore(store, s => s.agentDetails);
-  const agentSummaries = useStore(store, s => s.agentSummaries);
+  const agents = useStore(store, (s) => s.agents);
+  const focusedAgentIndex = useStore(store, (s) => s.focusedAgentIndex);
+  const agentSummaries = useStore(store, (s) => s.agentSummaries);
 
-  const { visibleItems, scrollTop, hiddenAbove, hiddenBelow } = useNavigation({ items: agents, focusedIndex: focusedAgentIndex });
+  const { visibleItems, scrollTop, hiddenAbove, hiddenBelow } = useNavigation({
+    items: agents,
+    focusedIndex: focusedAgentIndex,
+  });
 
-  // Dynamic column width computation
   const availableWidth = Math.max(columns - 2, 10);
-  const idWidth = Math.min(12, Math.floor(availableWidth * 0.15));
-  const nameWidth = Math.min(15, Math.floor(availableWidth * 0.2));
-  const fixedWidth = 10; // Skls:5 + Proj:5
+  const idWidth = Math.min(12, Math.floor(availableWidth * 0.16));
+  const nameWidth = Math.min(16, Math.floor(availableWidth * 0.22));
+  const fixedWidth = 12;
   const pathWidth = Math.max(availableWidth - idWidth - nameWidth - fixedWidth, 10);
 
-  const separatorWidth = Math.max(availableWidth, 10);
-
-  const renderRow = (agent: typeof agents[0], isFocused: boolean): React.ReactElement => {
-    const detail: AgentDetailData | undefined = agentDetails[agent.id];
-    const summary = agentSummaries[agent.id];
-    const skillCount = String(summary?.userLevelSkillCount ?? 0);
-    const projCount = String(summary?.projectLevelSkillCount ?? 0);
-
-    const pathDisplay = agent.basePath.length > pathWidth
-      ? agent.basePath.slice(0, pathWidth - 3) + '...'
-      : agent.basePath.padEnd(pathWidth);
-
-    const rowText = `${agent.id.padEnd(idWidth)}${agent.name.padEnd(nameWidth)}${pathDisplay}${skillCount.padEnd(5)}${projCount}`;
-    const prefix = renderFocusPrefix(isFocused);
-
-    if (isFocused) {
-      return (
-        <>
-          <Text color={inkColors.accent}>{prefix}</Text>
-          <Text> </Text>
-          <Text backgroundColor={inkColors.focusBg} color={inkColors.focusText} bold>
-            {rowText}
-          </Text>
-        </>
-      );
-    }
-
-    return (
-      <>
-        <Text>{prefix}</Text>
-        <Text color={inkColors.primary}>{rowText}</Text>
-      </>
-    );
-  };
-
-
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" flexGrow={1}>
       <Text bold color={inkColors.accent}>
         Agents <Text color={inkColors.muted}>({agents.length})</Text>
       </Text>
-
-      {/* Header row */}
       <Text color={inkColors.muted}>
-        {'ID'.padEnd(idWidth)}{'Name'.padEnd(nameWidth)}{'Path'.padEnd(pathWidth)}{'Skls'.padEnd(5)}{'Proj'}
+        {'ID'.padEnd(idWidth)}
+        {'Name'.padEnd(nameWidth)}
+        {'Path'.padEnd(pathWidth)}
+        {'Skls'.padEnd(5)}
+        Proj
       </Text>
-      <Text color={inkColors.muted}>{'\u2500'.repeat(separatorWidth)}</Text>
+      <Text color={inkColors.muted}>{'\u2500'.repeat(Math.max(availableWidth, 10))}</Text>
 
       {hiddenAbove > 0 && visibleItems.length > 0 && (
         <ScrollIndicator hiddenAbove={hiddenAbove} hiddenBelow={0} columns={columns} position="above" />
       )}
 
-      {/* Agent rows */}
-      {visibleItems.map((agent, i) => {
-        const actualIndex = scrollTop + i;
+      {visibleItems.map((agent, index) => {
+        const actualIndex = scrollTop + index;
         const isFocused = actualIndex === focusedAgentIndex;
-        const isExpanded = expandedAgentIds.has(agent.id);
-        const detail: AgentDetailData | undefined = agentDetails[agent.id];
+        const prefix = renderFocusPrefix(isFocused);
+        const summary = agentSummaries[agent.id];
+        const rowText =
+          `${agent.id.padEnd(idWidth)}` +
+          `${truncateText(agent.name, nameWidth).padEnd(nameWidth)}` +
+          `${truncateText(agent.basePath, pathWidth).padEnd(pathWidth)}` +
+          `${String(summary?.userLevelSkillCount ?? 0).padEnd(5)}` +
+          `${String(summary?.projectLevelSkillCount ?? 0)}`;
 
         return (
-          <Box key={agent.id} flexDirection="column">
-            {/* Main row */}
-            {renderRow(agent, isFocused)}
-
-            {/* Expanded detail */}
-            {isExpanded && (
-              <Box flexDirection="column" paddingLeft={2}>
-                {!detail && (
-                  <Text color={inkColors.muted}>  Loading...</Text>
-                )}
-                {detail && (
-                  <>
-                    {detail.userLevelSkills.length > 0 && (
-                      <Box flexDirection="column">
-                        <Text color={inkColors.muted} bold>User-level:</Text>
-                        {detail.userLevelSkills.map(skill => (
-                          <Text key={skill.name} color={inkColors.secondary}>
-                            {'  '}{skill.name}
-                            <Text color={inkColors.muted}> ({skill.syncMode}, {skill.isSynced ? 'synced' : 'not synced'})</Text>
-                          </Text>
-                        ))}
-                      </Box>
-                    )}
-                    {detail.projectLevelSkills.length > 0 && (
-                      <Box flexDirection="column">
-                        <Text color={inkColors.muted} bold>Project-level:</Text>
-                        {detail.projectLevelSkills.map(proj => (
-                          <Box key={proj.projectId} flexDirection="column">
-                            <Text color={inkColors.secondary}>  {proj.projectId}:</Text>
-                            {proj.skills.map(s => (
-                              <Text key={s.name} color={inkColors.muted}>    {s.name}</Text>
-                            ))}
-                          </Box>
-                        ))}
-                      </Box>
-                    )}
-                    {detail.userLevelSkills.length === 0 && detail.projectLevelSkills.length === 0 && (
-                      <Text color={inkColors.muted}>  No skills found</Text>
-                    )}
-                  </>
-                )}
-              </Box>
+          <Box key={agent.id}>
+            <Text color={isFocused ? inkColors.accent : inkColors.primary}>{prefix}</Text>
+            <Text> </Text>
+            {isFocused ? (
+              <Text backgroundColor={inkColors.focusBg} color={inkColors.focusText} bold>
+                {rowText}
+              </Text>
+            ) : (
+              <Text color={inkColors.primary}>{rowText}</Text>
             )}
           </Box>
         );
       })}
 
+      {agents.length === 0 && <Text color={inkColors.muted}>{emptyStateText.agents}</Text>}
+
       {hiddenBelow > 0 && visibleItems.length > 0 && (
         <ScrollIndicator hiddenAbove={0} hiddenBelow={hiddenBelow} columns={columns} position="below" />
-      )}
-
-      {agents.length === 0 && (
-        <Text color={inkColors.muted}>{emptyStateText.agents}</Text>
       )}
     </Box>
   );

@@ -56,9 +56,16 @@ describe('ProjectsScreen', () => {
         'proj-1': { skillCount: 2 },
         'proj-2': { skillCount: 1 },
       },
-      expandedProjectIds: new Set<string>(),
+      projectViewMode: 'master',
+      focusedProjectSkillIndex: 0,
+      selectedProjectSkillRowIds: new Set<string>(),
+      activeProjectSkillFilter: 'all',
+      detailOverlayVisible: false,
+      detailSkillName: null,
       loading: { projects: false },
       loadProjectDetail: vi.fn(),
+      clearProjectSkillSelection: vi.fn(),
+      setFocusedProjectSkillIndex: vi.fn(),
       ...overrides,
     };
     return {
@@ -125,5 +132,45 @@ describe('ProjectsScreen', () => {
     vi.runAllTimers();
     // Should not call loadProjectDetail since detail already exists
     expect(loadProjectDetail).not.toHaveBeenCalled();
+  });
+
+  it('renders context browse filters in widescreen band', async () => {
+    const { ProjectsScreen } = await import('../../../src/tui/screens/ProjectsScreen.js');
+    const store = makeMockStore({
+      projectDetails: {
+        'proj-1': {
+          projectId: 'proj-1',
+          projectPath: '/home/user/projects/proj-1',
+          skillsByAgent: [],
+          sections: [
+            {
+              id: 'project:proj-1:agent:claude',
+              title: 'Claude Code',
+              rows: [
+                {
+                  rowId: 'project:proj-1:claude:defuddle',
+                  name: 'defuddle',
+                  path: '/home/user/projects/proj-1/.claude/skills/defuddle',
+                  projectId: 'proj-1',
+                  agentId: 'claude',
+                  agentName: 'Claude Code',
+                  isImported: false,
+                  isDifferentVersion: false,
+                  sourceType: 'project',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const { lastFrame } = render(
+      React.createElement(ProjectsScreen, { store, band: 'widescreen' as const, columns: 120 })
+    );
+    vi.runAllTimers();
+    const frame = lastFrame() || '';
+    expect(frame).toContain('Browse:');
+    expect(frame).toContain('Imported:0');
+    expect(frame).toContain('Unimported:1');
   });
 });

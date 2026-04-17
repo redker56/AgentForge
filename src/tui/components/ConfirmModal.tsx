@@ -14,6 +14,13 @@ interface ConfirmModalProps {
   store: StoreApi<AppStore>;
 }
 
+function truncateText(text: string, maxWidth = 52): string {
+  if (maxWidth <= 0) return '';
+  if (text.length <= maxWidth) return text;
+  if (maxWidth <= 3) return text.slice(0, maxWidth);
+  return `${text.slice(0, maxWidth - 3)}...`;
+}
+
 export function ConfirmModal({ store }: ConfirmModalProps): React.ReactElement {
   const confirmState = useStore(store, s => s.confirmState);
 
@@ -22,9 +29,9 @@ export function ConfirmModal({ store }: ConfirmModalProps): React.ReactElement {
   return (
     <Box flexDirection="column" alignItems="center" justifyContent="center" height="100%">
       <Box flexDirection="column" borderStyle="single" padding={1} width={56} borderColor={inkColors.border}>
-        <Text bold color={inkColors.error}>{confirmState.title}</Text>
+        <Text bold color={inkColors.error}>{truncateText(confirmState.title)}</Text>
         <Text> </Text>
-        <Text>{confirmState.message}</Text>
+        <Text>{truncateText(confirmState.message)}</Text>
         <Text> </Text>
         <Box flexDirection="row" justifyContent="space-between" width="100%">
           <Text color={inkColors.accent}>[Enter] Confirm</Text>

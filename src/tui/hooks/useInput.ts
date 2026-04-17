@@ -6,9 +6,70 @@ import { useInput } from 'ink';
 import type { StoreApi } from 'zustand';
 
 import { BUILTIN_AGENTS } from '../../types.js';
+import type { ContextSkillRow, ContextSkillSection, VisibleContextSkillRow } from '../contextTypes.js';
+import {
+  cycleContextSkillFilter,
+  getVisibleContextSkillRows,
+} from '../contextTypes.js';
 import type { AppStore } from '../store/index.js';
 import { TAB_IDS } from '../store/index.js';
 import { getFocusedVisibleSkill } from '../utils/skillsView.js';
+
+function openSkillDetail(store: StoreApi<AppStore>, skillName: string): void {
+  const state = store.getState();
+  state.setDetailSkillName(skillName);
+  state.setDetailOverlayVisible(true);
+  if (!state.skillDetails[skillName]) {
+    void store.getState().loadSkillDetail(skillName);
+  }
+}
+
+function openUpdateForm(
+  state: AppStore,
+  skillNames: string[],
+  formType: 'updateSelected' | 'updateAllGit'
+): void {
+  if (skillNames.length === 0) return;
+  state.setFormState({
+    formType,
+    data: {
+      skillNames: JSON.stringify(skillNames),
+    },
+  });
+}
+
+function getAgentContextSections(state: AppStore): ContextSkillSection[] {
+  const focusedAgent = state.agents[state.focusedAgentIndex];
+  if (!focusedAgent) return [];
+  return state.agentDetails[focusedAgent.id]?.sections ?? [];
+}
+
+function getProjectContextSections(state: AppStore): ContextSkillSection[] {
+  const focusedProject = state.projects[state.focusedProjectIndex];
+  if (!focusedProject) return [];
+  return state.projectDetails[focusedProject.id]?.sections ?? [];
+}
+
+function getFocusedContextRow(
+  rows: VisibleContextSkillRow[],
+  focusedIndex: number
+): VisibleContextSkillRow | null {
+  if (rows.length === 0) return null;
+  return rows[Math.min(focusedIndex, rows.length - 1)] ?? null;
+}
+
+function getSelectedOrFocusedRows(
+  visibleRows: VisibleContextSkillRow[],
+  selectedRowIds: Set<string>,
+  focusedIndex: number
+): ContextSkillRow[] {
+  if (selectedRowIds.size > 0) {
+    return visibleRows.filter((row) => selectedRowIds.has(row.rowId));
+  }
+
+  const focused = getFocusedContextRow(visibleRows, focusedIndex);
+  return focused ? [focused] : [];
+}
 
 export function useInputHandler(store: StoreApi<AppStore>): void {
   useInput((input, key) => {
@@ -89,10 +150,11 @@ export function useInputHandler(store: StoreApi<AppStore>): void {
       return;
     }
 
-    // If detail overlay is active on skills tab, dismiss on Esc/q
-    if (state.detailOverlayVisible && state.activeTab === 'skills') {
+    // If detail overlay is active, dismiss on Esc/q
+    if (state.detailOverlayVisible) {
       if (key.escape || input === 'q') {
         state.setDetailOverlayVisible(false);
+        state.setDetailSkillName(null);
       }
       return;
     }
@@ -253,15 +315,6 @@ function handleSkillsKeys(
     state.activeSkillCategoryFilter,
     state.focusedSkillIndex
   );
-  const openUpdateForm = (skillNames: string[], formType: 'updateSelected' | 'updateAllGit'): void => {
-    if (skillNames.length === 0) return;
-    state.setFormState({
-      formType,
-      data: {
-        skillNames: JSON.stringify(skillNames),
-      },
-    });
-  };
 
   if (key.upArrow) {
     state.moveFocusUp();
@@ -281,12 +334,8 @@ function handleSkillsKeys(
   }
   if (key.return) {
     if (state.widthBand === 'standard') {
-      if (!state.detailOverlayVisible) {
-        state.setDetailOverlayVisible(true);
-        const focused = focusedVisibleSkill;
-        if (focused && !state.skillDetails[focused.name]) {
-          void store.getState().loadSkillDetail(focused.name);
-        }
+      if (!state.detailOverlayVisible && focusedVisibleSkill) {
+        openSkillDetail(store, focusedVisibleSkill.name);
       }
       return;
     }
@@ -400,14 +449,14 @@ function handleSkillsKeys(
       state.selectedSkillNames.size > 0
         ? [...state.selectedSkillNames]
         : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
-    openUpdateForm(names, 'updateSelected');
+    openUpdateForm(state, names, 'updateSelected');
     return;
   }
   if (input === 'U') {
     const names = state.skills
       .filter((skill) => skill.source.type === 'git')
       .map((skill) => skill.name);
-    openUpdateForm(names, 'updateAllGit');
+    openUpdateForm(state, names, 'updateAllGit');
     return;
   }
   if (input === 'x') {
@@ -433,9 +482,133 @@ function handleSkillsKeys(
 function handleAgentsKeys(
   store: StoreApi<AppStore>,
   input: string,
-  key: { upArrow?: boolean; downArrow?: boolean; return?: boolean },
+  key: { upArrow?: boolean; downArrow?: boolean; return?: boolean; escape?: boolean },
   state: AppStore
 ): void {
+  const sections = getAgentContextSections(state);
+  const visibleRows = getVisibleContextSkillRows(sections, state.activeAgentSkillFilter);
+
+  if (state.agentViewMode === 'skills') {
+    if (key.upArrow) {
+      const idx = state.focusedAgentSkillIndex;
+      if (idx > 0) state.setFocusedAgentSkillIndex(idx - 1);
+      return;
+    }
+    if (key.downArrow) {
+      const idx = state.focusedAgentSkillIndex;
+      if (idx < visibleRows.length - 1) state.setFocusedAgentSkillIndex(idx + 1);
+      return;
+    }
+    if (input === '[') {
+      state.setActiveAgentSkillFilter(
+        cycleContextSkillFilter(state.activeAgentSkillFilter, -1)
+      );
+      return;
+    }
+    if (input === ']') {
+      state.setActiveAgentSkillFilter(
+        cycleContextSkillFilter(state.activeAgentSkillFilter, 1)
+      );
+      return;
+    }
+    if (input === ' ') {
+      const focusedRow = getFocusedContextRow(visibleRows, state.focusedAgentSkillIndex);
+      if (focusedRow) {
+        state.toggleAgentSkillSelection(focusedRow.rowId);
+      }
+      return;
+    }
+    if (key.return) {
+      const focusedRow = getFocusedContextRow(visibleRows, state.focusedAgentSkillIndex);
+      if (focusedRow?.registrySkillName) {
+        openSkillDetail(store, focusedRow.registrySkillName);
+      }
+      return;
+    }
+    if (key.escape) {
+      state.setAgentViewMode('master');
+      state.clearAgentSkillSelection();
+      state.setFocusedAgentSkillIndex(0);
+      return;
+    }
+    if (input === 'i') {
+      const rows = getSelectedOrFocusedRows(
+        visibleRows,
+        state.selectedAgentSkillRowIds,
+        state.focusedAgentSkillIndex
+      );
+      if (rows.length > 0) {
+        state.setFormState({
+          formType: 'importContextSkills',
+          data: { rows: JSON.stringify(rows) },
+        });
+      }
+      return;
+    }
+    if (input === 'u') {
+      const names = Array.from(
+        new Set(
+          getSelectedOrFocusedRows(
+            visibleRows,
+            state.selectedAgentSkillRowIds,
+            state.focusedAgentSkillIndex
+          )
+            .map((row) => row.registrySkillName)
+            .filter((name): name is string => Boolean(name))
+        )
+      );
+      openUpdateForm(state, names, 'updateSelected');
+      return;
+    }
+    if (input === 'c') {
+      const names = Array.from(
+        new Set(
+          getSelectedOrFocusedRows(
+            visibleRows,
+            state.selectedAgentSkillRowIds,
+            state.focusedAgentSkillIndex
+          )
+            .map((row) => row.registrySkillName)
+            .filter((name): name is string => Boolean(name))
+        )
+      );
+      if (names.length > 0) {
+        state.setFormState({
+          formType: 'categorizeSkills',
+          data: { skillNames: JSON.stringify(names) },
+        });
+      }
+      return;
+    }
+    if (input === 'x') {
+      const rows = getSelectedOrFocusedRows(
+        visibleRows,
+        state.selectedAgentSkillRowIds,
+        state.focusedAgentSkillIndex
+      );
+      const names = Array.from(
+        new Set(
+          rows
+            .filter((row) => row.registrySkillName && row.syncMode)
+            .map((row) => row.registrySkillName as string)
+        )
+      );
+      const focusedAgent = state.agents[state.focusedAgentIndex];
+      if (focusedAgent && names.length > 0) {
+        state.setSyncFormSelectedSkillNames(new Set(names));
+        state.setSyncFormOperation('unsync');
+        state.setSyncFormUnsyncScope('agents');
+        state.setSyncFormProjectUnsyncMode(null);
+        state.setSyncFormSelectedTargetIds(new Set([focusedAgent.id]));
+        state.setSyncFormSelectedAgentTypes(new Set());
+        state.setSyncFormStep('confirm');
+        state.setActiveTab('sync');
+      }
+      return;
+    }
+    return;
+  }
+
   if (key.upArrow) {
     const idx = state.focusedAgentIndex;
     if (idx > 0) state.setFocusedAgentIndex(idx - 1);
@@ -449,10 +622,11 @@ function handleAgentsKeys(
   if (key.return) {
     const focusedAgent = state.agents[state.focusedAgentIndex];
     if (focusedAgent) {
-      state.toggleAgentExpanded(focusedAgent.id);
-      // Lazy-load detail if not cached
+      state.setAgentViewMode('skills');
+      state.clearAgentSkillSelection();
+      state.setFocusedAgentSkillIndex(0);
       if (!state.agentDetails[focusedAgent.id]) {
-        state.loadAgentDetail(focusedAgent.id);
+        void state.loadAgentDetail(focusedAgent.id);
       }
     }
     return;
@@ -492,9 +666,140 @@ function handleAgentsKeys(
 function handleProjectsKeys(
   store: StoreApi<AppStore>,
   input: string,
-  key: { upArrow?: boolean; downArrow?: boolean; return?: boolean },
+  key: { upArrow?: boolean; downArrow?: boolean; return?: boolean; escape?: boolean },
   state: AppStore
 ): void {
+  const sections = getProjectContextSections(state);
+  const visibleRows = getVisibleContextSkillRows(sections, state.activeProjectSkillFilter);
+
+  if (state.projectViewMode === 'skills') {
+    if (key.upArrow) {
+      const idx = state.focusedProjectSkillIndex;
+      if (idx > 0) state.setFocusedProjectSkillIndex(idx - 1);
+      return;
+    }
+    if (key.downArrow) {
+      const idx = state.focusedProjectSkillIndex;
+      if (idx < visibleRows.length - 1) state.setFocusedProjectSkillIndex(idx + 1);
+      return;
+    }
+    if (input === '[') {
+      state.setActiveProjectSkillFilter(
+        cycleContextSkillFilter(state.activeProjectSkillFilter, -1)
+      );
+      return;
+    }
+    if (input === ']') {
+      state.setActiveProjectSkillFilter(
+        cycleContextSkillFilter(state.activeProjectSkillFilter, 1)
+      );
+      return;
+    }
+    if (input === ' ') {
+      const focusedRow = getFocusedContextRow(visibleRows, state.focusedProjectSkillIndex);
+      if (focusedRow) {
+        state.toggleProjectSkillSelection(focusedRow.rowId);
+      }
+      return;
+    }
+    if (key.return) {
+      const focusedRow = getFocusedContextRow(visibleRows, state.focusedProjectSkillIndex);
+      if (focusedRow?.registrySkillName) {
+        openSkillDetail(store, focusedRow.registrySkillName);
+      }
+      return;
+    }
+    if (key.escape) {
+      state.setProjectViewMode('master');
+      state.clearProjectSkillSelection();
+      state.setFocusedProjectSkillIndex(0);
+      return;
+    }
+    if (input === 'i') {
+      const rows = getSelectedOrFocusedRows(
+        visibleRows,
+        state.selectedProjectSkillRowIds,
+        state.focusedProjectSkillIndex
+      );
+      if (rows.length > 0) {
+        state.setFormState({
+          formType: 'importContextSkills',
+          data: { rows: JSON.stringify(rows) },
+        });
+      }
+      return;
+    }
+    if (input === 'u') {
+      const names = Array.from(
+        new Set(
+          getSelectedOrFocusedRows(
+            visibleRows,
+            state.selectedProjectSkillRowIds,
+            state.focusedProjectSkillIndex
+          )
+            .map((row) => row.registrySkillName)
+            .filter((name): name is string => Boolean(name))
+        )
+      );
+      openUpdateForm(state, names, 'updateSelected');
+      return;
+    }
+    if (input === 'c') {
+      const names = Array.from(
+        new Set(
+          getSelectedOrFocusedRows(
+            visibleRows,
+            state.selectedProjectSkillRowIds,
+            state.focusedProjectSkillIndex
+          )
+            .map((row) => row.registrySkillName)
+            .filter((name): name is string => Boolean(name))
+        )
+      );
+      if (names.length > 0) {
+        state.setFormState({
+          formType: 'categorizeSkills',
+          data: { skillNames: JSON.stringify(names) },
+        });
+      }
+      return;
+    }
+    if (input === 'x') {
+      const rows = getSelectedOrFocusedRows(
+        visibleRows,
+        state.selectedProjectSkillRowIds,
+        state.focusedProjectSkillIndex
+      );
+      const names = Array.from(
+        new Set(
+          rows
+            .filter((row) => row.registrySkillName && row.projectId && row.agentId)
+            .map((row) => row.registrySkillName as string)
+        )
+      );
+      const targetIds = Array.from(
+        new Set(
+          rows
+            .filter((row) => row.projectId && row.agentId && row.registrySkillName)
+            .map((row) => `${row.projectId}:${row.agentId}`)
+        )
+      );
+
+      if (names.length > 0 && targetIds.length > 0) {
+        state.setSyncFormSelectedSkillNames(new Set(names));
+        state.setSyncFormOperation('unsync');
+        state.setSyncFormUnsyncScope('projects');
+        state.setSyncFormProjectUnsyncMode('specific');
+        state.setSyncFormSelectedTargetIds(new Set(targetIds));
+        state.setSyncFormSelectedAgentTypes(new Set());
+        state.setSyncFormStep('confirm');
+        state.setActiveTab('sync');
+      }
+      return;
+    }
+    return;
+  }
+
   if (key.upArrow) {
     const idx = state.focusedProjectIndex;
     if (idx > 0) state.setFocusedProjectIndex(idx - 1);
@@ -508,8 +813,9 @@ function handleProjectsKeys(
   if (key.return) {
     const focusedProject = state.projects[state.focusedProjectIndex];
     if (focusedProject) {
-      state.toggleProjectExpanded(focusedProject.id);
-      // Lazy-load detail if not cached
+      state.setProjectViewMode('skills');
+      state.clearProjectSkillSelection();
+      state.setFocusedProjectSkillIndex(0);
       if (!state.projectDetails[focusedProject.id]) {
         void store.getState().loadProjectDetail(focusedProject.id);
       }

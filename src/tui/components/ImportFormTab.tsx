@@ -6,7 +6,7 @@
  * setFormState or use Sprint 3 overlay action creators for execution.
  */
 
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
@@ -26,6 +26,16 @@ interface ImportFormTabProps {
   ctx: ServiceContext;
 }
 
+const STEP_INDICATOR_WIDTH = 22;
+const MIN_CONTENT_WIDTH = 24;
+
+function truncateText(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) return '';
+  if (text.length <= maxWidth) return text;
+  if (maxWidth <= 3) return text.slice(0, maxWidth);
+  return `${text.slice(0, maxWidth - 3)}...`;
+}
+
 /**
  * Cached skill discovery data -- module-level so it persists across re-renders.
  */
@@ -37,6 +47,7 @@ let cachedDiscoveredSkills: Array<{
 }> = [];
 
 export function ImportFormTab({ store, ctx }: ImportFormTabProps): React.ReactElement {
+  const { stdout } = useStdout();
   const importTabStep = useStore(store, (s) => s.importTabStep);
   const importTabSourceType = useStore(store, (s) => s.importTabSourceType);
   const importTabSourceId = useStore(store, (s) => s.importTabSourceId);
@@ -166,18 +177,30 @@ export function ImportFormTab({ store, ctx }: ImportFormTabProps): React.ReactEl
     }
   }
   const importCurrentIndex = importSteps.indexOf(importStepToLabel(importTabStep));
+  const columns = stdout?.columns ?? 120;
+  const contentWidth = Math.max(
+    columns - STEP_INDICATOR_WIDTH - (spacing.paddingX * 4) - 6,
+    MIN_CONTENT_WIDTH
+  );
 
   return (
     <Box flexDirection="row" flexGrow={1} paddingX={spacing.paddingX}>
-      <StepIndicator steps={importSteps} currentStep={Math.max(0, importCurrentIndex)} width={22} />
+      <StepIndicator
+        steps={importSteps}
+        currentStep={Math.max(0, importCurrentIndex)}
+        width={STEP_INDICATOR_WIDTH}
+      />
       <Box flexDirection="column" flexGrow={1} paddingX={spacing.paddingX}>
-        {importTabStep === 'select-source-type' && <SelectSourceType sourceType={importTabSourceType} />}
+        {importTabStep === 'select-source-type' && (
+          <SelectSourceType sourceType={importTabSourceType} contentWidth={contentWidth} />
+        )}
         {importTabStep === 'select-source' && (
           <SelectSource
             sourceType={importTabSourceType}
             focusedIndex={importTabFocusedIndex}
             projects={projects}
             agents={agents}
+            contentWidth={contentWidth}
           />
         )}
         {importTabStep === 'select-skills' && (
@@ -188,6 +211,7 @@ export function ImportFormTab({ store, ctx }: ImportFormTabProps): React.ReactEl
             onToggle={(name) => toggleImportSkill(store, name)}
             onUp={() => store.getState().setImportTabFocusedIndex(Math.max(0, store.getState().importTabFocusedIndex - 1))}
             onDown={() => store.getState().setImportTabFocusedIndex(Math.min(cachedDiscoveredSkills.length - 1, store.getState().importTabFocusedIndex + 1))}
+            columns={contentWidth}
           />
         )}
         {importTabStep === 'confirm' && (
@@ -195,10 +219,11 @@ export function ImportFormTab({ store, ctx }: ImportFormTabProps): React.ReactEl
             sourceType={importTabSourceType}
             sourceId={importTabSourceId}
             skillNames={importTabSelectedSkillNames}
+            contentWidth={contentWidth}
           />
         )}
         {importTabStep === 'executing' && <ExecutingStep progressItems={updateProgressItems} />}
-        {importTabStep === 'results' && <ResultsStep results={importTabResults} />}
+        {importTabStep === 'results' && <ResultsStep results={importTabResults} contentWidth={contentWidth} />}
       </Box>
     </Box>
   );
@@ -329,16 +354,22 @@ function handleImportBack(storeApi: StoreApi<AppStore>): void {
 // Step sub-components
 // ============================================================
 
-function SelectSourceType({ sourceType }: { sourceType: 'project' | 'agent' | null }): React.ReactElement {
+function SelectSourceType({
+  sourceType,
+  contentWidth,
+}: {
+  sourceType: 'project' | 'agent' | null;
+  contentWidth: number;
+}): React.ReactElement {
   return (
     <Box flexDirection="column">
       <Text bold color={inkColors.accent}>Import Skills</Text>
       <Text> </Text>
       <Text>Choose source:</Text>
-      <Text>{renderFocusPrefix(sourceType === 'project')}Import from Project</Text>
-      <Text>{renderFocusPrefix(sourceType === 'agent')}Import from Agent</Text>
+      <Text>{renderFocusPrefix(sourceType === 'project')}{truncateText('Import from Project', Math.max(contentWidth - 2, 8))}</Text>
+      <Text>{renderFocusPrefix(sourceType === 'agent')}{truncateText('Import from Agent', Math.max(contentWidth - 2, 8))}</Text>
       <Text> </Text>
-      <Text dimColor>Up/Down to choose, Enter to continue</Text>
+      <Text dimColor>{truncateText('Up/Down to choose, Enter to continue', contentWidth)}</Text>
     </Box>
   );
 }
@@ -348,11 +379,13 @@ function SelectSource({
   focusedIndex,
   projects,
   agents,
+  contentWidth,
 }: {
   sourceType: 'project' | 'agent' | null;
   focusedIndex: number;
   projects: Array<{ id: string; path: string }>;
   agents: Array<{ id: string; name: string }>;
+  contentWidth: number;
 }): React.ReactElement {
   const list = sourceType === 'project' ? projects : agents;
   const title = sourceType === 'project' ? 'Select project' : 'Select agent';
@@ -369,13 +402,13 @@ function SelectSource({
             : (item as { id: string; name: string }).name;
         return (
           <Text key={(item as { id: string }).id}>
-            {renderFocusPrefix(isFocused)} {label}
+            {renderFocusPrefix(isFocused)} {truncateText(label, Math.max(contentWidth - 2, 8))}
           </Text>
         );
       })}
-      {list.length === 0 && <Text dimColor>No {sourceType}s configured</Text>}
+      {list.length === 0 && <Text dimColor>{truncateText(`No ${sourceType}s configured`, contentWidth)}</Text>}
       <Text> </Text>
-      <Text dimColor>Up/Down to select, Enter to continue</Text>
+      <Text dimColor>{truncateText('Up/Down to select, Enter to continue', contentWidth)}</Text>
     </Box>
   );
 }
@@ -384,10 +417,12 @@ function ConfirmStep({
   sourceType,
   sourceId,
   skillNames,
+  contentWidth,
 }: {
   sourceType: 'project' | 'agent' | null;
   sourceId: string | null;
   skillNames: Set<string>;
+  contentWidth: number;
 }): React.ReactElement {
   const label = sourceType === 'project' ? 'project' : 'agent';
 
@@ -396,10 +431,10 @@ function ConfirmStep({
       <Text bold color={inkColors.accent}>Confirm Import</Text>
       <Text> </Text>
       <Text>
-        Import {skillNames.size} skill(s) from {label} &quot;{sourceId}&quot;.
+        {truncateText(`Import ${skillNames.size} skill(s) from ${label} "${sourceId}".`, contentWidth)}
       </Text>
       <Text> </Text>
-      <Text dimColor>Skills: {[...skillNames].join(', ')}</Text>
+      <Text dimColor>{truncateText(`Skills: ${[...skillNames].join(', ')}`, contentWidth)}</Text>
       <Text> </Text>
       <Box flexDirection="row" gap={2}>
         <Text color={inkColors.accent}>[Enter]</Text>
@@ -434,8 +469,10 @@ function ExecutingStep({
 
 function ResultsStep({
   results,
+  contentWidth,
 }: {
   results: Array<{ target: string; success: boolean; error?: string }>;
+  contentWidth: number;
 }): React.ReactElement {
   const successCount = results.filter((r) => r.success).length;
   const failCount = results.filter((r) => !r.success).length;
@@ -444,14 +481,12 @@ function ResultsStep({
     <Box flexDirection="column">
       <Text bold color={inkColors.accent}>Import complete</Text>
       <Text> </Text>
-      <Text>{successCount} succeeded, {failCount} failed.</Text>
+      <Text>{truncateText(`${successCount} succeeded, ${failCount} failed.`, contentWidth)}</Text>
       <Text> </Text>
       {results.map((r, i) => (
-        <Box key={`${r.target}-${i}`} flexDirection="row" flexWrap="wrap">
-          {r.success ? <Text color={inkColors.success}>OK  </Text> : <Text color={inkColors.error}>FAIL</Text>}
-          <Text> {r.target}</Text>
-          {r.error && <Text color={inkColors.error}>: {r.error}</Text>}
-        </Box>
+        <Text key={`${r.target}-${i}`} color={r.success ? inkColors.success : inkColors.error}>
+          {truncateText(`${r.success ? 'OK' : 'FAIL'} ${r.target}${r.error ? `: ${r.error}` : ''}`, contentWidth)}
+        </Text>
       ))}
       <Text> </Text>
       <Box flexDirection="row" gap={2}>

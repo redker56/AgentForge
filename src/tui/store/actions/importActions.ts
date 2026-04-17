@@ -4,15 +4,17 @@
 
 import type { StoreApi } from 'zustand';
 
+import type { ContextSkillRow } from '../../contextTypes.js';
 import type { ServiceContext } from '../dataSlice.js';
 import type { AppStore } from '../index.js';
-import type { ConflictEntry } from '../uiSlice.js';
+import type { ConflictEntry, OperationResult } from '../uiSlice.js';
 
 import { doImportFromProject, doImportFromAgent } from './syncActions.js';
 
 export interface ImportActions {
   importFromProject: (projectId: string, skillNames: string[]) => Promise<void>;
   importFromAgent: (agentId: string, skillNames: string[]) => Promise<void>;
+  importContextSkills: (rows: ContextSkillRow[]) => Promise<OperationResult[]>;
   scanProjectSkills: (
     projectId: string
   ) => Array<{ name: string; path: string; alreadyExists: boolean }>;
@@ -133,6 +135,61 @@ export function createImportActions(store: StoreApi<AppStore>, ctx: ServiceConte
 
       store.getState().setFormState(null);
       await store.getState().refreshSkills();
+    },
+
+    importContextSkills: async (rows): Promise<OperationResult[]> => {
+      const uniqueRows = Array.from(
+        new Map(rows.map((row) => [row.rowId, row] as const)).values()
+      );
+      const results: OperationResult[] = [];
+
+      for (const row of uniqueRows) {
+        if (row.registrySkillName || ctx.skillService.exists(row.name)) {
+          results.push({
+            target: row.projectId ? `${row.projectId}:${row.name}` : row.name,
+            success: false,
+            outcome: 'skipped',
+            error: 'Already imported',
+          });
+          continue;
+        }
+
+        try {
+          if (row.projectId) {
+            await ctx.skillService.importFromPath(row.path, row.name, {
+              type: 'project',
+              projectId: row.projectId,
+            });
+          } else {
+            await ctx.skillService.importFromPath(row.path, row.name, {
+              type: 'local',
+              importedFrom: {
+                agent: row.agentId ?? 'unknown',
+                path: row.path,
+              },
+            });
+          }
+
+          results.push({
+            target: row.projectId ? `${row.projectId}:${row.name}` : row.name,
+            success: true,
+            outcome: 'success',
+          });
+          setupConflictDetection(row.name);
+        } catch (error: unknown) {
+          results.push({
+            target: row.projectId ? `${row.projectId}:${row.name}` : row.name,
+            success: false,
+            outcome: 'error',
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      await store.getState().refreshSkills();
+      await store.getState().refreshAgents();
+      await store.getState().refreshProjects();
+      return results;
     },
   };
 }

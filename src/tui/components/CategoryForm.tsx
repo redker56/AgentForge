@@ -43,6 +43,8 @@ const MODE_OPTIONS: CategoryModeOption[] = [
 ];
 
 const MAX_VISIBLE_RESULT_ROWS = 8;
+const FORM_WIDTH = 76;
+const CONTENT_WIDTH = FORM_WIDTH - 4;
 
 function parseSkillNames(encoded: string | undefined): string[] {
   if (!encoded) return [];
@@ -64,6 +66,13 @@ function padRows(rows: React.ReactNode[], prefix: string): React.ReactNode[] {
 
 function formatCategories(categories: string[]): string {
   return categories.length > 0 ? categories.join(', ') : '(none)';
+}
+
+function truncateText(text: string, maxWidth = CONTENT_WIDTH): string {
+  if (maxWidth <= 0) return '';
+  if (text.length <= maxWidth) return text;
+  if (maxWidth <= 3) return text.slice(0, maxWidth);
+  return `${text.slice(0, maxWidth - 3)}...`;
 }
 
 export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
@@ -192,8 +201,8 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
         <Text color={isFocused ? inkColors.accent : inkColors.muted}>
           {renderFocusPrefix(isFocused)}
         </Text>
-        <Text bold={isFocused}>{option.label}</Text>
-        <Text color={inkColors.muted}> - {option.description}</Text>
+        <Text bold={isFocused}>{truncateText(option.label, 24)}</Text>
+        <Text color={inkColors.muted}> - {truncateText(option.description, 44)}</Text>
       </Text>
     );
   });
@@ -206,10 +215,11 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
         key={result.skillName}
         color={result.success ? inkColors.success : inkColors.error}
       >
-        {result.success ? '[updated]' : '[error]  '} {result.skillName}
-        {result.success
-          ? ` -> ${formatCategories(result.categories)}`
-          : ` - ${result.error ?? 'Unknown error'}`}
+        {truncateText(`${result.success ? '[updated]' : '[error]  '} ${result.skillName}${
+          result.success
+            ? ` -> ${formatCategories(result.categories)}`
+            : ` - ${result.error ?? 'Unknown error'}`
+        }`)}
       </Text>
     )),
     'category-result'
@@ -220,7 +230,7 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
       flexDirection="column"
       borderStyle="single"
       padding={1}
-      width={76}
+      width={FORM_WIDTH}
       marginTop={1}
       borderColor={inkColors.border}
     >
@@ -229,10 +239,10 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
         {requestedSkillNames.length} target{requestedSkillNames.length !== 1 ? 's' : ''}
       </Text>
       <Text color={inkColors.muted}>
-        Selected: {requestedSkillNames.join(', ')}
+        {truncateText(`Selected: ${requestedSkillNames.join(', ')}`)}
       </Text>
       <Text color={inkColors.muted}>
-        Existing categories: {formatCategories(knownCategories)}
+        {truncateText(`Existing categories: ${formatCategories(knownCategories)}`)}
       </Text>
       <Text> </Text>
 
@@ -268,7 +278,7 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
           </Box>
           <Text> </Text>
           <Text color={inkColors.muted}>
-            Parsed: {formatCategories(normalizedInputCategories)}
+            {truncateText(`Parsed: ${formatCategories(normalizedInputCategories)}`)}
           </Text>
           <Text dimColor>Enter:Continue Esc:Cancel</Text>
         </>
@@ -277,16 +287,15 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
       {phase === 'confirm' && (
         <>
           <Text bold>Confirm changes</Text>
-          <Text color={inkColors.muted}>Mode: {activeMode.label}</Text>
+          <Text color={inkColors.muted}>{truncateText(`Mode: ${activeMode.label}`)}</Text>
           <Text color={inkColors.muted}>
-            Categories:{' '}
-            {activeMode.id === 'clear'
+            {truncateText(`Categories: ${activeMode.id === 'clear'
               ? '(clear all)'
-              : formatCategories(normalizedInputCategories)}
+              : formatCategories(normalizedInputCategories)}`)}
           </Text>
           <Text> </Text>
           {requestedSkillNames.map((skillName) => (
-            <Text key={`confirm-${skillName}`}>{skillName}</Text>
+            <Text key={`confirm-${skillName}`}>{truncateText(skillName)}</Text>
           ))}
           <Text> </Text>
           <Text dimColor>Enter:Apply Esc:Cancel</Text>
@@ -299,7 +308,7 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
           <Text> </Text>
           {requestedSkillNames.map((skillName) => (
             <Text key={`running-${skillName}`} color={inkColors.muted}>
-              ... {skillName}
+              {truncateText(`... ${skillName}`)}
             </Text>
           ))}
         </>

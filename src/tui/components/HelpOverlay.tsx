@@ -37,14 +37,16 @@ export function HelpOverlay({ store: _store }: HelpOverlayProps): React.ReactEle
         <Text> </Text>
         <Text bold color={inkColors.accent}>Selection</Text>
         <Text color={inkColors.muted}>  Space          Toggle selection</Text>
-        <Text color={inkColors.muted}>  Enter          Expand details / execute</Text>
+        <Text color={inkColors.muted}>  Enter          Open list / detail / execute</Text>
+        <Text color={inkColors.muted}>  Esc            Back from detail or context list</Text>
 
         <Text> </Text>
         <Text bold color={inkColors.accent}>Actions</Text>
         <Text color={inkColors.muted}>  /              Open search</Text>
         <Text color={inkColors.muted}>  ?              Toggle this help</Text>
+        <Text color={inkColors.muted}>  i              Import visible context skill(s)</Text>
         <Text color={inkColors.muted}>  c              Categorize selected skill(s)</Text>
-        <Text color={inkColors.muted}>  [ / ]          Previous/next category</Text>
+        <Text color={inkColors.muted}>  [ / ]          Previous/next category or context filter</Text>
         <Text color={inkColors.muted}>  u              Update selected skill(s)</Text>
         <Text color={inkColors.muted}>  U              Update all git-backed skills</Text>
         <Text color={inkColors.muted}>  x              Unsync selected skill(s)</Text>

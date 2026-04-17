@@ -45,9 +45,15 @@ describe('createUISlice', () => {
     expect(slice.searchQuery).toBe('');
     expect(slice.progressItems).toEqual([]);
     expect(slice.focusedAgentIndex).toBe(0);
-    expect(slice.expandedAgentIds).toEqual(new Set());
+    expect(slice.agentViewMode).toBe('master');
+    expect(slice.focusedAgentSkillIndex).toBe(0);
+    expect(slice.selectedAgentSkillRowIds).toEqual(new Set());
+    expect(slice.activeAgentSkillFilter).toBe('all');
     expect(slice.focusedProjectIndex).toBe(0);
-    expect(slice.expandedProjectIds).toEqual(new Set());
+    expect(slice.projectViewMode).toBe('master');
+    expect(slice.focusedProjectSkillIndex).toBe(0);
+    expect(slice.selectedProjectSkillRowIds).toEqual(new Set());
+    expect(slice.activeProjectSkillFilter).toBe('all');
     expect(slice.showSearch).toBe(false);
     expect(slice.showHelp).toBe(false);
     expect(slice.confirmState).toBeNull();
@@ -78,6 +84,7 @@ describe('createUISlice', () => {
     expect(slice.searchResultIndex).toBe(0);
     expect(slice.tabSwitchPending).toBeNull();
     expect(slice.dirtyConfirmActive).toBe(false);
+    expect(slice.detailSkillName).toBeNull();
   });
 
   it('setActiveTab resets form states and focuses', () => {
@@ -93,12 +100,20 @@ describe('createUISlice', () => {
         focusedSkillIndex: 0,
         selectedSkillNames: new Set(),
         focusedAgentIndex: 0,
-        expandedAgentIds: new Set(),
+        agentViewMode: 'master',
+        focusedAgentSkillIndex: 0,
+        selectedAgentSkillRowIds: new Set(),
+        activeAgentSkillFilter: 'all',
         focusedProjectIndex: 0,
-        expandedProjectIds: new Set(),
+        projectViewMode: 'master',
+        focusedProjectSkillIndex: 0,
+        selectedProjectSkillRowIds: new Set(),
+        activeProjectSkillFilter: 'all',
         confirmState: null,
         formState: null,
         conflictState: null,
+        detailOverlayVisible: false,
+        detailSkillName: null,
       })
     );
   });

@@ -142,6 +142,16 @@ function getSkillSourceType(skillName: string, ctx: ServiceContext): UpdateResul
   return 'local';
 }
 
+function parseProjectTargetPairs(projectIds: string[]): Array<{ projectId: string; agentType: string }> {
+  return projectIds
+    .filter((projectId) => projectId.includes(':'))
+    .map((projectId) => {
+      const [actualProjectId, agentType] = projectId.split(':');
+      return { projectId: actualProjectId, agentType };
+    })
+    .filter((target) => Boolean(target.projectId) && Boolean(target.agentType));
+}
+
 // ============================================================
 // Isolated import helpers (Known Deviation 1)
 // ============================================================
@@ -362,6 +372,7 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
       const uniqueProjects = unique(projectIds);
       const mode = options?.mode ?? 'all';
       const agentTypes = unique(options?.agentTypes ?? []);
+      const exactTargets = mode === 'specific' ? parseProjectTargetPairs(uniqueProjects) : [];
       state.setSyncFormStep('executing');
 
       const availabilityEntries = await Promise.all(
@@ -374,6 +385,21 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
 
       for (const skillName of uniqueSkills) {
         const availability = availabilityBySkill.get(skillName) ?? new Map<string, Set<string>>();
+
+        if (exactTargets.length > 0) {
+          for (const target of exactTargets) {
+            const availableTypes = availability.get(target.projectId) ?? new Set<string>();
+            if (!availableTypes.has(target.agentType)) continue;
+            plannedItems.push({
+              id: `unsync-${skillName}-${target.projectId}-${target.agentType}`,
+              label: `unsync ${skillName} from ${target.projectId}:${target.agentType}`,
+              progress: 0,
+              status: 'pending',
+            });
+          }
+          continue;
+        }
+
         for (const projectId of uniqueProjects) {
           const availableTypes = availability.get(projectId) ?? new Set<string>();
           if (mode === 'all') {
@@ -404,6 +430,33 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
 
       for (const skillName of uniqueSkills) {
         const availability = availabilityBySkill.get(skillName) ?? new Map<string, Set<string>>();
+
+        if (exactTargets.length > 0) {
+          for (const target of exactTargets) {
+            const availableTypes = availability.get(target.projectId) ?? new Set<string>();
+            const label = `${skillName} -> ${target.projectId}:${target.agentType}`;
+            if (!availableTypes.has(target.agentType)) {
+              results.push(makeResult(label, 'skipped', 'Not synced for this agent type'));
+              continue;
+            }
+
+            const itemId = `unsync-${skillName}-${target.projectId}-${target.agentType}`;
+            state.updateProgressItem(itemId, { status: 'running', progress: 30 });
+            try {
+              await ctx.projectSyncService.unsync(skillName, [
+                `${target.projectId}:${target.agentType}`,
+              ]);
+              results.push(makeResult(label, 'success'));
+              state.updateProgressItem(itemId, { status: 'success', progress: 100 });
+            } catch (e: unknown) {
+              const msg = e instanceof Error ? e.message : String(e);
+              results.push(makeResult(label, 'error', msg));
+              state.updateProgressItem(itemId, { status: 'error', progress: 100, error: msg });
+            }
+          }
+          continue;
+        }
+
         for (const projectId of uniqueProjects) {
           const availableTypes = availability.get(projectId) ?? new Set<string>();
           const labelBase = `${skillName} -> ${projectId}`;

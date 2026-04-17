@@ -60,6 +60,13 @@ const PROJECT_FIELDS: FieldConfig[] = [
   { key: 'path', label: 'Project Path', placeholder: '/path/to/project', validate: (v: string) => validateNonEmpty(v, 'Project path') },
 ];
 
+function truncateText(text: string, maxWidth = 54): string {
+  if (maxWidth <= 0) return '';
+  if (text.length <= maxWidth) return text;
+  if (maxWidth <= 3) return text.slice(0, maxWidth);
+  return `${text.slice(0, maxWidth - 3)}...`;
+}
+
 function getFields(formType: string): FieldConfig[] {
   if (formType === 'addSkill') return SKILL_FIELDS;
   if (formType === 'addAgent') return AGENT_FIELDS;
@@ -250,7 +257,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
       {phase === 'input' && (
         <>
           {Object.keys(fieldErrors).length > 0 && (
-            <Text color={inkColors.error}>Please fix {Object.keys(fieldErrors).length} error(s) before submitting.</Text>
+            <Text color={inkColors.error}>{truncateText(`Please fix ${Object.keys(fieldErrors).length} error(s) before submitting.`)}</Text>
           )}
           {fields.map((field, i) => {
             const fieldHasFocus = i === focusedField;
@@ -386,7 +393,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
                     {renderFocusPrefix(isFocused)}
                   </Text>
                   <Text color={isSelected ? inkColors.success : undefined}>
-                    {isSelected ? selectionMarkers.selected : selectionMarkers.unselected} {skill.name}
+                    {truncateText(`${isSelected ? selectionMarkers.selected : selectionMarkers.unselected} ${skill.name}`)}
                   </Text>
                 </Text>
               );

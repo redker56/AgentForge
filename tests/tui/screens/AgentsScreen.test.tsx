@@ -56,9 +56,16 @@ describe('AgentsScreen', () => {
         claude: { userLevelSkillCount: 1, projectLevelSkillCount: 0 },
         codex: { userLevelSkillCount: 1, projectLevelSkillCount: 0 },
       },
-      expandedAgentIds: new Set<string>(),
+      agentViewMode: 'master',
+      focusedAgentSkillIndex: 0,
+      selectedAgentSkillRowIds: new Set<string>(),
+      activeAgentSkillFilter: 'all',
+      detailOverlayVisible: false,
+      detailSkillName: null,
       loading: { agents: false },
       loadAgentDetail: vi.fn(),
+      clearAgentSkillSelection: vi.fn(),
+      setFocusedAgentSkillIndex: vi.fn(),
       ...overrides,
     };
     return {
@@ -126,5 +133,46 @@ describe('AgentsScreen', () => {
     vi.runAllTimers();
     // Should not call loadAgentDetail since detail already exists
     expect(loadAgentDetail).not.toHaveBeenCalled();
+  });
+
+  it('renders context browse filters in widescreen band', async () => {
+    const { AgentsScreen } = await import('../../../src/tui/screens/AgentsScreen.js');
+    const store = makeMockStore({
+      agentDetails: {
+        claude: {
+          agentId: 'claude',
+          agentName: 'Claude Code',
+          basePath: '/home/user/.claude/skills',
+          userLevelSkills: [],
+          projectLevelSkills: [],
+          sections: [
+            {
+              id: 'agent:claude:user-level',
+              title: 'User-level',
+              rows: [
+                {
+                  rowId: 'agent:claude:user:defuddle',
+                  name: 'defuddle',
+                  path: '/home/user/.claude/skills/defuddle',
+                  agentId: 'claude',
+                  agentName: 'Claude Code',
+                  isImported: true,
+                  isDifferentVersion: false,
+                  sourceType: 'agent-user',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const { lastFrame } = render(
+      React.createElement(AgentsScreen, { store, band: 'widescreen' as const, columns: 120 })
+    );
+    vi.runAllTimers();
+    const frame = lastFrame() || '';
+    expect(frame).toContain('Browse:');
+    expect(frame).toContain('Imported:1');
+    expect(frame).toContain('Unimported:0');
   });
 });

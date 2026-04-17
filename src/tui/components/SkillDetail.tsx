@@ -20,6 +20,7 @@ interface SkillDetailProps {
   store: StoreApi<AppStore>;
   band?: WidthBand;
   columns?: number;
+  skillName?: string | null;
 }
 
 interface DetailLine {
@@ -55,14 +56,24 @@ export function SkillDetail({
   store,
   band,
   columns = 100,
+  skillName,
 }: SkillDetailProps): React.ReactElement {
   const focusedIndex = useStore(store, (s) => s.focusedSkillIndex);
   const skills = useStore(store, (s) => s.skills);
   const activeSkillCategoryFilter = useStore(store, (s) => s.activeSkillCategoryFilter);
   const skillDetails = useStore(store, (s) => s.skillDetails);
 
-  const focusedSkill = getFocusedVisibleSkill(skills, activeSkillCategoryFilter, focusedIndex);
+  const focusedSkill =
+    skillName != null
+      ? skills.find((skill) => skill.name === skillName) ?? null
+      : getFocusedVisibleSkill(skills, activeSkillCategoryFilter, focusedIndex);
   const detail = focusedSkill ? skillDetails[focusedSkill.name] : undefined;
+
+  useEffect(() => {
+    if (focusedSkill && !detail) {
+      void store.getState().loadSkillDetail(focusedSkill.name);
+    }
+  }, [detail, focusedSkill, store]);
 
   const panelWidth = Math.max(
     Math.min(Math.floor(columns * STANDARD_OVERLAY_WIDTH_RATIO), columns - 4),

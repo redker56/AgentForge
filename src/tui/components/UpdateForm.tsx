@@ -28,6 +28,8 @@ interface PreviewItem {
 
 const MAX_VISIBLE_ROWS = 8;
 const MAX_VISIBLE_PROGRESS = 6;
+const FORM_WIDTH = 76;
+const CONTENT_WIDTH = FORM_WIDTH - 4;
 
 function parseSkillNames(encoded: string | undefined): string[] {
   if (!encoded) return [];
@@ -62,6 +64,13 @@ function renderFixedRows(
     rendered.push(emptyFactory(rendered.length));
   }
   return rendered;
+}
+
+function truncateText(text: string, maxWidth = CONTENT_WIDTH): string {
+  if (maxWidth <= 0) return '';
+  if (text.length <= maxWidth) return text;
+  if (maxWidth <= 3) return text.slice(0, maxWidth);
+  return `${text.slice(0, maxWidth - 3)}...`;
 }
 
 export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
@@ -179,12 +188,9 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
   const title = formState.formType === 'updateAllGit' ? 'Update All Git Skills' : 'Update Selected Skills';
   const previewRows = previewItems.map((item) => (
     <Text key={item.skillName}>
-      <Text color={item.willUpdate ? inkColors.success : inkColors.muted}>
-        {item.willUpdate ? '[update]' : '[skip]  '}
-      </Text>
-      <Text>{item.skillName}</Text>
-      <Text color={inkColors.muted}> [{formatSourceLabel(item.sourceType)}]</Text>
-      <Text color={item.willUpdate ? inkColors.secondary : inkColors.muted}> {item.detail}</Text>
+      {truncateText(
+        `${item.willUpdate ? '[update]' : '[skip]  '} ${item.skillName} [${formatSourceLabel(item.sourceType)}] ${item.detail}`
+      )}
     </Text>
   ));
 
@@ -211,8 +217,7 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
           : '[skipped]';
     return (
       <Text key={`${item.skillName}-${item.outcome}`} color={color}>
-        {badge} {item.skillName}
-        {item.detail ? ` - ${item.detail}` : ''}
+        {truncateText(`${badge} ${item.skillName}${item.detail ? ` - ${item.detail}` : ''}`)}
       </Text>
     );
   });
@@ -221,7 +226,7 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
   ));
 
   return (
-    <Box flexDirection="column" borderStyle="single" padding={1} width={76} marginTop={1} borderColor={inkColors.border}>
+    <Box flexDirection="column" borderStyle="single" padding={1} width={FORM_WIDTH} marginTop={1} borderColor={inkColors.border}>
       <Text bold color={inkColors.accent}>{title}</Text>
       <Text color={inkColors.muted}>
         {requestedSkillNames.length} requested | {updatableCount} updatable
@@ -231,7 +236,7 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
 
       {phase === 'preview' && (
         <>
-          <Text dimColor>Preview targets before running the update:</Text>
+          <Text dimColor>{truncateText('Preview targets before running the update:')}</Text>
           <Text> </Text>
           {fixedPreviewRows}
           {previewItems.length > MAX_VISIBLE_ROWS && (
@@ -242,14 +247,14 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
           {updatableCount > 0 ? (
             <Text dimColor>Enter:Start update Esc:Cancel</Text>
           ) : (
-            <Text dimColor>No git-backed skills to update. Enter or Esc to close.</Text>
+            <Text dimColor>{truncateText('No git-backed skills to update. Enter or Esc to close.')}</Text>
           )}
         </>
       )}
 
       {phase === 'executing' && (
         <>
-          <Text dimColor>Updating git-backed skills and re-syncing managed copies...</Text>
+          <Text dimColor>{truncateText('Updating git-backed skills and re-syncing managed copies...')}</Text>
           <Text> </Text>
           {visibleProgressItems.length > 0 ? (
             <ProgressBarStack items={visibleProgressItems} />

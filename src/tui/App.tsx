@@ -15,6 +15,7 @@ import { CommandPalette } from './components/CommandPalette.js';
 import { CompletionModal } from './components/CompletionModal.js';
 import { ConfirmModal } from './components/ConfirmModal.js';
 import { ConflictPanel } from './components/ConflictPanel.js';
+import { ContextImportForm } from './components/ContextImportForm.js';
 import { HelpOverlay } from './components/HelpOverlay.js';
 import { ImportForm } from './components/ImportForm.js';
 import { ProgressBarStack } from './components/ProgressBar.js';
@@ -111,7 +112,10 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
       {showHelp && <HelpOverlay store={store} />}
       {formState && formState.formType.startsWith('add') && <AddForm store={store} />}
       {formState?.formType === 'categorizeSkills' && <CategoryForm store={store} />}
-      {formState && formState.formType.startsWith('import') && <ImportForm store={store} />}
+      {formState?.formType === 'importContextSkills' && <ContextImportForm store={store} />}
+      {(formState?.formType === 'importProject' || formState?.formType === 'importAgent') && (
+        <ImportForm store={store} />
+      )}
       {updateFormOpen && <UpdateForm store={store} />}
       {conflictState && <ConflictPanel store={store} />}
       {confirmState && <ConfirmModal store={store} />}

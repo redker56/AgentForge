@@ -251,6 +251,13 @@ af update [skill-name]
 - `c`: Open category editor for the selected skill(s)
 - Skills tab category bar: browse `All`, `Uncategorized`, and every defined category
 
+### TUI Context Skill Lists
+
+- In the `Agents` and `Projects` tabs, press `Enter` to open a real skill list for the focused item
+- Context skill lists support `Space` multi-select plus `i`, `x`, `u`, and `c` for import, unsync, update, and categorize
+- `[` / `]` switches the context filter between `All`, `Imported`, and `Unimported`
+- `Esc` returns to the master Agent / Project list, and `Enter` on an imported skill opens its detail view
+
 ## Skill Levels
 
 AgentForge distinguishes two skill levels:

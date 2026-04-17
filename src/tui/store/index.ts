@@ -57,6 +57,7 @@ export function createAppStore(ctx: ServiceContext): StoreApi<AppStore> {
     removeSkill: async (): Promise<void> => {},
     importFromProject: async (): Promise<void> => {},
     importFromAgent: async (): Promise<void> => {},
+    importContextSkills: async () => [],
     scanProjectSkills: (): Array<{ name: string; path: string; alreadyExists: boolean }> => [],
     scanAgentSkills: (): Array<{
       name: string;

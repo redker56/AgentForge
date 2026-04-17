@@ -17,6 +17,7 @@ describe('SkillDetail', () => {
   function makeMockStore(overrides?: Partial<Record<string, unknown>>) {
     const state = {
       focusedSkillIndex: 0,
+      loadSkillDetail: vi.fn(),
       skills: [
         {
           name: 'architectural-coherence',

@@ -22,6 +22,7 @@ import {
 } from '../../types.js';
 import { ReconcileService } from '../../app/reconcile-service.js';
 import type { SkillCategoryUpdateMode } from '../../app/skill-service.js';
+import type { ContextSkillRow, ContextSkillSection } from '../contextTypes.js';
 
 import type { SkillListItem, StoreState } from './index.js';
 
@@ -54,18 +55,12 @@ export interface AgentDetailData {
   agentId: string;
   agentName: string;
   basePath: string;
-  userLevelSkills: Array<{
-    name: string;
-    syncMode: 'copy' | 'symlink';
-    isSynced: boolean;
-  }>;
+  userLevelSkills: ContextSkillRow[];
   projectLevelSkills: Array<{
     projectId: string;
-    skills: Array<{
-      name: string;
-      isDifferentVersion: boolean;
-    }>;
+    skills: ContextSkillRow[];
   }>;
+  sections: ContextSkillSection[];
 }
 
 // NEW: Project detail data types
@@ -75,12 +70,9 @@ export interface ProjectDetailData {
   skillsByAgent: Array<{
     agentId: string;
     agentName: string;
-    skills: Array<{
-      name: string;
-      isImported: boolean;
-      isDifferentVersion: boolean;
-    }>;
+    skills: ContextSkillRow[];
   }>;
+  sections: ContextSkillSection[];
 }
 
 export interface AgentSummaryData {
@@ -139,6 +131,18 @@ export interface ServiceContext {
         isImported: boolean;
         isDifferentVersion: boolean;
         subPath: string;
+      }>
+    >;
+    getAgentProjectSkills(agentId: string): Promise<
+      Array<{
+        name: string;
+        path: string;
+        agentId: string;
+        agentName: string;
+        isImported: boolean;
+        isDifferentVersion: boolean;
+        subPath: string;
+        projectId?: string;
       }>
     >;
     scanProject(projectPath: string): Array<{
@@ -240,7 +244,7 @@ export interface DataSlice {
   refreshSkills: () => void;
 
   // NEW: Agent/project actions
-  loadAgentDetail: (agentId: string) => void;
+  loadAgentDetail: (agentId: string) => Promise<void>;
   loadProjectDetail: (projectId: string) => Promise<void>;
   refreshAgents: () => void;
   refreshProjects: () => void;
@@ -310,6 +314,11 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
 
     return summaries;
   };
+
+  const sortRowsByName = <T extends { name: string }>(rows: T[]): T[] =>
+    [...rows].sort((left, right) =>
+      left.name.localeCompare(right.name, undefined, { sensitivity: 'base' })
+    );
 
   const reconcileService = new ReconcileService(ctx.storage, ctx.scanService);
 
@@ -447,17 +456,17 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
     },
 
     // NEW: Load agent detail data
-    loadAgentDetail(agentId): void {
+    loadAgentDetail: async (agentId): Promise<void> => {
       const agent = ctx.storage.getAgent(agentId);
       if (!agent) return;
 
-      // Get user-level skills from agent's skill directory
       const userLevelSkills: AgentDetailData['userLevelSkills'] = [];
       if (ctx.fileOps.pathExists(agent.basePath)) {
-        const skillDirs = ctx.fileOps.listSubdirectories(agent.basePath);
+        const skillDirs = [...ctx.fileOps.listSubdirectories(agent.basePath)].sort((left, right) =>
+          left.localeCompare(right, undefined, { sensitivity: 'base' })
+        );
         for (const skillDir of skillDirs) {
           const skillPath = path.join(agent.basePath, skillDir);
-          // Check if it looks like a skill directory (has SKILL.md)
           try {
             const hasSkillMd =
               fs.existsSync(path.join(skillPath, 'SKILL.md')) ||
@@ -467,47 +476,71 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
             continue;
           }
 
-          // Check sync record
           const skill = ctx.storage.getSkill(skillDir);
           const syncRecord = skill?.syncedTo.find((r) => r.agentId === agentId);
           userLevelSkills.push({
+            rowId: `agent:${agentId}:user:${skillDir}`,
             name: skillDir,
-            syncMode: syncRecord?.mode ?? 'copy',
+            path: skillPath,
+            registrySkillName: skill?.name,
+            agentId,
+            agentName: agent.name,
+            isImported: Boolean(skill),
+            isDifferentVersion: false,
+            syncMode: syncRecord?.mode,
             isSynced: !!syncRecord,
+            sourceType: 'agent-user',
           });
         }
       }
 
-      // Get project-level skills
       const projectLevelSkills: AgentDetailData['projectLevelSkills'] = [];
-      const projects = ctx.storage.listProjects();
-      for (const project of projects) {
-        const dirName = agent.skillsDirName || agent.id;
-        const agentSkillsDir = path.join(project.path, `.${dirName}`, 'skills');
-        if (!ctx.fileOps.pathExists(agentSkillsDir)) continue;
+      const projectLevelStatuses = await ctx.scanService.getAgentProjectSkills(agentId);
+      const byProject = new Map<string, ContextSkillRow[]>();
+      for (const skill of projectLevelStatuses) {
+        const projectId = skill.projectId;
+        if (!projectId) continue;
 
-        const projectSkillDirs = ctx.fileOps.listSubdirectories(agentSkillsDir);
-        const projectSkills: Array<{ name: string; isDifferentVersion: boolean }> = [];
+        const rows = byProject.get(projectId) ?? [];
+        rows.push({
+          rowId: `agent:${agentId}:project:${projectId}:${skill.name}`,
+          name: skill.name,
+          path: skill.path,
+          registrySkillName: ctx.storage.getSkill(skill.name) ? skill.name : undefined,
+          agentId: skill.agentId,
+          agentName: skill.agentName,
+          projectId,
+          isImported: Boolean(ctx.storage.getSkill(skill.name)),
+          isDifferentVersion: skill.isDifferentVersion,
+          sourceType: 'agent-project',
+        });
+        byProject.set(projectId, rows);
+      }
 
-        for (const skillDir of projectSkillDirs) {
-          const skillPath = path.join(agentSkillsDir, skillDir);
-          try {
-            const hasSkillMd =
-              fs.existsSync(path.join(skillPath, 'SKILL.md')) ||
-              fs.existsSync(path.join(skillPath, 'skill.md'));
-            if (!hasSkillMd) continue;
-          } catch {
-            continue;
-          }
-          projectSkills.push({ name: skillDir, isDifferentVersion: false });
-        }
+      for (const projectId of Array.from(byProject.keys()).sort((left, right) =>
+        left.localeCompare(right, undefined, { sensitivity: 'base' })
+      )) {
+        projectLevelSkills.push({
+          projectId,
+          skills: sortRowsByName(byProject.get(projectId) ?? []),
+        });
+      }
 
-        if (projectSkills.length > 0) {
-          projectLevelSkills.push({
-            projectId: project.id,
-            skills: projectSkills,
-          });
-        }
+      const sections: ContextSkillSection[] = [];
+      if (userLevelSkills.length > 0) {
+        sections.push({
+          id: `agent:${agentId}:user-level`,
+          title: 'User-level',
+          rows: sortRowsByName(userLevelSkills),
+        });
+      }
+      for (const projectGroup of projectLevelSkills) {
+        if (projectGroup.skills.length === 0) continue;
+        sections.push({
+          id: `agent:${agentId}:project:${projectGroup.projectId}`,
+          title: `Project-level / ${projectGroup.projectId}`,
+          rows: projectGroup.skills,
+        });
       }
 
       set((state) => ({
@@ -517,14 +550,14 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
             agentId,
             agentName: agent.name,
             basePath: agent.basePath,
-            userLevelSkills,
+            userLevelSkills: sortRowsByName(userLevelSkills),
             projectLevelSkills,
+            sections,
           },
         },
       }));
     },
 
-    // NEW: Load project detail data
     loadProjectDetail: async (projectId): Promise<void> => {
       const project = ctx.storage.getProject(projectId);
       if (!project) return;
@@ -547,13 +580,35 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
           byAgent.set(skill.agentId, group);
         }
         group.skills.push({
+          rowId: `project:${projectId}:${skill.agentId}:${skill.name}`,
           name: skill.name,
-          isImported: skill.isImported,
+          path: skill.path,
+          registrySkillName: ctx.storage.getSkill(skill.name) ? skill.name : undefined,
+          agentId: skill.agentId,
+          agentName: skill.agentName,
+          projectId,
+          isImported: Boolean(ctx.storage.getSkill(skill.name)),
           isDifferentVersion: skill.isDifferentVersion,
+          sourceType: 'project',
         });
       }
 
-      const skillsByAgent = Array.from(byAgent.values());
+      const skillsByAgent = Array.from(byAgent.values())
+        .sort((left, right) =>
+          left.agentName.localeCompare(right.agentName, undefined, { sensitivity: 'base' })
+        )
+        .map((group) => ({
+          ...group,
+          skills: sortRowsByName(group.skills),
+        }));
+
+      const sections: ContextSkillSection[] = skillsByAgent
+        .filter((group) => group.skills.length > 0)
+        .map((group) => ({
+          id: `project:${projectId}:agent:${group.agentId}`,
+          title: group.agentName,
+          rows: group.skills,
+        }));
 
       set((state) => ({
         projectDetails: {
@@ -562,6 +617,7 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
             projectId,
             projectPath: project.path,
             skillsByAgent,
+            sections,
           },
         },
       }));

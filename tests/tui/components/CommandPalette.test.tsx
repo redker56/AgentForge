@@ -77,9 +77,10 @@ describe('CommandPalette', () => {
       'utf-8',
     );
 
-    expect(source).toContain("openUpdateForm(names, 'updateSelected')");
-    expect(source).toContain("openUpdateForm(names, 'updateAllGit')");
+    expect(source).toContain("openUpdateForm(state, names, 'updateSelected')");
+    expect(source).toContain("openUpdateForm(state, names, 'updateAllGit')");
     expect(source).toContain("setSyncFormStep('select-unsync-scope')");
     expect(source).toContain("formType: 'categorizeSkills'");
+    expect(source).toContain("setSyncFormSelectedTargetIds(new Set(targetPairs))");
   });
 });

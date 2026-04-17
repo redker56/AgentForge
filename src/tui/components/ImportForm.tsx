@@ -24,6 +24,13 @@ interface ScannedSkill {
   hasSkillMd?: boolean;
 }
 
+function truncateText(text: string, maxWidth = 54): string {
+  if (maxWidth <= 0) return '';
+  if (text.length <= maxWidth) return text;
+  if (maxWidth <= 3) return text.slice(0, maxWidth);
+  return `${text.slice(0, maxWidth - 3)}...`;
+}
+
 export function ImportForm({ store }: ImportFormProps): React.ReactElement {
   const formState = useStore(store, s => s.formState);
   const projects = useStore(store, s => s.projects);
@@ -156,7 +163,7 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
                 <Text color={isFocused ? inkColors.accent : inkColors.muted}>
                   {renderFocusPrefix(isFocused)}
                 </Text>
-                <Text color={isFocused ? inkColors.accent : inkColors.muted}>{label}</Text>
+                <Text color={isFocused ? inkColors.accent : inkColors.muted}>{truncateText(label)}</Text>
               </Text>
             );
           })}
@@ -194,8 +201,7 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
                   {renderFocusPrefix(isFocused)}
                 </Text>
                 <Text color={rowColor}>
-                  {checkbox} {skill.name}
-                  {skill.alreadyExists ? ' (already imported)' : ''}
+                  {truncateText(`${checkbox} ${skill.name}${skill.alreadyExists ? ' (already imported)' : ''}`)}
                 </Text>
               </Text>
             );
@@ -216,7 +222,7 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
         <>
           {resultMessages.map(msg => (
             <Text key={msg.name} color={msg.ok ? inkColors.success : inkColors.error}>
-              {msg.ok ? `[OK] ${msg.name}` : `[FAIL] ${msg.name}: ${msg.error}`}
+              {truncateText(msg.ok ? `[OK] ${msg.name}` : `[FAIL] ${msg.name}: ${msg.error}`)}
             </Text>
           ))}
           <Text> </Text>
