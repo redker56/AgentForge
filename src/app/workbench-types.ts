@@ -180,13 +180,17 @@ export interface WorkbenchCommands {
     skillNames: string[],
     agentIds: string[],
     mode: SyncMode
-  ): Promise<Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>>;
+  ): Promise<
+    Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>
+  >;
   syncSkillsToProjects(
     skillNames: string[],
     projectIds: string[],
     agentTypes: string[],
     mode: SyncMode
-  ): Promise<Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>>;
+  ): Promise<
+    Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>
+  >;
   unsyncSkillsFromAgents(skillNames: string[], agentIds: string[]): Promise<void>;
   unsyncSkillsFromProjects(
     skillNames: string[],

@@ -967,8 +967,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
 
         if (Date.now() >= shellState.activeToast.expiresAt) {
           const nextToast = shellState.toastQueue.length > 0 ? shellState.toastQueue[0] : null;
-          const nextQueue =
-            shellState.toastQueue.length > 0 ? shellState.toastQueue.slice(1) : [];
+          const nextQueue = shellState.toastQueue.length > 0 ? shellState.toastQueue.slice(1) : [];
           set((state) => ({
             shellState: {
               ...state.shellState,

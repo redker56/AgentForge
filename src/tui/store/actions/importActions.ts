@@ -23,10 +23,7 @@ export interface ImportActions {
   ) => Array<{ name: string; path: string; alreadyExists: boolean; hasSkillMd: boolean }>;
 }
 
-function createImportActionsImpl(
-  store: StoreApi<AppStore>,
-  ctx: WorkbenchContext
-): ImportActions {
+function createImportActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext): ImportActions {
   /**
    * Post-import conflict detection
    */
@@ -136,8 +133,9 @@ function createImportActionsImpl(
           error: result.error,
         });
         if (result.success) {
-          const row = uniqueRows.find((entry) =>
-            result.target === (entry.projectId ? `${entry.projectId}:${entry.name}` : entry.name)
+          const row = uniqueRows.find(
+            (entry) =>
+              result.target === (entry.projectId ? `${entry.projectId}:${entry.name}` : entry.name)
           );
           if (row) setupConflictDetection(row.name);
         }
@@ -151,7 +149,10 @@ function createImportActionsImpl(
   };
 }
 
-export function createImportActions(store: StoreApi<AppStore>, ctx: WorkbenchContext): ImportActions {
+export function createImportActions(
+  store: StoreApi<AppStore>,
+  ctx: WorkbenchContext
+): ImportActions {
   return createImportActionsImpl(store, ctx);
 }
 

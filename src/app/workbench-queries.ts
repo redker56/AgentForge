@@ -102,7 +102,9 @@ export class DefaultWorkbenchQueries implements WorkbenchQueries {
         ...skill,
         exists: this.fileOps.pathExists(this.storage.getSkillPath(skill.name)),
       }))
-      .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
+      .sort((left, right) =>
+        left.name.localeCompare(right.name, undefined, { sensitivity: 'base' })
+      );
     const agents = this.storage.listAgents();
     const projects = this.storage.listProjects();
 
@@ -344,7 +346,10 @@ export class DefaultWorkbenchQueries implements WorkbenchQueries {
 
     if (input.operation === 'sync-projects') {
       return {
-        targets: projects.map((project) => ({ id: project.id, label: `${project.id}  ${project.path}` })),
+        targets: projects.map((project) => ({
+          id: project.id,
+          label: `${project.id}  ${project.path}`,
+        })),
         agentTypes: [],
       };
     }
@@ -383,7 +388,8 @@ export class DefaultWorkbenchQueries implements WorkbenchQueries {
           availability.get(record.projectId)?.add(record.agentType);
         }
 
-        const distribution = await this.scanService.getSkillProjectDistributionWithStatus(skillName);
+        const distribution =
+          await this.scanService.getSkillProjectDistributionWithStatus(skillName);
         for (const project of distribution) {
           if (!availability.has(project.projectId)) {
             availability.set(project.projectId, new Set<string>());
@@ -412,7 +418,10 @@ export class DefaultWorkbenchQueries implements WorkbenchQueries {
         targets: projects
           .filter((project) => projectIds.has(project.id))
           .map((project) => ({ id: project.id, label: `${project.id}  ${project.path}` })),
-        agentTypes: uniqueAgentTypes(new Set(exactTargets.map((target) => target.agentType)), agents),
+        agentTypes: uniqueAgentTypes(
+          new Set(exactTargets.map((target) => target.agentType)),
+          agents
+        ),
       };
     }
 
@@ -442,12 +451,14 @@ export class DefaultWorkbenchQueries implements WorkbenchQueries {
       const project = this.storage.getProject(input.sourceId);
       if (!project) return null;
 
-      const candidates: ImportCandidate[] = this.scanService.scanProject(project.path).map((skill) => ({
-        name: skill.name,
-        path: skill.path,
-        alreadyExists: Boolean(this.storage.getSkill(skill.name)),
-        hasSkillMd: skill.hasSkillMd,
-      }));
+      const candidates: ImportCandidate[] = this.scanService
+        .scanProject(project.path)
+        .map((skill) => ({
+          name: skill.name,
+          path: skill.path,
+          alreadyExists: Boolean(this.storage.getSkill(skill.name)),
+          hasSkillMd: skill.hasSkillMd,
+        }));
 
       return {
         sourceLabel: `${project.id}  ${project.path}`,
@@ -501,7 +512,9 @@ export class DefaultWorkbenchQueries implements WorkbenchQueries {
     for (const agent of agents) {
       let projectLevelSkillCount = 0;
       for (const project of projects) {
-        projectLevelSkillCount += this.countValidSkillDirs(getAgentProjectSkillsDir(project.path, agent));
+        projectLevelSkillCount += this.countValidSkillDirs(
+          getAgentProjectSkillsDir(project.path, agent)
+        );
       }
 
       summaries[agent.id] = {

@@ -91,9 +91,7 @@ function createState(overrides: Record<string, unknown> = {}) {
         syncedProjects: [{ projectId: 'proj-1', agentType: 'codex' }],
       },
     },
-    agents: [
-      { id: 'codex', name: 'Codex', basePath: '/agents/codex', skillsDirName: 'agents' },
-    ],
+    agents: [{ id: 'codex', name: 'Codex', basePath: '/agents/codex', skillsDirName: 'agents' }],
     agentDetails: {
       codex: {
         sections: [

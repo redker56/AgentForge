@@ -57,9 +57,7 @@ describe('createSyncActions', () => {
       const mockAgent = createMockAgent({ id: 'claude', name: 'Claude' });
 
       vi.mocked(mockCtx.storage.getAgent).mockReturnValue(mockAgent);
-      vi.mocked(mockCtx.syncService.sync).mockResolvedValue([
-        createMockSyncResult('claude', true),
-      ]);
+      vi.mocked(mockCtx.syncService.sync).mockResolvedValue([createMockSyncResult('claude', true)]);
 
       await actions.syncSkillsToAgents(['skill1'], ['claude'], 'copy');
 
@@ -93,9 +91,7 @@ describe('createSyncActions', () => {
       const mockAgent = createMockAgent({ id: 'claude', name: 'Claude' });
 
       vi.mocked(mockCtx.storage.getAgent).mockReturnValue(mockAgent);
-      vi.mocked(mockCtx.syncService.sync).mockResolvedValue([
-        createMockSyncResult('claude', true),
-      ]);
+      vi.mocked(mockCtx.syncService.sync).mockResolvedValue([createMockSyncResult('claude', true)]);
 
       await actions.syncSkillsToAgents(['skill1'], ['claude'], 'copy');
 
@@ -408,7 +404,9 @@ describe('createSyncActions', () => {
       vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
       await refreshSkills([mockSkill]);
 
-      let resolveUpdate: ((value: Array<{ skillName: string; sourceType: 'git'; outcome: 'updated' }>) => void) | undefined;
+      let resolveUpdate:
+        | ((value: Array<{ skillName: string; sourceType: 'git'; outcome: 'updated' }>) => void)
+        | undefined;
       vi.mocked(mockCtx.commands.updateSkills).mockImplementationOnce(
         () =>
           new Promise((resolve) => {

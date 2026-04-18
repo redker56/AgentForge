@@ -41,14 +41,20 @@ export function handleAgentsTabInput({ store, input, key, state }: InputRouteCon
       return true;
     }
     if (input === ' ') {
-      const focusedRow = getFocusedContextRow(visibleRows, state.agentsBrowserState.focusedSkillIndex);
+      const focusedRow = getFocusedContextRow(
+        visibleRows,
+        state.agentsBrowserState.focusedSkillIndex
+      );
       if (focusedRow) {
         state.toggleAgentSkillSelection(focusedRow.rowId);
       }
       return true;
     }
     if (key.return) {
-      const focusedRow = getFocusedContextRow(visibleRows, state.agentsBrowserState.focusedSkillIndex);
+      const focusedRow = getFocusedContextRow(
+        visibleRows,
+        state.agentsBrowserState.focusedSkillIndex
+      );
       if (focusedRow?.registrySkillName) {
         openSkillDetail(store, focusedRow.registrySkillName);
       }

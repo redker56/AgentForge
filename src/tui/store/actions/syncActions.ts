@@ -135,7 +135,10 @@ async function getProjectUnsyncAvailability(
   return availability;
 }
 
-function getSkillSourceType(skillName: string, store: StoreApi<AppStore>): UpdateResult['sourceType'] {
+function getSkillSourceType(
+  skillName: string,
+  store: StoreApi<AppStore>
+): UpdateResult['sourceType'] {
   const skill = store.getState().skills.find((entry) => entry.name === skillName);
   if (!skill) return 'unknown';
   if (skill.source.type === 'git') return 'git';
@@ -183,10 +186,7 @@ export async function doImportFromAgent(
   }));
 }
 
-function createSyncActionsImpl(
-  store: StoreApi<AppStore>,
-  ctx: WorkbenchContext
-): SyncActions {
+function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext): SyncActions {
   return {
     syncSkillsToAgents: async (skillNames, agentIds, mode): Promise<void> => {
       const state = store.getState();
@@ -214,7 +214,9 @@ function createSyncActionsImpl(
           try {
             const syncResults = await ctx.commands.syncSkillsToAgents([skillName], [agentId], mode);
             const syncResult = syncResults[0];
-            results.push(makeResult(label, syncResult?.success ? 'success' : 'error', syncResult?.error));
+            results.push(
+              makeResult(label, syncResult?.success ? 'success' : 'error', syncResult?.error)
+            );
             state.updateProgressItem(itemId, { status: 'success', progress: 100 });
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
@@ -448,7 +450,9 @@ function createSyncActionsImpl(
             const itemId = `unsync-${skillName}-${projectId}`;
             state.updateProgressItem(itemId, { status: 'running', progress: 30 });
             try {
-              await ctx.commands.unsyncSkillsFromProjects([skillName], [projectId], { mode: 'all' });
+              await ctx.commands.unsyncSkillsFromProjects([skillName], [projectId], {
+                mode: 'all',
+              });
               results.push(makeResult(labelBase, 'success'));
               state.updateProgressItem(itemId, { status: 'success', progress: 100 });
             } catch (e: unknown) {

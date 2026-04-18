@@ -2,7 +2,10 @@ import { TAB_IDS } from '../../store/index.js';
 
 import type { InputRouteContext } from './types.js';
 
-function requestTabSwitch(state: InputRouteContext['state'], targetTab: typeof TAB_IDS[number]): void {
+function requestTabSwitch(
+  state: InputRouteContext['state'],
+  targetTab: (typeof TAB_IDS)[number]
+): void {
   if (state.shellState.formDirty) {
     state.setTabSwitchPending(targetTab);
     state.setDirtyConfirmActive(true);

@@ -104,7 +104,9 @@ export class DefaultWorkbenchCommands implements WorkbenchCommands {
 
     try {
       for (const selection of selections) {
-        const sourceDir = selection.subPath ? path.join(tempRepoPath, selection.subPath) : tempRepoPath;
+        const sourceDir = selection.subPath
+          ? path.join(tempRepoPath, selection.subPath)
+          : tempRepoPath;
         await this.skillService.installFromDirectory(
           repoUrl,
           selection.name,
@@ -151,8 +153,16 @@ export class DefaultWorkbenchCommands implements WorkbenchCommands {
     skillNames: string[],
     agentIds: string[],
     mode: SyncMode
-  ): Promise<Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>> {
-    const results: Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }> = [];
+  ): Promise<
+    Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>
+  > {
+    const results: Array<{
+      target: string;
+      success: boolean;
+      path: string;
+      mode: SyncMode;
+      error?: string;
+    }> = [];
 
     for (const skillName of unique(skillNames)) {
       for (const agentId of unique(agentIds)) {
@@ -170,8 +180,16 @@ export class DefaultWorkbenchCommands implements WorkbenchCommands {
     projectIds: string[],
     agentTypes: string[],
     mode: SyncMode
-  ): Promise<Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>> {
-    const results: Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }> = [];
+  ): Promise<
+    Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }>
+  > {
+    const results: Array<{
+      target: string;
+      success: boolean;
+      path: string;
+      mode: SyncMode;
+      error?: string;
+    }> = [];
 
     for (const skillName of unique(skillNames)) {
       for (const projectId of unique(projectIds)) {
@@ -375,7 +393,10 @@ export class DefaultWorkbenchCommands implements WorkbenchCommands {
         continue;
       }
       try {
-        await this.skillService.importFromPath(found.path, skillName, { type: 'project', projectId });
+        await this.skillService.importFromPath(found.path, skillName, {
+          type: 'project',
+          projectId,
+        });
         results.push(makeImportResult(skillName, 'success'));
       } catch (error: unknown) {
         results.push(
@@ -454,7 +475,9 @@ export class DefaultWorkbenchCommands implements WorkbenchCommands {
           });
         }
 
-        results.push(makeImportResult(row.projectId ? `${row.projectId}:${row.name}` : row.name, 'success'));
+        results.push(
+          makeImportResult(row.projectId ? `${row.projectId}:${row.name}` : row.name, 'success')
+        );
       } catch (error: unknown) {
         results.push(
           makeImportResult(

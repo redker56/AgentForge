@@ -16,10 +16,12 @@ function createHarness(overrides: Partial<StoreState> = {}) {
     ...overrides,
   } as StoreState;
 
-  const set = vi.fn((update: Partial<StoreState> | ((current: StoreState) => Partial<StoreState>)) => {
-    const patch = typeof update === 'function' ? update(state) : update;
-    state = { ...state, ...patch };
-  });
+  const set = vi.fn(
+    (update: Partial<StoreState> | ((current: StoreState) => Partial<StoreState>)) => {
+      const patch = typeof update === 'function' ? update(state) : update;
+      state = { ...state, ...patch };
+    }
+  );
   const get = vi.fn(() => state);
 
   state = {
@@ -129,9 +131,7 @@ describe('createUISlice', () => {
     expect(getState().agentsBrowserState.selectedSkillRowIds).toEqual(new Set(['agent-row']));
 
     getState().toggleProjectSkillSelection('project-row');
-    expect(getState().projectsBrowserState.selectedSkillRowIds).toEqual(
-      new Set(['project-row'])
-    );
+    expect(getState().projectsBrowserState.selectedSkillRowIds).toEqual(new Set(['project-row']));
   });
 
   it('resets sync workflow state to its initial shape', () => {

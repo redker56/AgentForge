@@ -80,11 +80,7 @@ function unique<T>(values: T[]): T[] {
   return Array.from(new Set(values));
 }
 
-function toImportResult(
-  target: string,
-  outcome: 'success' | 'error' | 'skipped',
-  error?: string
-) {
+function toImportResult(target: string, outcome: 'success' | 'error' | 'skipped', error?: string) {
   return {
     target,
     success: outcome === 'success',
@@ -187,7 +183,8 @@ export function createMockServiceContext(): MockWorkbenchContext {
       const skill = legacy.storage.getSkill(skillName);
       if (!skill) return null;
 
-      const distribution = await legacy.scanService.getSkillProjectDistributionWithStatus(skillName);
+      const distribution =
+        await legacy.scanService.getSkillProjectDistributionWithStatus(skillName);
       return {
         name: skill.name,
         path: legacy.storage.getSkillPath(skillName),
@@ -205,44 +202,48 @@ export function createMockServiceContext(): MockWorkbenchContext {
     loadAgentWorkbench: vi.fn(() => Promise.resolve(null)),
     loadProjectWorkbench: vi.fn(() => Promise.resolve(null)),
     loadSyncPreview: vi.fn(() => Promise.resolve({ targets: [], agentTypes: [] })),
-    loadImportSourcePreview: vi.fn((input: { sourceType: 'project' | 'agent'; sourceId: string }) => {
-      if (input.sourceType === 'project') {
-        const project = legacy.storage.getProject(input.sourceId);
-        if (!project) return null;
+    loadImportSourcePreview: vi.fn(
+      (input: { sourceType: 'project' | 'agent'; sourceId: string }) => {
+        if (input.sourceType === 'project') {
+          const project = legacy.storage.getProject(input.sourceId);
+          if (!project) return null;
 
-        const candidates = legacy.scanService.scanProject(project.path).map((skill: { name: string; path: string; hasSkillMd?: boolean }) => ({
-          name: skill.name,
-          path: skill.path,
-          alreadyExists: legacy.skillService.exists(skill.name),
-          hasSkillMd: skill.hasSkillMd ?? true,
-        }));
+          const candidates = legacy.scanService
+            .scanProject(project.path)
+            .map((skill: { name: string; path: string; hasSkillMd?: boolean }) => ({
+              name: skill.name,
+              path: skill.path,
+              alreadyExists: legacy.skillService.exists(skill.name),
+              hasSkillMd: skill.hasSkillMd ?? true,
+            }));
+          return {
+            sourceLabel: `${project.id}  ${project.path}`,
+            candidates,
+          };
+        }
+
+        const agent = legacy.storage.getAgent(input.sourceId);
+        if (!agent) return null;
+
+        const candidates = legacy.fileOps.listSubdirectories(agent.basePath).map((name: string) => {
+          const skillPath = path.join(agent.basePath, name);
+          const hasSkillMd =
+            legacy.fileOps.fileExists(path.join(skillPath, 'SKILL.md')) ||
+            legacy.fileOps.fileExists(path.join(skillPath, 'skill.md'));
+          return {
+            name,
+            path: skillPath,
+            alreadyExists: legacy.skillService.exists(name),
+            hasSkillMd,
+          };
+        });
+
         return {
-          sourceLabel: `${project.id}  ${project.path}`,
-          candidates,
+          sourceLabel: `${agent.name} (${agent.id})`,
+          candidates: candidates.filter((candidate) => candidate.hasSkillMd),
         };
       }
-
-      const agent = legacy.storage.getAgent(input.sourceId);
-      if (!agent) return null;
-
-      const candidates = legacy.fileOps.listSubdirectories(agent.basePath).map((name: string) => {
-        const skillPath = path.join(agent.basePath, name);
-        const hasSkillMd =
-          legacy.fileOps.fileExists(path.join(skillPath, 'SKILL.md')) ||
-          legacy.fileOps.fileExists(path.join(skillPath, 'skill.md'));
-        return {
-          name,
-          path: skillPath,
-          alreadyExists: legacy.skillService.exists(name),
-          hasSkillMd,
-        };
-      });
-
-      return {
-        sourceLabel: `${agent.name} (${agent.id})`,
-        candidates: candidates.filter((candidate) => candidate.hasSkillMd),
-      };
-    }),
+    ),
   };
 
   const commands: WorkbenchContext['commands'] = {
@@ -324,7 +325,13 @@ export function createMockServiceContext(): MockWorkbenchContext {
         legacy.syncCheck.resolveConflicts(skillName, resolutions)
     ),
     syncSkillsToAgents: vi.fn(async (skillNames: string[], agentIds: string[], mode: SyncMode) => {
-      const results: Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }> = [];
+      const results: Array<{
+        target: string;
+        success: boolean;
+        path: string;
+        mode: SyncMode;
+        error?: string;
+      }> = [];
       for (const skillName of unique(skillNames)) {
         for (const agentId of unique(agentIds)) {
           const agent = legacy.storage.getAgent(agentId);
@@ -336,7 +343,13 @@ export function createMockServiceContext(): MockWorkbenchContext {
     }),
     syncSkillsToProjects: vi.fn(
       async (skillNames: string[], projectIds: string[], agentTypes: string[], mode: SyncMode) => {
-        const results: Array<{ target: string; success: boolean; path: string; mode: SyncMode; error?: string }> = [];
+        const results: Array<{
+          target: string;
+          success: boolean;
+          path: string;
+          mode: SyncMode;
+          error?: string;
+        }> = [];
         for (const skillName of unique(skillNames)) {
           for (const projectId of unique(projectIds)) {
             const syncResults = await legacy.projectSyncService.syncToProject(
@@ -398,7 +411,7 @@ export function createMockServiceContext(): MockWorkbenchContext {
         if (skill.source.type !== 'git') {
           results.push({
             skillName,
-            sourceType: skill.source.type === 'project' ? 'project' as const : 'local' as const,
+            sourceType: skill.source.type === 'project' ? ('project' as const) : ('local' as const),
             outcome: 'skipped' as const,
             detail: 'Not git-backed',
           });
@@ -432,11 +445,7 @@ export function createMockServiceContext(): MockWorkbenchContext {
       return results;
     }),
     updateCategories: vi.fn(
-      (
-        skillNames: string[],
-        mode: 'set' | 'add' | 'remove' | 'clear',
-        categories: string[]
-      ) =>
+      (skillNames: string[], mode: 'set' | 'add' | 'remove' | 'clear', categories: string[]) =>
         Promise.resolve(
           unique(skillNames).map((skillName) => {
             try {
@@ -463,7 +472,8 @@ export function createMockServiceContext(): MockWorkbenchContext {
       }
 
       const projectTargetIds = (skill.syncedProjects ?? []).map(
-        (record: { projectId: string; agentType: string }) => `${record.projectId}:${record.agentType}`
+        (record: { projectId: string; agentType: string }) =>
+          `${record.projectId}:${record.agentType}`
       );
       if (projectTargetIds.length > 0) {
         await legacy.projectSyncService.unsync(skillName, projectTargetIds);
@@ -558,11 +568,7 @@ export function createMockServiceContext(): MockWorkbenchContext {
       if (builtinIds.includes(id)) {
         throw new Error(`"${id}" is a built-in agent ID and cannot be used`);
       }
-      if (
-        legacy.storage
-          .listAllDefinedAgents()
-          .some((agent: { id: string }) => agent.id === id)
-      ) {
+      if (legacy.storage.listAllDefinedAgents().some((agent: { id: string }) => agent.id === id)) {
         throw new Error(`Agent "${id}" already exists`);
       }
 
@@ -608,11 +614,7 @@ export function createMockServiceContext(): MockWorkbenchContext {
       if (!/^[a-zA-Z0-9-_]+$/.test(id)) {
         throw new Error('Project ID must contain only letters, numbers, hyphens, and underscores');
       }
-      if (
-        legacy.storage
-          .listProjects()
-          .some((project: { id: string }) => project.id === id)
-      ) {
+      if (legacy.storage.listProjects().some((project: { id: string }) => project.id === id)) {
         throw new Error(`Project "${id}" already exists`);
       }
 

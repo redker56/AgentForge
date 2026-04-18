@@ -16,7 +16,8 @@ function handleConflictKeys({ input, key, state }: InputRouteContext): void {
     return;
   }
   if (input === ' ') {
-    const conflict = state.shellState.conflictState.conflicts[state.shellState.focusedConflictIndex];
+    const conflict =
+      state.shellState.conflictState.conflicts[state.shellState.focusedConflictIndex];
     if (conflict && !conflict.sameContent) {
       const newResolution: 'link' | 'skip' = conflict.resolution === 'link' ? 'skip' : 'link';
       const updatedConflicts = state.shellState.conflictState.conflicts.map((entry, index) =>

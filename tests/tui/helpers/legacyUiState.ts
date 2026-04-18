@@ -2,11 +2,7 @@ import { ALL_SKILL_CATEGORY_FILTER } from '../../../src/types.js';
 
 type AnyState = Record<string, unknown>;
 
-function defineAlias<T>(
-  state: AnyState,
-  key: string,
-  getter: () => T
-): void {
+function defineAlias<T>(state: AnyState, key: string, getter: () => T): void {
   if (Object.prototype.hasOwnProperty.call(state, key)) {
     return;
   }
