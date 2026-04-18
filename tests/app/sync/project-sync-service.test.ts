@@ -356,7 +356,7 @@ describe('ProjectSyncService', () => {
   });
 
   describe('checkSyncStatus', () => {
-    it('returns correct status for unsynced project', async () => {
+    it('returns correct status for unsynced project', () => {
       const service = new ProjectSyncService(createStorageMock(projectPath) as never);
 
       const status = service.checkSyncStatus(SKILL_NAME);

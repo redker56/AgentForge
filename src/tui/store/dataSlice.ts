@@ -7,6 +7,8 @@ import path from 'path';
 import fs from 'fs-extra';
 import type { StateCreator } from 'zustand';
 
+import { ReconcileService } from '../../app/reconcile-service.js';
+import type { SkillCategoryUpdateMode } from '../../app/skill-service.js';
 import {
   ALL_SKILL_CATEGORY_FILTER,
   getSkillCategoryCounts,
@@ -20,8 +22,6 @@ import {
   type Agent,
   type ProjectConfig,
 } from '../../types.js';
-import { ReconcileService } from '../../app/reconcile-service.js';
-import type { SkillCategoryUpdateMode } from '../../app/skill-service.js';
 import type { ContextSkillRow, ContextSkillSection } from '../contextTypes.js';
 
 import type { SkillListItem, StoreState } from './index.js';
@@ -344,7 +344,7 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
 
       try {
         return reconcileResult
-          .then(async () => {
+          .then(() => {
             const skills = ctx.skillService.list();
             const agents = ctx.storage.listAgents();
             const projects = ctx.storage.listProjects();

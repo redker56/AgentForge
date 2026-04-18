@@ -8,7 +8,6 @@ import path from 'path';
 
 import fs from 'fs-extra';
 
-import { ProjectStorage } from './project-storage.js';
 import {
   type Agent,
   type ProjectConfig,
@@ -18,6 +17,8 @@ import {
   type SyncMode,
   type SyncRecord,
 } from '../types.js';
+
+import { ProjectStorage } from './project-storage.js';
 
 interface ScanServiceLike {
   getSkillProjectDistributionWithStatus(skillName: string): Promise<

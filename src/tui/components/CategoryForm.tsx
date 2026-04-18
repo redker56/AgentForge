@@ -8,11 +8,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
+import type { SkillCategoryUpdateMode } from '../../app/skill-service.js';
 import {
   normalizeSkillCategories,
   type SkillMeta,
 } from '../../types.js';
-import type { SkillCategoryUpdateMode } from '../../app/skill-service.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, renderFocusPrefix } from '../theme.js';
 

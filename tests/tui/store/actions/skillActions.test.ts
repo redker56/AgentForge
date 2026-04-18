@@ -4,9 +4,10 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createAppStore } from '../../../../src/tui/store/index.js';
-import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
 import { createSkillActions } from '../../../../src/tui/store/actions/skillActions.js';
+import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
+import { createAppStore } from '../../../../src/tui/store/index.js';
+
 import { createMockServiceContext, createMockSkill } from './mockContext.js';
 
 describe('createSkillActions', () => {

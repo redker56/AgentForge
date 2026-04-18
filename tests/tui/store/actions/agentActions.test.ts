@@ -4,10 +4,11 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createAppStore } from '../../../../src/tui/store/index.js';
-import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
 import { createAgentActions } from '../../../../src/tui/store/actions/agentActions.js';
+import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
+import { createAppStore } from '../../../../src/tui/store/index.js';
 import { BUILTIN_AGENTS } from '../../../../src/types.js';
+
 import { createMockServiceContext, createMockAgent, createMockSkill } from './mockContext.js';
 
 describe('createAgentActions', () => {

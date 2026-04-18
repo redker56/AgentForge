@@ -61,6 +61,14 @@ function createStorageMock(
   };
 }
 
+function requireAgent(storage: StorageMock, id: string): Agent {
+  const agent = storage.getAgent(id);
+  if (!agent) {
+    throw new Error(`Missing test agent: ${id}`);
+  }
+  return agent;
+}
+
 describe('AgentSyncService', () => {
   describe('Target path calculation', () => {
     it('should correctly calculate Agent target path', () => {
@@ -128,7 +136,7 @@ describe('AgentSyncService full lifecycle', () => {
 
   describe('sync', () => {
     it('syncs skill to single agent with copy mode', async () => {
-      const agents = [storage.getAgent('claude')!];
+      const agents = [requireAgent(storage, 'claude')];
       const results = await service.sync('test-skill', agents, 'copy');
 
       expect(results).toHaveLength(1);
@@ -139,7 +147,7 @@ describe('AgentSyncService full lifecycle', () => {
     });
 
     it('syncs skill to multiple agents', async () => {
-      const agents = [storage.getAgent('claude')!, storage.getAgent('codex')!];
+      const agents = [requireAgent(storage, 'claude'), requireAgent(storage, 'codex')];
       const results = await service.sync('test-skill', agents, 'copy');
 
       expect(results).toHaveLength(2);
@@ -149,7 +157,7 @@ describe('AgentSyncService full lifecycle', () => {
     });
 
     it('creates symlink when mode is symlink', async () => {
-      const agents = [storage.getAgent('claude')!];
+      const agents = [requireAgent(storage, 'claude')];
       const results = await service.sync('test-skill', agents, 'symlink');
 
       expect(results[0].success).toBe(true);
@@ -165,12 +173,12 @@ describe('AgentSyncService full lifecycle', () => {
     });
 
     it('throws error when skill does not exist', async () => {
-      const agents = [storage.getAgent('claude')!];
+      const agents = [requireAgent(storage, 'claude')];
       await expect(service.sync('nonexistent-skill', agents, 'copy')).rejects.toThrow('Skill not found');
     });
 
     it('updates registry after sync', async () => {
-      const agents = [storage.getAgent('claude')!];
+      const agents = [requireAgent(storage, 'claude')];
       await service.sync('test-skill', agents, 'copy');
 
       expect(storage.updateSkillSync).toHaveBeenCalledWith(
@@ -183,7 +191,7 @@ describe('AgentSyncService full lifecycle', () => {
   describe('unsync', () => {
     it('removes skill from agent directory', async () => {
       // First sync
-      const agents = [storage.getAgent('claude')!];
+      const agents = [requireAgent(storage, 'claude')];
       await service.sync('test-skill', agents, 'copy');
 
       // Then unsync
@@ -194,7 +202,7 @@ describe('AgentSyncService full lifecycle', () => {
 
     it('updates registry after unsync', async () => {
       // First sync
-      const agents = [storage.getAgent('claude')!];
+      const agents = [requireAgent(storage, 'claude')];
       await service.sync('test-skill', agents, 'copy');
 
       // Then unsync
@@ -204,7 +212,7 @@ describe('AgentSyncService full lifecycle', () => {
     });
 
     it('unsyncs only specified agents', async () => {
-      const agents = [storage.getAgent('claude')!, storage.getAgent('codex')!];
+      const agents = [requireAgent(storage, 'claude'), requireAgent(storage, 'codex')];
       await service.sync('test-skill', agents, 'copy');
 
       // Unsync only claude
@@ -222,7 +230,7 @@ describe('AgentSyncService full lifecycle', () => {
   describe('resync', () => {
     it('updates content from source', async () => {
       // First sync
-      const agents = [storage.getAgent('claude')!];
+      const agents = [requireAgent(storage, 'claude')];
       await service.sync('test-skill', agents, 'copy');
 
       // Modify skill content
@@ -251,7 +259,7 @@ describe('AgentSyncService full lifecycle', () => {
 
     it('returns exists=true, sameContent=true for matching directories', async () => {
       // Sync first
-      const agents = [storage.getAgent('claude')!];
+      const agents = [requireAgent(storage, 'claude')];
       await service.sync('test-skill', agents, 'copy');
 
       const status = service.checkSyncStatus('test-skill');
@@ -262,7 +270,7 @@ describe('AgentSyncService full lifecycle', () => {
 
     it('returns exists=true, sameContent=false for differing directories', async () => {
       // Sync first
-      const agents = [storage.getAgent('claude')!];
+      const agents = [requireAgent(storage, 'claude')];
       await service.sync('test-skill', agents, 'copy');
 
       // Modify target content
@@ -275,7 +283,7 @@ describe('AgentSyncService full lifecycle', () => {
     });
 
     it('returns isSymlink=true when target is symlink', async () => {
-      const agents = [storage.getAgent('claude')!];
+      const agents = [requireAgent(storage, 'claude')];
       const results = await service.sync('test-skill', agents, 'symlink');
 
       // Only check symlink if it succeeded
@@ -290,7 +298,7 @@ describe('AgentSyncService full lifecycle', () => {
 
   describe('getSyncedAgents', () => {
     it('returns agents from sync records', async () => {
-      const agents = [storage.getAgent('claude')!];
+      const agents = [requireAgent(storage, 'claude')];
       await service.sync('test-skill', agents, 'copy');
 
       const syncedAgents = service.getSyncedAgents('test-skill');

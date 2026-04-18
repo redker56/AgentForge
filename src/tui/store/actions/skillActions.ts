@@ -4,8 +4,8 @@
 
 import type { StoreApi } from 'zustand';
 
-import type { SkillMeta } from '../../../types.js';
 import type { SkillCategoryUpdateMode } from '../../../app/skill-service.js';
+import type { SkillMeta } from '../../../types.js';
 import type { ServiceContext } from '../dataSlice.js';
 import type { AppStore } from '../index.js';
 import type { ConflictEntry } from '../uiSlice.js';
@@ -182,7 +182,7 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
       }
     },
 
-    categorizeSkills: async (skillNames, mode, categories): Promise<CategoryActionResult[]> => {
+    categorizeSkills: (skillNames, mode, categories): Promise<CategoryActionResult[]> => {
       const results: CategoryActionResult[] = [];
 
       for (const skillName of skillNames) {
@@ -221,7 +221,7 @@ export function createSkillActions(store: StoreApi<AppStore>, ctx: ServiceContex
       });
 
       store.getState().refreshSkills();
-      return results;
+      return Promise.resolve(results);
     },
 
     removeSkill: async (skillName): Promise<void> => {

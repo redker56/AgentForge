@@ -99,7 +99,7 @@ describe('ReconcileService', () => {
     storage = {
       getSkillsDir: () => skillsDir,
       deleteSkill(name: string): void {
-        delete registry[name];
+        Reflect.deleteProperty(registry, name);
       },
       listProjects: () => [
         { id: 'project-a', path: projectDir, addedAt: new Date().toISOString() },
@@ -135,16 +135,16 @@ describe('ReconcileService', () => {
     };
 
     const scanService = {
-      getSkillProjectDistributionWithStatus: async (skillName: string) => {
+      getSkillProjectDistributionWithStatus: (skillName: string) => {
         if (skillName === 'alpha' || skillName === 'beta') {
-          return [
+          return Promise.resolve([
             {
               projectId: 'project-a',
               agents: [{ id: 'claude', name: 'Claude', isDifferentVersion: false }],
             },
-          ];
+          ]);
         }
-        return [];
+        return Promise.resolve([]);
       },
     };
 

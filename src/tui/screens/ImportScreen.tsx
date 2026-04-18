@@ -12,9 +12,9 @@ import type { StoreApi } from 'zustand';
 
 import { ImportFormTab } from '../components/ImportFormTab.js';
 import { ProgressBarStack } from '../components/ProgressBar.js';
-import { inkColors } from '../theme.js';
 import type { ServiceContext } from '../store/dataSlice.js';
 import type { AppStore } from '../store/index.js';
+import { inkColors } from '../theme.js';
 
 interface ImportScreenProps {
   store: StoreApi<AppStore>;

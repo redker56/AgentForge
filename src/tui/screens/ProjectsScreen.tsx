@@ -7,10 +7,10 @@ import React, { useEffect } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
-import { getContextSkillFilterCounts, getVisibleContextSkillRows } from '../contextTypes.js';
 import { ContextSkillList } from '../components/ContextSkillList.js';
 import { ProjectTable } from '../components/ProjectTable.js';
 import { SkillDetail } from '../components/SkillDetail.js';
+import { getContextSkillFilterCounts, getVisibleContextSkillRows } from '../contextTypes.js';
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';

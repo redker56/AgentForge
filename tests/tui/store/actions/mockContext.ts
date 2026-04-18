@@ -39,8 +39,8 @@ export function createMockServiceContext(): ServiceContext {
       })),
     },
     scanService: {
-      getSkillProjectDistributionWithStatus: vi.fn(async () => []),
-      getProjectSkillsWithStatus: vi.fn(async () => []),
+      getSkillProjectDistributionWithStatus: vi.fn(() => Promise.resolve([])),
+      getProjectSkillsWithStatus: vi.fn(() => Promise.resolve([])),
       scanProject: vi.fn(() => []),
     },
     storage: {
@@ -65,14 +65,14 @@ export function createMockServiceContext(): ServiceContext {
     syncService: {
       unsync: vi.fn(),
       checkSyncStatus: vi.fn(() => []),
-      sync: vi.fn(async () => []),
+      sync: vi.fn(() => Promise.resolve([])),
       resync: vi.fn(),
       getSyncedAgents: vi.fn(() => []),
     },
     projectSyncService: {
       unsync: vi.fn(),
       unsyncFromProject: vi.fn(),
-      syncToProject: vi.fn(async () => []),
+      syncToProject: vi.fn(() => Promise.resolve([])),
       resync: vi.fn(),
       detectAgentTypes: vi.fn(() => []),
     },

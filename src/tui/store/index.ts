@@ -15,10 +15,10 @@ import type { SkillMeta } from '../../types.js';
 import { createAgentActions, type AgentActions } from './actions/agentActions.js';
 import { createImportActions, type ImportActions } from './actions/importActions.js';
 import { createProjectActions, type ProjectActions } from './actions/projectActions.js';
-import { createSkillActions, type SkillActions } from './actions/skillActions.js';
+import { createSkillActions, type CategoryActionResult, type SkillActions } from './actions/skillActions.js';
 import { createSyncActions, type SyncActions } from './actions/syncActions.js';
 import { createDataSlice, type DataSlice, type ServiceContext } from './dataSlice.js';
-import { createUISlice, type UISlice, type TabId, type UpdateResult } from './uiSlice.js';
+import { createUISlice, type OperationResult, type UISlice, type TabId, type UpdateResult } from './uiSlice.js';
 
 // SkillListItem extends SkillMeta with the 'exists' flag from SkillService.list()
 export type SkillListItem = SkillMeta & {
@@ -53,11 +53,11 @@ export function createAppStore(ctx: ServiceContext): StoreApi<AppStore> {
     // This satisfies the type checker during store creation.
     addSkillFromUrl: async (): Promise<void> => {},
     addSkillFromDiscovery: async (): Promise<void> => {},
-    categorizeSkills: async () => [],
+    categorizeSkills: (): Promise<CategoryActionResult[]> => Promise.resolve([]),
     removeSkill: async (): Promise<void> => {},
     importFromProject: async (): Promise<void> => {},
     importFromAgent: async (): Promise<void> => {},
-    importContextSkills: async () => [],
+    importContextSkills: (): Promise<OperationResult[]> => Promise.resolve([]),
     scanProjectSkills: (): Array<{ name: string; path: string; alreadyExists: boolean }> => [],
     scanAgentSkills: (): Array<{
       name: string;
@@ -73,7 +73,7 @@ export function createAppStore(ctx: ServiceContext): StoreApi<AppStore> {
     syncSkillsToProjects: async (): Promise<void> => {},
     unsyncFromAgents: async (): Promise<void> => {},
     unsyncFromProjects: async (): Promise<void> => {},
-    updateSkills: async (): Promise<UpdateResult[]> => [],
+    updateSkills: (): Promise<UpdateResult[]> => Promise.resolve([]),
     // Sprint 3: Restore actions (placeholders for undo system)
     restoreSkill: (): void => {},
     restoreAgent: (): void => {},

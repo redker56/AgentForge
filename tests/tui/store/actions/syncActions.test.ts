@@ -4,13 +4,14 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createAppStore } from '../../../../src/tui/store/index.js';
-import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
 import {
   createSyncActions,
   doImportFromProject,
   doImportFromAgent,
 } from '../../../../src/tui/store/actions/syncActions.js';
+import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
+import { createAppStore } from '../../../../src/tui/store/index.js';
+
 import { createMockServiceContext, createMockSkill, createMockAgent, createMockProject } from './mockContext.js';
 
 describe('createSyncActions', () => {
@@ -40,10 +41,7 @@ describe('createSyncActions', () => {
       const actions = createSyncActions(store, mockCtx);
       const mockAgent = createMockAgent({ id: 'claude', name: 'Claude' });
 
-      vi.mocked(mockCtx.syncService.sync).mockImplementation(async () => {
-        // Delay to allow checking state during execution
-        return [];
-      });
+      vi.mocked(mockCtx.syncService.sync).mockImplementation(() => Promise.resolve([]));
       vi.mocked(mockCtx.storage.getAgent).mockReturnValue(mockAgent);
 
       // Set up store state before calling

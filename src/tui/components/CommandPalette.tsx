@@ -10,7 +10,7 @@ import { Box, Text, useInput } from 'ink';
 import React, { useMemo, useState } from 'react';
 import type { StoreApi } from 'zustand';
 
-import { getVisibleContextSkillRows } from '../contextTypes.js';
+import { getVisibleContextSkillRows, type ContextSkillRow } from '../contextTypes.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, renderFocusPrefix } from '../theme.js';
 import { fuzzyMatch } from '../utils/fuzzy.js';
@@ -85,7 +85,7 @@ function getSelectedContextSkillNames(state: AppStore): string[] {
   return [];
 }
 
-function getSelectedContextRows(state: AppStore) {
+function getSelectedContextRows(state: AppStore): ContextSkillRow[] {
   if (state.activeTab === 'agents' && state.agentViewMode === 'skills') {
     const focusedAgent = state.agents[state.focusedAgentIndex];
     const sections = focusedAgent ? state.agentDetails[focusedAgent.id]?.sections ?? [] : [];

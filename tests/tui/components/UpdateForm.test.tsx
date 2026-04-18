@@ -37,7 +37,7 @@ function createMockStore(overrides: Record<string, unknown> = {}) {
     ],
     updateProgressItems: [],
     setFormState: vi.fn(),
-    updateSkills: vi.fn(async () => []),
+    updateSkills: vi.fn(() => Promise.resolve([])),
     ...overrides,
   };
   return {

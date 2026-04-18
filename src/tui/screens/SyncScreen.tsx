@@ -9,8 +9,8 @@ import type { StoreApi } from 'zustand';
 
 import { ProgressBarStack } from '../components/ProgressBar.js';
 import { SyncForm } from '../components/SyncForm.js';
-import { inkColors } from '../theme.js';
 import type { AppStore } from '../store/index.js';
+import { inkColors } from '../theme.js';
 
 interface SyncScreenProps {
   store: StoreApi<AppStore>;

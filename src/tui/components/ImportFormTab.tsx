@@ -15,7 +15,7 @@ import { doImportFromProject, doImportFromAgent } from '../store/actions/syncAct
 import type { ServiceContext } from '../store/dataSlice.js';
 import type { AppStore } from '../store/index.js';
 import type { OperationResult } from '../store/uiSlice.js';
-import { inkColors, renderFocusPrefix, selectionMarkers, spacing } from '../theme.js';
+import { inkColors, renderFocusPrefix, spacing } from '../theme.js';
 
 import { ImportChecklist } from './ImportChecklist.js';
 import { ProgressBar } from './ProgressBar.js';

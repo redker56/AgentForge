@@ -48,6 +48,14 @@ function createStorageMock(skillDir: string, agentDir: string): StorageMock {
   };
 }
 
+function requireAgent(storage: StorageMock, id: string): Agent {
+  const agent = storage.getAgent(id);
+  if (!agent) {
+    throw new Error(`Missing test agent: ${id}`);
+  }
+  return agent;
+}
+
 describe('BaseSyncService utility methods', () => {
   beforeEach(async () => {
     await fs.remove(TEST_DIR);
@@ -126,7 +134,7 @@ describe('BaseSyncService checkSyncStatus', () => {
     await fs.remove(TEST_DIR);
   });
 
-  it('returns exists=false for non-existent target', async () => {
+  it('returns exists=false for non-existent target', () => {
     const status = service.checkSyncStatus('test-skill');
 
     expect(status).toHaveLength(1);
@@ -138,7 +146,7 @@ describe('BaseSyncService checkSyncStatus', () => {
 
   it('returns exists=true, sameContent=true for matching directories', async () => {
     // Sync first
-    const agents = [storage.getAgent('claude')!];
+    const agents = [requireAgent(storage, 'claude')];
     await service.sync('test-skill', agents, 'copy');
 
     const status = service.checkSyncStatus('test-skill');
@@ -148,7 +156,7 @@ describe('BaseSyncService checkSyncStatus', () => {
 
   it('returns exists=true, sameContent=false for differing directories', async () => {
     // Sync first
-    const agents = [storage.getAgent('claude')!];
+    const agents = [requireAgent(storage, 'claude')];
     await service.sync('test-skill', agents, 'copy');
 
     // Modify target
@@ -160,7 +168,7 @@ describe('BaseSyncService checkSyncStatus', () => {
   });
 
   it('returns isSymlink=true when target is symlink', async () => {
-    const agents = [storage.getAgent('claude')!];
+    const agents = [requireAgent(storage, 'claude')];
     const results = await service.sync('test-skill', agents, 'symlink');
 
     // Only check if symlink succeeded
@@ -173,7 +181,7 @@ describe('BaseSyncService checkSyncStatus', () => {
 
   it('returns linkTarget as null for non-symlink', async () => {
     // Sync with copy
-    const agents = [storage.getAgent('claude')!];
+    const agents = [requireAgent(storage, 'claude')];
     await service.sync('test-skill', agents, 'copy');
 
     const status = service.checkSyncStatus('test-skill');
@@ -181,7 +189,7 @@ describe('BaseSyncService checkSyncStatus', () => {
     expect(status[0].linkTarget).toBeNull();
   });
 
-  it('returns sameContent=null when target does not exist', async () => {
+  it('returns sameContent=null when target does not exist', () => {
     const status = service.checkSyncStatus('test-skill');
 
     expect(status[0].sameContent).toBeNull();
@@ -211,13 +219,13 @@ describe('BaseSyncService sync error handling', () => {
   });
 
   it('throws error when skill not found', async () => {
-    const agents = [storage.getAgent('claude')!];
+    const agents = [requireAgent(storage, 'claude')];
 
     await expect(service.sync('nonexistent-skill', agents, 'copy')).rejects.toThrow('Skill not found');
   });
 
   it('returns error result when target creation fails', async () => {
-    const agents = [storage.getAgent('claude')!];
+    const agents = [requireAgent(storage, 'claude')];
 
     // Remove target directory permissions (simulating failure)
     // This test is tricky on Windows, so we skip if not applicable
@@ -227,7 +235,7 @@ describe('BaseSyncService sync error handling', () => {
   });
 
   it('overwrites existing target', async () => {
-    const agents = [storage.getAgent('claude')!];
+    const agents = [requireAgent(storage, 'claude')];
 
     // First sync
     await service.sync('test-skill', agents, 'copy');

@@ -10,12 +10,12 @@ import {
   type SyncMode,
   getSkillCategoryCounts,
 } from '../../types.js';
+import type { ContextSkillFilter } from '../contextTypes.js';
 import {
   getClampedFocusedSkillIndex,
   getVisibleSkillIndices,
   resolveNextSkillCategoryFilter,
 } from '../utils/skillsView.js';
-import type { ContextSkillFilter } from '../contextTypes.js';
 
 export type TabId = 'skills' | 'agents' | 'projects' | 'sync' | 'import';
 

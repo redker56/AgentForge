@@ -306,7 +306,7 @@ async function listSkills(ctx: CommandContext, options: ListOptions): Promise<vo
   }
 }
 
-async function listCategories(ctx: CommandContext): Promise<void> {
+function listCategories(ctx: CommandContext): void {
   const skills = ctx.skills.list();
   const categoryCounts = getSkillCategoryCounts(skills);
   const visibleCounts = categoryCounts.filter(
