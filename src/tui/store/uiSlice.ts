@@ -456,28 +456,30 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
     });
   },
   moveFocusUp: (): void => {
-    const visibleIndices = getVisibleSkillIndices(
-      get().skills,
-      get().activeSkillCategoryFilter
-    );
+    const visibleIndices = getVisibleSkillIndices(get().skills, get().activeSkillCategoryFilter);
     if (visibleIndices.length === 0) return;
 
     const currentVisibleIndex = visibleIndices.indexOf(
-      getClampedFocusedSkillIndex(get().skills, get().activeSkillCategoryFilter, get().focusedSkillIndex)
+      getClampedFocusedSkillIndex(
+        get().skills,
+        get().activeSkillCategoryFilter,
+        get().focusedSkillIndex
+      )
     );
     if (currentVisibleIndex > 0) {
       set({ focusedSkillIndex: visibleIndices[currentVisibleIndex - 1] });
     }
   },
   moveFocusDown: (_listLength): void => {
-    const visibleIndices = getVisibleSkillIndices(
-      get().skills,
-      get().activeSkillCategoryFilter
-    );
+    const visibleIndices = getVisibleSkillIndices(get().skills, get().activeSkillCategoryFilter);
     if (visibleIndices.length === 0) return;
 
     const currentVisibleIndex = visibleIndices.indexOf(
-      getClampedFocusedSkillIndex(get().skills, get().activeSkillCategoryFilter, get().focusedSkillIndex)
+      getClampedFocusedSkillIndex(
+        get().skills,
+        get().activeSkillCategoryFilter,
+        get().focusedSkillIndex
+      )
     );
     if (currentVisibleIndex < visibleIndices.length - 1) {
       set({ focusedSkillIndex: visibleIndices[currentVisibleIndex + 1] });

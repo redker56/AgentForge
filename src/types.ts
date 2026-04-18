@@ -159,7 +159,9 @@ export function getSkillCategoryCounts<T extends Pick<SkillMeta, 'categories'>>(
   }
 
   const categoryCounts = Array.from(counts.values())
-    .sort((left, right) => left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }))
+    .sort((left, right) =>
+      left.label.localeCompare(right.label, undefined, { sensitivity: 'base' })
+    )
     .map((entry) => ({
       key: entry.label,
       label: entry.label,

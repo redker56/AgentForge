@@ -62,13 +62,19 @@ function pushOperationToast(
   results: OperationResult[],
   successLabel: string
 ): void {
-  const successCount = results.filter((r) => (r.outcome ?? (r.success ? 'success' : 'error')) === 'success').length;
+  const successCount = results.filter(
+    (r) => (r.outcome ?? (r.success ? 'success' : 'error')) === 'success'
+  ).length;
   const skippedCount = results.filter((r) => r.outcome === 'skipped').length;
-  const errorCount = results.filter((r) => (r.outcome ?? (r.success ? 'success' : 'error')) === 'error').length;
+  const errorCount = results.filter(
+    (r) => (r.outcome ?? (r.success ? 'success' : 'error')) === 'error'
+  ).length;
 
   if (errorCount > 0) {
     const extra = skippedCount > 0 ? `, ${skippedCount} skipped` : '';
-    store.getState().pushToast(`${errorCount} failed, ${successCount} ${successLabel}${extra}`, 'error');
+    store
+      .getState()
+      .pushToast(`${errorCount} failed, ${successCount} ${successLabel}${extra}`, 'error');
     return;
   }
 
@@ -142,7 +148,9 @@ function getSkillSourceType(skillName: string, ctx: ServiceContext): UpdateResul
   return 'local';
 }
 
-function parseProjectTargetPairs(projectIds: string[]): Array<{ projectId: string; agentType: string }> {
+function parseProjectTargetPairs(
+  projectIds: string[]
+): Array<{ projectId: string; agentType: string }> {
   return projectIds
     .filter((projectId) => projectId.includes(':'))
     .map((projectId) => {
@@ -170,11 +178,21 @@ export async function doImportFromProject(
   for (const skillName of skillNames) {
     const found = discovered.find((s) => s.name === skillName);
     if (!found) {
-      results.push({ target: skillName, success: false, error: 'Not found in project', outcome: 'error' });
+      results.push({
+        target: skillName,
+        success: false,
+        error: 'Not found in project',
+        outcome: 'error',
+      });
       continue;
     }
     if (ctx.skillService.exists(skillName)) {
-      results.push({ target: skillName, success: false, error: 'Already exists', outcome: 'error' });
+      results.push({
+        target: skillName,
+        success: false,
+        error: 'Already exists',
+        outcome: 'error',
+      });
       continue;
     }
     try {
@@ -204,7 +222,12 @@ export async function doImportFromAgent(
   const results: OperationResult[] = [];
   for (const skillName of skillNames) {
     if (ctx.skillService.exists(skillName)) {
-      results.push({ target: skillName, success: false, error: 'Already exists', outcome: 'error' });
+      results.push({
+        target: skillName,
+        success: false,
+        error: 'Already exists',
+        outcome: 'error',
+      });
       continue;
     }
     try {
@@ -296,7 +319,12 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
           const itemId = `sync-${skillName}-${projectId}`;
           state.updateProgressItem(itemId, { status: 'running', progress: 30 });
           try {
-            await ctx.projectSyncService.syncToProject(skillName, projectId, unique(agentTypes), mode);
+            await ctx.projectSyncService.syncToProject(
+              skillName,
+              projectId,
+              unique(agentTypes),
+              mode
+            );
             results.push(makeResult(`${skillName} -> ${projectId}`, 'success'));
             state.updateProgressItem(itemId, { status: 'success', progress: 100 });
           } catch (e: unknown) {
@@ -321,7 +349,9 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
       state.setSyncFormStep('executing');
 
       const planned = uniqueSkills.flatMap((skillName) => {
-        const syncedAgents = new Set((ctx.storage.getSkill(skillName)?.syncedTo || []).map((r) => r.agentId));
+        const syncedAgents = new Set(
+          (ctx.storage.getSkill(skillName)?.syncedTo || []).map((r) => r.agentId)
+        );
         return uniqueAgents
           .filter((agentId) => syncedAgents.has(agentId))
           .map((agentId) => ({ skillName, agentId }));
@@ -337,7 +367,9 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
 
       const results: OperationResult[] = [];
       for (const skillName of uniqueSkills) {
-        const syncedAgents = new Set((ctx.storage.getSkill(skillName)?.syncedTo || []).map((r) => r.agentId));
+        const syncedAgents = new Set(
+          (ctx.storage.getSkill(skillName)?.syncedTo || []).map((r) => r.agentId)
+        );
         for (const agentId of uniqueAgents) {
           const label = `${skillName} -> ${agentId}`;
           if (!syncedAgents.has(agentId)) {
@@ -376,7 +408,10 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
       state.setSyncFormStep('executing');
 
       const availabilityEntries = await Promise.all(
-        uniqueSkills.map(async (skillName) => [skillName, await getProjectUnsyncAvailability(ctx, skillName)] as const)
+        uniqueSkills.map(
+          async (skillName) =>
+            [skillName, await getProjectUnsyncAvailability(ctx, skillName)] as const
+        )
       );
       const availabilityBySkill = new Map(availabilityEntries);
 

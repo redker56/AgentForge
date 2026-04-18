@@ -6,11 +6,12 @@ import { useInput } from 'ink';
 import type { StoreApi } from 'zustand';
 
 import { BUILTIN_AGENTS } from '../../types.js';
-import type { ContextSkillRow, ContextSkillSection, VisibleContextSkillRow } from '../contextTypes.js';
-import {
-  cycleContextSkillFilter,
-  getVisibleContextSkillRows,
+import type {
+  ContextSkillRow,
+  ContextSkillSection,
+  VisibleContextSkillRow,
 } from '../contextTypes.js';
+import { cycleContextSkillFilter, getVisibleContextSkillRows } from '../contextTypes.js';
 import type { AppStore } from '../store/index.js';
 import { TAB_IDS } from '../store/index.js';
 import { getFocusedVisibleSkill } from '../utils/skillsView.js';
@@ -500,15 +501,11 @@ function handleAgentsKeys(
       return;
     }
     if (input === '[') {
-      state.setActiveAgentSkillFilter(
-        cycleContextSkillFilter(state.activeAgentSkillFilter, -1)
-      );
+      state.setActiveAgentSkillFilter(cycleContextSkillFilter(state.activeAgentSkillFilter, -1));
       return;
     }
     if (input === ']') {
-      state.setActiveAgentSkillFilter(
-        cycleContextSkillFilter(state.activeAgentSkillFilter, 1)
-      );
+      state.setActiveAgentSkillFilter(cycleContextSkillFilter(state.activeAgentSkillFilter, 1));
       return;
     }
     if (input === ' ') {
@@ -690,9 +687,7 @@ function handleProjectsKeys(
       return;
     }
     if (input === ']') {
-      state.setActiveProjectSkillFilter(
-        cycleContextSkillFilter(state.activeProjectSkillFilter, 1)
-      );
+      state.setActiveProjectSkillFilter(cycleContextSkillFilter(state.activeProjectSkillFilter, 1));
       return;
     }
     if (input === ' ') {

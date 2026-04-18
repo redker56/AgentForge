@@ -72,33 +72,25 @@ const hasSkillManifest = (skillPath: string): boolean => {
 };
 
 const sortSyncRecords = (records: SyncRecord[]): SyncRecord[] =>
-  records
-    .slice()
-    .sort((a, b) => (a.agentId < b.agentId ? -1 : a.agentId > b.agentId ? 1 : 0));
+  records.slice().sort((a, b) => (a.agentId < b.agentId ? -1 : a.agentId > b.agentId ? 1 : 0));
 
 const sortProjectSyncRecords = (records: ProjectSyncRecord[]): ProjectSyncRecord[] =>
-  records
-    .slice()
-    .sort((a, b) => {
-      if (a.projectId !== b.projectId) return a.projectId < b.projectId ? -1 : 1;
-      if (a.agentType !== b.agentType) return a.agentType < b.agentType ? -1 : 1;
-      return 0;
-    });
+  records.slice().sort((a, b) => {
+    if (a.projectId !== b.projectId) return a.projectId < b.projectId ? -1 : 1;
+    if (a.agentType !== b.agentType) return a.agentType < b.agentType ? -1 : 1;
+    return 0;
+  });
 
 const isSameSyncRecords = (a: SyncRecord[], b: SyncRecord[]): boolean => {
   const left = sortSyncRecords(a);
   const right = sortSyncRecords(b);
   if (left.length !== right.length) return false;
   return left.every(
-    (record, index) =>
-      record.agentId === right[index].agentId && record.mode === right[index].mode
+    (record, index) => record.agentId === right[index].agentId && record.mode === right[index].mode
   );
 };
 
-const isSameProjectSyncRecords = (
-  a: ProjectSyncRecord[],
-  b: ProjectSyncRecord[]
-): boolean => {
+const isSameProjectSyncRecords = (a: ProjectSyncRecord[], b: ProjectSyncRecord[]): boolean => {
   const left = sortProjectSyncRecords(a);
   const right = sortProjectSyncRecords(b);
   if (left.length !== right.length) return false;
@@ -219,7 +211,10 @@ export class ReconcileService {
 
     for (const skill of skills) {
       const syncedByTarget = new Map<string, SyncMode>(
-        (skill.syncedProjects || []).map((record) => [`${record.projectId}:${record.agentType}`, record.mode])
+        (skill.syncedProjects || []).map((record) => [
+          `${record.projectId}:${record.agentType}`,
+          record.mode,
+        ])
       );
       const desiredRecords: ProjectSyncRecord[] = [];
       const desiredByProject: DesiredProjectSyncRecord[] = [];
@@ -265,7 +260,10 @@ export class ReconcileService {
   ): number {
     let updated = 0;
 
-    const desiredByProject = new Map<string, Array<{ name: string; agentType: string; mode: SyncMode; syncedAt: string }>>();
+    const desiredByProject = new Map<
+      string,
+      Array<{ name: string; agentType: string; mode: SyncMode; syncedAt: string }>
+    >();
     for (const [skillName, records] of desiredBySkill) {
       for (const record of records) {
         const existing = desiredByProject.get(record.projectId) || [];
@@ -306,7 +304,8 @@ export class ReconcileService {
             name: record.name,
             agentType: record.agentType,
             mode: record.mode,
-            syncedAt: syncedAtByKey.get(`${record.name}:${record.agentType}`) ?? new Date().toISOString(),
+            syncedAt:
+              syncedAtByKey.get(`${record.name}:${record.agentType}`) ?? new Date().toISOString(),
           })),
         });
         updated += 1;
@@ -316,7 +315,11 @@ export class ReconcileService {
     return updated;
   }
 
-  private getProjectLocalMode(projectPath: string, skillName: string, agentType: string): SyncMode | null {
+  private getProjectLocalMode(
+    projectPath: string,
+    skillName: string,
+    agentType: string
+  ): SyncMode | null {
     const projectConfig = this.projectStorage.read(projectPath);
     const record = projectConfig.syncedSkills.find(
       (entry) => entry.name === skillName && entry.agentType === agentType

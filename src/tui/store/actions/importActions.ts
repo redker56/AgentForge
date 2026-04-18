@@ -138,9 +138,7 @@ export function createImportActions(store: StoreApi<AppStore>, ctx: ServiceConte
     },
 
     importContextSkills: async (rows): Promise<OperationResult[]> => {
-      const uniqueRows = Array.from(
-        new Map(rows.map((row) => [row.rowId, row] as const)).values()
-      );
+      const uniqueRows = Array.from(new Map(rows.map((row) => [row.rowId, row] as const)).values());
       const results: OperationResult[] = [];
 
       for (const row of uniqueRows) {

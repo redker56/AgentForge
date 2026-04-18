@@ -30,7 +30,10 @@ describe('createSkillActions', () => {
 
       await actions.addSkillFromUrl('https://github.com/example/repo.git', 'my-skill');
 
-      expect(mockCtx.skillService.install).toHaveBeenCalledWith('https://github.com/example/repo.git', 'my-skill');
+      expect(mockCtx.skillService.install).toHaveBeenCalledWith(
+        'https://github.com/example/repo.git',
+        'my-skill'
+      );
     });
 
     it('installs single skill directly when repo has one skill', async () => {
@@ -74,10 +77,12 @@ describe('createSkillActions', () => {
       expect(state.formState).not.toBeNull();
       expect(state.formState?.formType).toBe('addSkill');
       expect(state.formState?.data.phase).toBe('discover');
-      expect(state.formState?.data.discoveredSkills).toBe(JSON.stringify([
-        { name: 'skill1', subPath: 'skills/skill1' },
-        { name: 'skill2', subPath: 'skills/skill2' },
-      ]));
+      expect(state.formState?.data.discoveredSkills).toBe(
+        JSON.stringify([
+          { name: 'skill1', subPath: 'skills/skill1' },
+          { name: 'skill2', subPath: 'skills/skill2' },
+        ])
+      );
     });
 
     it('handles /tree/ sub-path pattern in URL', async () => {
@@ -182,7 +187,11 @@ describe('createSkillActions', () => {
         { name: 'skill2', subPath: 'skills/skill2' },
       ];
 
-      await actions.addSkillFromDiscovery('https://github.com/example/repo.git', selectedSkills, '/tmp/repo');
+      await actions.addSkillFromDiscovery(
+        'https://github.com/example/repo.git',
+        selectedSkills,
+        '/tmp/repo'
+      );
 
       expect(mockCtx.skillService.installFromDirectory).toHaveBeenCalledTimes(2);
       expect(mockCtx.skillService.removeTempRepo).toHaveBeenCalledWith('/tmp/repo');
@@ -196,9 +205,11 @@ describe('createSkillActions', () => {
       vi.mocked(mockCtx.syncCheck.detectConflicts).mockReturnValue([]);
       vi.mocked(mockCtx.skillService.list).mockReturnValue([]);
 
-      await actions.addSkillFromDiscovery('https://github.com/example/repo.git', [
-        { name: 'skill1', subPath: 'skills/skill1' },
-      ], '/tmp/repo');
+      await actions.addSkillFromDiscovery(
+        'https://github.com/example/repo.git',
+        [{ name: 'skill1', subPath: 'skills/skill1' }],
+        '/tmp/repo'
+      );
 
       expect(mockCtx.skillService.removeTempRepo).toHaveBeenCalledWith('/tmp/repo');
     });
@@ -206,11 +217,15 @@ describe('createSkillActions', () => {
     it('sets form error on failure', async () => {
       const actions = createSkillActions(store, mockCtx);
 
-      vi.mocked(mockCtx.skillService.installFromDirectory).mockRejectedValue(new Error('Install failed'));
+      vi.mocked(mockCtx.skillService.installFromDirectory).mockRejectedValue(
+        new Error('Install failed')
+      );
 
-      await actions.addSkillFromDiscovery('https://github.com/example/repo.git', [
-        { name: 'skill1', subPath: 'skills/skill1' },
-      ], '/tmp/repo');
+      await actions.addSkillFromDiscovery(
+        'https://github.com/example/repo.git',
+        [{ name: 'skill1', subPath: 'skills/skill1' }],
+        '/tmp/repo'
+      );
 
       const state = store.getState();
       expect(state.formState?.data.error).toBe('Install failed');
@@ -224,9 +239,11 @@ describe('createSkillActions', () => {
       vi.mocked(mockCtx.syncCheck.detectConflicts).mockReturnValue([]);
       vi.mocked(mockCtx.skillService.list).mockReturnValue([]);
 
-      await actions.addSkillFromDiscovery('https://github.com/example/repo.git', [
-        { name: 'skill1', subPath: 'skills/skill1' },
-      ], '/tmp/repo');
+      await actions.addSkillFromDiscovery(
+        'https://github.com/example/repo.git',
+        [{ name: 'skill1', subPath: 'skills/skill1' }],
+        '/tmp/repo'
+      );
 
       const state = store.getState();
       expect(state.formState).toBeNull();
@@ -274,7 +291,10 @@ describe('createSkillActions', () => {
 
       await actions.removeSkill('test-skill');
 
-      expect(mockCtx.projectSyncService.unsync).toHaveBeenCalledWith('test-skill', ['proj1:claude', 'proj2:codex']);
+      expect(mockCtx.projectSyncService.unsync).toHaveBeenCalledWith('test-skill', [
+        'proj1:claude',
+        'proj2:codex',
+      ]);
     });
 
     it('calls skillService.delete after unsync', async () => {
@@ -324,14 +344,21 @@ describe('createSkillActions', () => {
       const actions = createSkillActions(store, mockCtx);
 
       vi.mocked(mockCtx.skillService.updateCategories)
-        .mockReturnValueOnce(createMockSkill({ name: 'alpha', categories: ['research', 'writing'] }))
-        .mockReturnValueOnce(createMockSkill({ name: 'beta', categories: ['research', 'writing'] }));
+        .mockReturnValueOnce(
+          createMockSkill({ name: 'alpha', categories: ['research', 'writing'] })
+        )
+        .mockReturnValueOnce(
+          createMockSkill({ name: 'beta', categories: ['research', 'writing'] })
+        );
       vi.mocked(mockCtx.skillService.list).mockReturnValue([
         createMockSkill({ name: 'alpha', categories: ['research', 'writing'] }),
         createMockSkill({ name: 'beta', categories: ['research', 'writing'] }),
       ]);
 
-      const results = await actions.categorizeSkills(['alpha', 'beta'], 'set', ['research', 'writing']);
+      const results = await actions.categorizeSkills(['alpha', 'beta'], 'set', [
+        'research',
+        'writing',
+      ]);
 
       expect(mockCtx.skillService.updateCategories).toHaveBeenCalledTimes(2);
       expect(mockCtx.skillService.updateCategories).toHaveBeenNthCalledWith(

@@ -12,7 +12,12 @@ import {
 import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
 import { createAppStore } from '../../../../src/tui/store/index.js';
 
-import { createMockServiceContext, createMockSkill, createMockAgent, createMockProject } from './mockContext.js';
+import {
+  createMockServiceContext,
+  createMockSkill,
+  createMockAgent,
+  createMockProject,
+} from './mockContext.js';
 
 describe('createSyncActions', () => {
   let mockCtx: ServiceContext;
@@ -122,7 +127,12 @@ describe('createSyncActions', () => {
 
       vi.mocked(mockCtx.projectSyncService.syncToProject).mockResolvedValue([]);
 
-      const promise = actions.syncSkillsToProjects(['skill1'], ['proj1', 'proj2'], ['claude'], 'copy');
+      const promise = actions.syncSkillsToProjects(
+        ['skill1'],
+        ['proj1', 'proj2'],
+        ['claude'],
+        'copy'
+      );
 
       const stateDuring = store.getState();
       expect(stateDuring.updateProgressItems).toHaveLength(2);
@@ -143,7 +153,9 @@ describe('createSyncActions', () => {
     it('pushes error toast when some project syncs fail', async () => {
       const actions = createSyncActions(store, mockCtx);
 
-      vi.mocked(mockCtx.projectSyncService.syncToProject).mockRejectedValue(new Error('Project sync failed'));
+      vi.mocked(mockCtx.projectSyncService.syncToProject).mockRejectedValue(
+        new Error('Project sync failed')
+      );
 
       await actions.syncSkillsToProjects(['skill1'], ['proj1'], ['claude'], 'copy');
 
@@ -298,7 +310,10 @@ describe('createSyncActions', () => {
   describe('updateSkills', () => {
     it('calls skillService.update and resyncs git-backed skills', async () => {
       const actions = createSyncActions(store, mockCtx);
-      const mockSkill = createMockSkill({ name: 'skill1', source: { type: 'git', url: 'https://example.com/repo' } });
+      const mockSkill = createMockSkill({
+        name: 'skill1',
+        source: { type: 'git', url: 'https://example.com/repo' },
+      });
 
       vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
       vi.mocked(mockCtx.skillService.update).mockResolvedValue(true);
@@ -310,9 +325,7 @@ describe('createSyncActions', () => {
       expect(mockCtx.skillService.update).toHaveBeenCalledWith('skill1');
       expect(mockCtx.syncService.resync).toHaveBeenCalledWith('skill1');
       expect(mockCtx.projectSyncService.resync).toHaveBeenCalledWith('skill1');
-      expect(results).toEqual([
-        { skillName: 'skill1', sourceType: 'git', outcome: 'updated' },
-      ]);
+      expect(results).toEqual([{ skillName: 'skill1', sourceType: 'git', outcome: 'updated' }]);
     });
 
     it('skips non-git skills and does not call update for them', async () => {
@@ -338,7 +351,10 @@ describe('createSyncActions', () => {
 
     it('returns skipped outcome when git update returns false', async () => {
       const actions = createSyncActions(store, mockCtx);
-      const mockSkill = createMockSkill({ name: 'skill1', source: { type: 'git', url: 'https://example.com/repo' } });
+      const mockSkill = createMockSkill({
+        name: 'skill1',
+        source: { type: 'git', url: 'https://example.com/repo' },
+      });
 
       vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
       vi.mocked(mockCtx.skillService.update).mockResolvedValue(false);
@@ -357,7 +373,10 @@ describe('createSyncActions', () => {
 
     it('pushes success toast on successful update', async () => {
       const actions = createSyncActions(store, mockCtx);
-      const mockSkill = createMockSkill({ name: 'skill1', source: { type: 'git', url: 'https://example.com/repo' } });
+      const mockSkill = createMockSkill({
+        name: 'skill1',
+        source: { type: 'git', url: 'https://example.com/repo' },
+      });
 
       vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
       vi.mocked(mockCtx.skillService.update).mockResolvedValue(true);
@@ -372,7 +391,10 @@ describe('createSyncActions', () => {
 
     it('pushes error toast on update failure', async () => {
       const actions = createSyncActions(store, mockCtx);
-      const mockSkill = createMockSkill({ name: 'skill1', source: { type: 'git', url: 'https://example.com/repo' } });
+      const mockSkill = createMockSkill({
+        name: 'skill1',
+        source: { type: 'git', url: 'https://example.com/repo' },
+      });
 
       vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
       vi.mocked(mockCtx.skillService.update).mockRejectedValue(new Error('Update failed'));
@@ -421,7 +443,14 @@ describe('doImportFromProject', () => {
 
     vi.mocked(mockCtx.storage.getProject).mockReturnValue(mockProject);
     vi.mocked(mockCtx.scanService.scanProject).mockReturnValue([
-      { name: 'skill1', path: '/test/project/skill1', agentId: 'claude', agentName: 'Claude', hasSkillMd: true, subPath: '' },
+      {
+        name: 'skill1',
+        path: '/test/project/skill1',
+        agentId: 'claude',
+        agentName: 'Claude',
+        hasSkillMd: true,
+        subPath: '',
+      },
     ]);
     vi.mocked(mockCtx.skillService.exists).mockReturnValue(false);
     vi.mocked(mockCtx.skillService.importFromPath).mockResolvedValue();
@@ -442,14 +471,26 @@ describe('doImportFromProject', () => {
 
     vi.mocked(mockCtx.storage.getProject).mockReturnValue(mockProject);
     vi.mocked(mockCtx.scanService.scanProject).mockReturnValue([
-      { name: 'skill1', path: '/test/project/skill1', agentId: 'claude', agentName: 'Claude', hasSkillMd: true, subPath: '' },
+      {
+        name: 'skill1',
+        path: '/test/project/skill1',
+        agentId: 'claude',
+        agentName: 'Claude',
+        hasSkillMd: true,
+        subPath: '',
+      },
     ]);
     vi.mocked(mockCtx.skillService.exists).mockReturnValue(true);
 
     const results = await doImportFromProject(mockCtx, 'proj1', ['skill1']);
 
     expect(results).toHaveLength(1);
-    expect(results[0]).toEqual({ target: 'skill1', success: false, error: 'Already exists', outcome: 'error' });
+    expect(results[0]).toEqual({
+      target: 'skill1',
+      success: false,
+      error: 'Already exists',
+      outcome: 'error',
+    });
     expect(mockCtx.skillService.importFromPath).not.toHaveBeenCalled();
   });
 
@@ -459,7 +500,12 @@ describe('doImportFromProject', () => {
     const results = await doImportFromProject(mockCtx, 'nonexistent', ['skill1']);
 
     expect(results).toHaveLength(1);
-    expect(results[0]).toEqual({ target: 'nonexistent', success: false, error: 'Project not found', outcome: 'error' });
+    expect(results[0]).toEqual({
+      target: 'nonexistent',
+      success: false,
+      error: 'Project not found',
+      outcome: 'error',
+    });
   });
 
   it('returns error when skill not found in project', async () => {
@@ -471,7 +517,12 @@ describe('doImportFromProject', () => {
     const results = await doImportFromProject(mockCtx, 'proj1', ['missing-skill']);
 
     expect(results).toHaveLength(1);
-    expect(results[0]).toEqual({ target: 'missing-skill', success: false, error: 'Not found in project', outcome: 'error' });
+    expect(results[0]).toEqual({
+      target: 'missing-skill',
+      success: false,
+      error: 'Not found in project',
+      outcome: 'error',
+    });
   });
 
   it('handles import errors gracefully', async () => {
@@ -479,7 +530,14 @@ describe('doImportFromProject', () => {
 
     vi.mocked(mockCtx.storage.getProject).mockReturnValue(mockProject);
     vi.mocked(mockCtx.scanService.scanProject).mockReturnValue([
-      { name: 'skill1', path: '/test/project/skill1', agentId: 'claude', agentName: 'Claude', hasSkillMd: true, subPath: '' },
+      {
+        name: 'skill1',
+        path: '/test/project/skill1',
+        agentId: 'claude',
+        agentName: 'Claude',
+        hasSkillMd: true,
+        subPath: '',
+      },
     ]);
     vi.mocked(mockCtx.skillService.exists).mockReturnValue(false);
     vi.mocked(mockCtx.skillService.importFromPath).mockRejectedValue(new Error('Import failed'));
@@ -487,7 +545,12 @@ describe('doImportFromProject', () => {
     const results = await doImportFromProject(mockCtx, 'proj1', ['skill1']);
 
     expect(results).toHaveLength(1);
-    expect(results[0]).toEqual({ target: 'skill1', success: false, error: 'Import failed', outcome: 'error' });
+    expect(results[0]).toEqual({
+      target: 'skill1',
+      success: false,
+      error: 'Import failed',
+      outcome: 'error',
+    });
   });
 });
 
@@ -523,7 +586,12 @@ describe('doImportFromAgent', () => {
     const results = await doImportFromAgent(mockCtx, 'nonexistent', ['skill1']);
 
     expect(results).toHaveLength(1);
-    expect(results[0]).toEqual({ target: 'nonexistent', success: false, error: 'Agent not found', outcome: 'error' });
+    expect(results[0]).toEqual({
+      target: 'nonexistent',
+      success: false,
+      error: 'Agent not found',
+      outcome: 'error',
+    });
   });
 
   it('returns error when skill already exists', async () => {
@@ -535,7 +603,12 @@ describe('doImportFromAgent', () => {
     const results = await doImportFromAgent(mockCtx, 'claude', ['skill1']);
 
     expect(results).toHaveLength(1);
-    expect(results[0]).toEqual({ target: 'skill1', success: false, error: 'Already exists', outcome: 'error' });
+    expect(results[0]).toEqual({
+      target: 'skill1',
+      success: false,
+      error: 'Already exists',
+      outcome: 'error',
+    });
   });
 
   it('handles import errors gracefully', async () => {
@@ -548,6 +621,11 @@ describe('doImportFromAgent', () => {
     const results = await doImportFromAgent(mockCtx, 'claude', ['skill1']);
 
     expect(results).toHaveLength(1);
-    expect(results[0]).toEqual({ target: 'skill1', success: false, error: 'Copy failed', outcome: 'error' });
+    expect(results[0]).toEqual({
+      target: 'skill1',
+      success: false,
+      error: 'Copy failed',
+      outcome: 'error',
+    });
   });
 });

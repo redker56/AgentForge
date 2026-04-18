@@ -10,7 +10,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ProjectStorage } from '../../src/app/project-storage.js';
 import { ReconcileService } from '../../src/app/reconcile-service.js';
-import type { Agent, ProjectConfig, ProjectSyncRecord, SkillMeta, SkillSource, SyncMode } from '../../src/types.js';
+import type {
+  Agent,
+  ProjectConfig,
+  ProjectSyncRecord,
+  SkillMeta,
+  SkillSource,
+  SyncMode,
+} from '../../src/types.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'agentforge-reconcile-test');
 
@@ -50,9 +57,15 @@ describe('ReconcileService', () => {
     await fs.writeFile(path.join(agentPath, 'alpha', 'SKILL.md'), '# agent skill');
 
     await fs.ensureDir(path.join(projectDir, '.claude', 'skills', 'alpha'));
-    await fs.writeFile(path.join(projectDir, '.claude', 'skills', 'alpha', 'SKILL.md'), '# alpha in project');
+    await fs.writeFile(
+      path.join(projectDir, '.claude', 'skills', 'alpha', 'SKILL.md'),
+      '# alpha in project'
+    );
     await fs.ensureDir(path.join(projectDir, '.claude', 'skills', 'beta'));
-    await fs.writeFile(path.join(projectDir, '.claude', 'skills', 'beta', 'SKILL.md'), '# beta in project');
+    await fs.writeFile(
+      path.join(projectDir, '.claude', 'skills', 'beta', 'SKILL.md'),
+      '# beta in project'
+    );
 
     await fs.writeJson(
       path.join(projectDir, '.agentforge.json'),
@@ -84,7 +97,10 @@ describe('ReconcileService', () => {
         source: { type: 'local' },
         createdAt: new Date().toISOString(),
         categories: ['core'],
-        syncedTo: [{ agentId: 'claude', mode: 'copy' }, { agentId: 'codex', mode: 'copy' }],
+        syncedTo: [
+          { agentId: 'claude', mode: 'copy' },
+          { agentId: 'codex', mode: 'copy' },
+        ],
         syncedProjects: [{ projectId: 'project-a', agentType: 'claude', mode: 'copy' }],
       },
       orphaned: {
@@ -110,7 +126,11 @@ describe('ReconcileService', () => {
           : undefined,
       listSkills: () => Object.values(registry),
       listAllDefinedAgents: () => [
-        { id: 'claude', name: 'Claude', basePath: path.join(baseDir, '.agentforge-users', 'claude') },
+        {
+          id: 'claude',
+          name: 'Claude',
+          basePath: path.join(baseDir, '.agentforge-users', 'claude'),
+        },
         { id: 'codex', name: 'Codex', basePath: path.join(baseDir, '.agentforge-users', 'codex') },
       ],
       saveSkill: (name: string, source: SkillSource): void => {
@@ -166,7 +186,9 @@ describe('ReconcileService', () => {
     expect(summary.registeredSkillsAdded).toBe(0);
     expect(summary.registeredSkillsRemoved).toBe(1);
     expect(alpha?.syncedTo).toEqual([{ agentId: 'claude', mode: 'copy' }]);
-    expect(alpha?.syncedProjects).toEqual([{ projectId: 'project-a', agentType: 'claude', mode: 'symlink' }]);
+    expect(alpha?.syncedProjects).toEqual([
+      { projectId: 'project-a', agentType: 'claude', mode: 'symlink' },
+    ]);
     expect(orphaned).toBeUndefined();
     expect(projectConfig.syncedSkills).toHaveLength(1);
     expect(projectConfig.syncedSkills).toEqual(

@@ -19,7 +19,9 @@ export function getVisibleSkillIndices<T extends CategorizedSkill>(
   skills: T[],
   filter: SkillCategoryFilter
 ): number[] {
-  return skills.flatMap((skill, index) => (skillMatchesCategoryFilter(skill, filter) ? [index] : []));
+  return skills.flatMap((skill, index) =>
+    skillMatchesCategoryFilter(skill, filter) ? [index] : []
+  );
 }
 
 export function getVisibleFocusedSkillIndex<T extends CategorizedSkill>(

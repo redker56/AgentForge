@@ -246,16 +246,16 @@ export class Storage implements StorageInterface {
               categories: normalizedCategories,
               syncedTo: skill.syncedTo ?? [],
               ...(skill.syncedProjects ? { syncedProjects: skill.syncedProjects } : {}),
-              ...(skill.updatedAt || !skill.createdAt
-                ? {}
-                : { updatedAt: skill.createdAt }),
+              ...(skill.updatedAt || !skill.createdAt ? {} : { updatedAt: skill.createdAt }),
             };
 
             if (
               (!skill.updatedAt && skill.createdAt) ||
               !Array.isArray(skill.categories) ||
               normalizedCategories.length !== (skill.categories ?? []).length ||
-              normalizedCategories.some((category, index) => category !== (skill.categories ?? [])[index])
+              normalizedCategories.some(
+                (category, index) => category !== (skill.categories ?? [])[index]
+              )
             ) {
               migrated = true;
             }

@@ -27,8 +27,22 @@ describe('createImportActions', () => {
 
       vi.mocked(mockCtx.storage.getProject).mockReturnValue(mockProject);
       vi.mocked(mockCtx.scanService.scanProject).mockReturnValue([
-        { name: 'skill1', path: '/test/project/.claude/skills/skill1', agentId: 'claude', agentName: 'Claude', hasSkillMd: true, subPath: '.claude/skills/skill1' },
-        { name: 'skill2', path: '/test/project/.claude/skills/skill2', agentId: 'claude', agentName: 'Claude', hasSkillMd: true, subPath: '.claude/skills/skill2' },
+        {
+          name: 'skill1',
+          path: '/test/project/.claude/skills/skill1',
+          agentId: 'claude',
+          agentName: 'Claude',
+          hasSkillMd: true,
+          subPath: '.claude/skills/skill1',
+        },
+        {
+          name: 'skill2',
+          path: '/test/project/.claude/skills/skill2',
+          agentId: 'claude',
+          agentName: 'Claude',
+          hasSkillMd: true,
+          subPath: '.claude/skills/skill2',
+        },
       ]);
       vi.mocked(mockCtx.skillService.exists).mockImplementation((name) => name === 'skill1');
 
@@ -77,7 +91,11 @@ describe('createImportActions', () => {
       const mockAgent = createMockAgent({ id: 'claude', basePath: '/test/.claude' });
 
       vi.mocked(mockCtx.storage.getAgent).mockReturnValue(mockAgent);
-      vi.mocked(mockCtx.fileOps.listSubdirectories).mockReturnValue(['skill1', 'skill2', 'notaskill']);
+      vi.mocked(mockCtx.fileOps.listSubdirectories).mockReturnValue([
+        'skill1',
+        'skill2',
+        'notaskill',
+      ]);
       vi.mocked(mockCtx.fileOps.fileExists).mockImplementation((p) => {
         if (p.includes('skill1') || p.includes('skill2')) return true;
         return false;
@@ -88,7 +106,7 @@ describe('createImportActions', () => {
 
       // Should only return directories with SKILL.md
       expect(results).toHaveLength(2);
-      expect(results.map(r => r.name)).toEqual(['skill1', 'skill2']);
+      expect(results.map((r) => r.name)).toEqual(['skill1', 'skill2']);
       expect(results[0].hasSkillMd).toBe(true);
       expect(results[0].alreadyExists).toBe(true);
       expect(results[1].alreadyExists).toBe(false);
@@ -145,7 +163,14 @@ describe('createImportActions', () => {
 
       vi.mocked(mockCtx.storage.getProject).mockReturnValue(mockProject);
       vi.mocked(mockCtx.scanService.scanProject).mockReturnValue([
-        { name: 'skill1', path: '/test/project/.claude/skills/skill1', agentId: 'claude', agentName: 'Claude', hasSkillMd: true, subPath: '' },
+        {
+          name: 'skill1',
+          path: '/test/project/.claude/skills/skill1',
+          agentId: 'claude',
+          agentName: 'Claude',
+          hasSkillMd: true,
+          subPath: '',
+        },
       ]);
       vi.mocked(mockCtx.skillService.exists).mockReturnValue(false);
       vi.mocked(mockCtx.skillService.importFromPath).mockResolvedValue();
@@ -167,7 +192,14 @@ describe('createImportActions', () => {
 
       vi.mocked(mockCtx.storage.getProject).mockReturnValue(mockProject);
       vi.mocked(mockCtx.scanService.scanProject).mockReturnValue([
-        { name: 'skill1', path: '/test/project/.claude/skills/skill1', agentId: 'claude', agentName: 'Claude', hasSkillMd: true, subPath: '' },
+        {
+          name: 'skill1',
+          path: '/test/project/.claude/skills/skill1',
+          agentId: 'claude',
+          agentName: 'Claude',
+          hasSkillMd: true,
+          subPath: '',
+        },
       ]);
       vi.mocked(mockCtx.skillService.exists).mockReturnValue(false);
       vi.mocked(mockCtx.skillService.importFromPath).mockResolvedValue();
@@ -206,7 +238,14 @@ describe('createImportActions', () => {
 
       vi.mocked(mockCtx.storage.getProject).mockReturnValue(mockProject);
       vi.mocked(mockCtx.scanService.scanProject).mockReturnValue([
-        { name: 'conflict-skill', path: '/test/project/.claude/skills/conflict-skill', agentId: 'claude', agentName: 'Claude', hasSkillMd: true, subPath: '' },
+        {
+          name: 'conflict-skill',
+          path: '/test/project/.claude/skills/conflict-skill',
+          agentId: 'claude',
+          agentName: 'Claude',
+          hasSkillMd: true,
+          subPath: '',
+        },
       ]);
       vi.mocked(mockCtx.skillService.exists).mockReturnValue(false);
       vi.mocked(mockCtx.skillService.importFromPath).mockResolvedValue();

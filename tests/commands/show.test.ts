@@ -153,7 +153,9 @@ describe('show command', () => {
     expect(consoleLog).toHaveBeenCalledWith(
       expect.stringContaining('Updated: 2026-04-01T12:34:56.000Z')
     );
-    expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Categories: design, frontend'));
+    expect(consoleLog).toHaveBeenCalledWith(
+      expect.stringContaining('Categories: design, frontend')
+    );
     expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Claude Code'));
   });
 

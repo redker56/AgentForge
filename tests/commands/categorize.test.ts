@@ -44,16 +44,11 @@ describe('categorize command', () => {
       },
     } as never);
 
-    await program.parseAsync(
-      ['categorize', 'skills', 'frontend-design', 'design', 'frontend'],
-      { from: 'user' }
-    );
+    await program.parseAsync(['categorize', 'skills', 'frontend-design', 'design', 'frontend'], {
+      from: 'user',
+    });
 
-    expect(updateCategories).toHaveBeenCalledWith(
-      'frontend-design',
-      ['design', 'frontend'],
-      'set'
-    );
+    expect(updateCategories).toHaveBeenCalledWith('frontend-design', ['design', 'frontend'], 'set');
     expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Updated categories'));
   });
 
@@ -75,10 +70,9 @@ describe('categorize command', () => {
       },
     } as never);
 
-    await program.parseAsync(
-      ['categorize', 'skills', 'docx', 'documents', '--add'],
-      { from: 'user' }
-    );
+    await program.parseAsync(['categorize', 'skills', 'docx', 'documents', '--add'], {
+      from: 'user',
+    });
 
     expect(updateCategories).toHaveBeenCalledWith('docx', ['documents'], 'add');
   });

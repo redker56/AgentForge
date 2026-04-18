@@ -99,7 +99,12 @@ export interface ServiceContext {
     } | null;
     exists(name: string): boolean;
     install(url: string, name?: string, subPath?: string): Promise<string>;
-    installFromDirectory(url: string, name: string, sourceDir: string, subPath?: string): Promise<string>;
+    installFromDirectory(
+      url: string,
+      name: string,
+      sourceDir: string,
+      subPath?: string
+    ): Promise<string>;
     importFromPath(sourcePath: string, name: string, source: SkillSource): Promise<void>;
     delete(name: string): Promise<void>;
     cloneRepoToTemp(repoUrl: string): Promise<string>;
@@ -109,11 +114,7 @@ export interface ServiceContext {
     ): Array<{ name: string; subPath: string }>;
     removeTempRepo(tempDir: string): Promise<void>;
     update(name: string): Promise<boolean>; // Refresh a git-backed skill from source. Returns false if not git-backed.
-    updateCategories(
-      name: string,
-      categories: string[],
-      mode?: SkillCategoryUpdateMode
-    ): SkillMeta;
+    updateCategories(name: string, categories: string[], mode?: SkillCategoryUpdateMode): SkillMeta;
   };
   scanService: {
     getSkillProjectDistributionWithStatus(skillName: string): Promise<
@@ -286,7 +287,9 @@ export function createDataSlice(ctx: ServiceContext): StateCreator<StoreState, [
     for (const agent of agents) {
       let projectLevelSkillCount = 0;
       for (const project of projects) {
-        projectLevelSkillCount += countValidSkillDirs(getAgentProjectSkillsDir(project.path, agent));
+        projectLevelSkillCount += countValidSkillDirs(
+          getAgentProjectSkillsDir(project.path, agent)
+        );
       }
 
       summaries[agent.id] = {

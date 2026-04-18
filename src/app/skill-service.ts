@@ -51,8 +51,12 @@ export class SkillService {
       return normalizeSkillCategories([...normalizedCurrent, ...normalizedNext]);
     }
 
-    const categoriesToRemove = new Set(normalizedNext.map((category) => category.toLocaleLowerCase()));
-    return normalizedCurrent.filter((category) => !categoriesToRemove.has(category.toLocaleLowerCase()));
+    const categoriesToRemove = new Set(
+      normalizedNext.map((category) => category.toLocaleLowerCase())
+    );
+    return normalizedCurrent.filter(
+      (category) => !categoriesToRemove.has(category.toLocaleLowerCase())
+    );
   }
 
   /** Extract the skill name from the last path segment, normalizing backslashes. */

@@ -164,9 +164,9 @@ describe('ProjectSyncService', () => {
     it('throws error when project not found', async () => {
       const service = new ProjectSyncService(createStorageMock(projectPath) as never);
 
-      await expect(service.syncToProject(SKILL_NAME, 'nonexistent-project', ['claude'])).rejects.toThrow(
-        'Project not found'
-      );
+      await expect(
+        service.syncToProject(SKILL_NAME, 'nonexistent-project', ['claude'])
+      ).rejects.toThrow('Project not found');
     });
 
     it('throws error when project path does not exist', async () => {
@@ -181,9 +181,9 @@ describe('ProjectSyncService', () => {
     it('throws error when skill does not exist', async () => {
       const service = new ProjectSyncService(createStorageMock(projectPath) as never);
 
-      await expect(service.syncToProject('nonexistent-skill', PROJECT_ID, ['claude'])).rejects.toThrow(
-        'Skill not found'
-      );
+      await expect(
+        service.syncToProject('nonexistent-skill', PROJECT_ID, ['claude'])
+      ).rejects.toThrow('Skill not found');
     });
 
     it('updates registry after sync', async () => {
@@ -211,7 +211,9 @@ describe('ProjectSyncService', () => {
       // Then unsync
       await service.unsyncFromProject(SKILL_NAME, PROJECT_ID);
 
-      expect(await fs.pathExists(path.join(projectPath, '.agents', 'skills', SKILL_NAME))).toBe(false);
+      expect(await fs.pathExists(path.join(projectPath, '.agents', 'skills', SKILL_NAME))).toBe(
+        false
+      );
     });
 
     it('removes detected on-disk project syncs even when no registry record exists', async () => {
@@ -238,9 +240,13 @@ describe('ProjectSyncService', () => {
       await service.unsyncFromProject(SKILL_NAME, PROJECT_ID, ['codex']);
 
       // Codex removed
-      expect(await fs.pathExists(path.join(projectPath, '.agents', 'skills', SKILL_NAME))).toBe(false);
+      expect(await fs.pathExists(path.join(projectPath, '.agents', 'skills', SKILL_NAME))).toBe(
+        false
+      );
       // Claude remains
-      expect(await fs.pathExists(path.join(projectPath, '.claude', 'skills', SKILL_NAME))).toBe(true);
+      expect(await fs.pathExists(path.join(projectPath, '.claude', 'skills', SKILL_NAME))).toBe(
+        true
+      );
     });
   });
 
@@ -273,7 +279,11 @@ describe('ProjectSyncService', () => {
 
     it('resyncs to multiple projects', async () => {
       // Use separate directory for this test to avoid conflicts
-      const multiTestDir = path.join(os.tmpdir(), 'agentforge-multi-project-test', Date.now().toString());
+      const multiTestDir = path.join(
+        os.tmpdir(),
+        'agentforge-multi-project-test',
+        Date.now().toString()
+      );
       const project1Dir = path.join(multiTestDir, 'project-1');
       const project2Dir = path.join(multiTestDir, 'project-2');
       const skillSourceDir = path.join(multiTestDir, '.agentforge', 'skills', SKILL_NAME);
@@ -371,9 +381,7 @@ describe('ProjectSyncService', () => {
       await service.syncToProject(SKILL_NAME, PROJECT_ID, ['codex']);
 
       const status = service.checkSyncStatus(SKILL_NAME);
-      const codexStatus = status.find(
-        (s) => s.target === `${PROJECT_ID}:codex`
-      );
+      const codexStatus = status.find((s) => s.target === `${PROJECT_ID}:codex`);
       expect(codexStatus?.exists).toBe(true);
     });
   });

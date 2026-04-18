@@ -15,10 +15,20 @@ import type { SkillMeta } from '../../types.js';
 import { createAgentActions, type AgentActions } from './actions/agentActions.js';
 import { createImportActions, type ImportActions } from './actions/importActions.js';
 import { createProjectActions, type ProjectActions } from './actions/projectActions.js';
-import { createSkillActions, type CategoryActionResult, type SkillActions } from './actions/skillActions.js';
+import {
+  createSkillActions,
+  type CategoryActionResult,
+  type SkillActions,
+} from './actions/skillActions.js';
 import { createSyncActions, type SyncActions } from './actions/syncActions.js';
 import { createDataSlice, type DataSlice, type ServiceContext } from './dataSlice.js';
-import { createUISlice, type OperationResult, type UISlice, type TabId, type UpdateResult } from './uiSlice.js';
+import {
+  createUISlice,
+  type OperationResult,
+  type UISlice,
+  type TabId,
+  type UpdateResult,
+} from './uiSlice.js';
 
 // SkillListItem extends SkillMeta with the 'exists' flag from SkillService.list()
 export type SkillListItem = SkillMeta & {

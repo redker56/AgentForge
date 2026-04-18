@@ -24,22 +24,21 @@ describe('createProjectActions', () => {
     it('validates project ID format (letters, numbers, hyphens, underscores only)', async () => {
       const actions = createProjectActions(store, mockCtx);
 
-      await expect(actions.addProject('invalid id!', '/path'))
-        .rejects.toThrow('Project ID must contain only letters, numbers, hyphens, and underscores');
+      await expect(actions.addProject('invalid id!', '/path')).rejects.toThrow(
+        'Project ID must contain only letters, numbers, hyphens, and underscores'
+      );
     });
 
     it('rejects empty ID', async () => {
       const actions = createProjectActions(store, mockCtx);
 
-      await expect(actions.addProject('', '/path'))
-        .rejects.toThrow('Project ID is required');
+      await expect(actions.addProject('', '/path')).rejects.toThrow('Project ID is required');
     });
 
     it('rejects whitespace-only ID', async () => {
       const actions = createProjectActions(store, mockCtx);
 
-      await expect(actions.addProject('   ', '/path'))
-        .rejects.toThrow('Project ID is required');
+      await expect(actions.addProject('   ', '/path')).rejects.toThrow('Project ID is required');
     });
 
     it('rejects duplicate project IDs', async () => {
@@ -48,8 +47,9 @@ describe('createProjectActions', () => {
 
       vi.mocked(mockCtx.storage.listProjects).mockReturnValue([existingProject]);
 
-      await expect(actions.addProject('existing-project', '/new/path'))
-        .rejects.toThrow('Project "existing-project" already exists');
+      await expect(actions.addProject('existing-project', '/new/path')).rejects.toThrow(
+        'Project "existing-project" already exists'
+      );
     });
 
     it('accepts valid IDs with hyphens and underscores', async () => {
@@ -73,8 +73,9 @@ describe('createProjectActions', () => {
       vi.mocked(mockCtx.storage.listProjects).mockReturnValue([]);
       vi.mocked(mockCtx.fileOps.pathExists).mockReturnValue(false);
 
-      await expect(actions.addProject('new-project', '/nonexistent/path'))
-        .rejects.toThrow('Path does not exist: /nonexistent/path');
+      await expect(actions.addProject('new-project', '/nonexistent/path')).rejects.toThrow(
+        'Path does not exist: /nonexistent/path'
+      );
 
       expect(mockCtx.storage.addProject).not.toHaveBeenCalled();
     });
@@ -133,9 +134,7 @@ describe('createProjectActions', () => {
         }),
         createMockSkill({
           name: 'skill2',
-          syncedProjects: [
-            { projectId: 'proj1', agentType: 'codex', mode: 'symlink' },
-          ],
+          syncedProjects: [{ projectId: 'proj1', agentType: 'codex', mode: 'symlink' }],
         }),
         createMockSkill({
           name: 'skill3',
@@ -193,7 +192,11 @@ describe('createProjectActions', () => {
         addedAt: '2024-01-01T00:00:00.000Z',
       });
 
-      expect(mockCtx.storage.addProject).toHaveBeenCalledWith('restored-project', '/test/restored', '2024-01-01T00:00:00.000Z');
+      expect(mockCtx.storage.addProject).toHaveBeenCalledWith(
+        'restored-project',
+        '/test/restored',
+        '2024-01-01T00:00:00.000Z'
+      );
     });
 
     it('does nothing if id is missing', () => {

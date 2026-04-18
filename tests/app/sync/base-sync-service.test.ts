@@ -221,7 +221,9 @@ describe('BaseSyncService sync error handling', () => {
   it('throws error when skill not found', async () => {
     const agents = [requireAgent(storage, 'claude')];
 
-    await expect(service.sync('nonexistent-skill', agents, 'copy')).rejects.toThrow('Skill not found');
+    await expect(service.sync('nonexistent-skill', agents, 'copy')).rejects.toThrow(
+      'Skill not found'
+    );
   });
 
   it('returns error result when target creation fails', async () => {
@@ -246,10 +248,7 @@ describe('BaseSyncService sync error handling', () => {
     // Second sync (should overwrite)
     await service.sync('test-skill', agents, 'copy');
 
-    const targetContent = await fs.readFile(
-      path.join(agentDir, 'test-skill', 'SKILL.md'),
-      'utf-8'
-    );
+    const targetContent = await fs.readFile(path.join(agentDir, 'test-skill', 'SKILL.md'), 'utf-8');
     expect(targetContent).toContain('Updated');
   });
 });

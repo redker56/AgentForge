@@ -108,26 +108,20 @@ export function register(program: Command, ctx: CommandContext): void {
     .option('--clear', 'Clear all categories from the skill')
     .option('--skills <names...>', 'Apply category changes to multiple skills')
     .option('--categories <names...>', 'Category names for batch updates')
-    .action(
-      (
-        target: string,
-        items: string[],
-        options: CategorizeOptions
-      ) => {
-        try {
-          if (target !== 'skills') {
-            console.error(chalk.red(`Invalid target: ${target}`));
-            console.log(chalk.dim('Available targets: skills'));
-            console.log(chalk.dim('Example: af categorize skills my-skill docs reading'));
-            process.exit(1);
-          }
-
-          const { names, categories } = resolveTargetsAndCategories(items, options);
-          categorizeSkills(ctx, names, categories, options);
-        } catch (error: unknown) {
-          console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+    .action((target: string, items: string[], options: CategorizeOptions) => {
+      try {
+        if (target !== 'skills') {
+          console.error(chalk.red(`Invalid target: ${target}`));
+          console.log(chalk.dim('Available targets: skills'));
+          console.log(chalk.dim('Example: af categorize skills my-skill docs reading'));
           process.exit(1);
         }
+
+        const { names, categories } = resolveTargetsAndCategories(items, options);
+        categorizeSkills(ctx, names, categories, options);
+      } catch (error: unknown) {
+        console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+        process.exit(1);
       }
-    );
+    });
 }

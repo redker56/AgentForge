@@ -25,32 +25,36 @@ describe('createAgentActions', () => {
     it('validates agent ID format (letters, numbers, hyphens, underscores only)', async () => {
       const actions = createAgentActions(store, mockCtx);
 
-      await expect(actions.addAgent('invalid id!', 'Test Agent', '/path'))
-        .rejects.toThrow('Agent ID must contain only letters, numbers, hyphens, and underscores');
+      await expect(actions.addAgent('invalid id!', 'Test Agent', '/path')).rejects.toThrow(
+        'Agent ID must contain only letters, numbers, hyphens, and underscores'
+      );
     });
 
     it('rejects empty ID', async () => {
       const actions = createAgentActions(store, mockCtx);
 
-      await expect(actions.addAgent('', 'Test Agent', '/path'))
-        .rejects.toThrow('Agent ID is required');
+      await expect(actions.addAgent('', 'Test Agent', '/path')).rejects.toThrow(
+        'Agent ID is required'
+      );
     });
 
     it('rejects whitespace-only ID', async () => {
       const actions = createAgentActions(store, mockCtx);
 
-      await expect(actions.addAgent('   ', 'Test Agent', '/path'))
-        .rejects.toThrow('Agent ID is required');
+      await expect(actions.addAgent('   ', 'Test Agent', '/path')).rejects.toThrow(
+        'Agent ID is required'
+      );
     });
 
     it('rejects built-in agent IDs', async () => {
       const actions = createAgentActions(store, mockCtx);
-      const builtinIds = BUILTIN_AGENTS.map(a => a.id);
+      const builtinIds = BUILTIN_AGENTS.map((a) => a.id);
 
       for (const id of builtinIds) {
         vi.clearAllMocks();
-        await expect(actions.addAgent(id, 'Test', '/path'))
-          .rejects.toThrow('is a built-in agent ID and cannot be used');
+        await expect(actions.addAgent(id, 'Test', '/path')).rejects.toThrow(
+          'is a built-in agent ID and cannot be used'
+        );
       }
     });
 
@@ -60,8 +64,9 @@ describe('createAgentActions', () => {
 
       vi.mocked(mockCtx.storage.listAllDefinedAgents).mockReturnValue([existingAgent]);
 
-      await expect(actions.addAgent('existing-agent', 'New Agent', '/path'))
-        .rejects.toThrow('Agent "existing-agent" already exists');
+      await expect(actions.addAgent('existing-agent', 'New Agent', '/path')).rejects.toThrow(
+        'Agent "existing-agent" already exists'
+      );
     });
 
     it('accepts valid IDs with hyphens and underscores', async () => {
@@ -73,7 +78,12 @@ describe('createAgentActions', () => {
 
       await actions.addAgent('my-custom_agent-123', 'Test Agent', '/path');
 
-      expect(mockCtx.storage.addAgent).toHaveBeenCalledWith('my-custom_agent-123', 'Test Agent', '/path', undefined);
+      expect(mockCtx.storage.addAgent).toHaveBeenCalledWith(
+        'my-custom_agent-123',
+        'Test Agent',
+        '/path',
+        undefined
+      );
     });
 
     it('expands ~ in basePath', async () => {
@@ -115,7 +125,12 @@ describe('createAgentActions', () => {
 
       await actions.addAgent('custom-agent', 'Custom Agent', '/path', 'custom-skills');
 
-      expect(mockCtx.storage.addAgent).toHaveBeenCalledWith('custom-agent', 'Custom Agent', '/path', 'custom-skills');
+      expect(mockCtx.storage.addAgent).toHaveBeenCalledWith(
+        'custom-agent',
+        'Custom Agent',
+        '/path',
+        'custom-skills'
+      );
     });
 
     it('refreshes agents after adding', async () => {
@@ -135,7 +150,13 @@ describe('createAgentActions', () => {
     it('cleans up sync references from all skills', async () => {
       const actions = createAgentActions(store, mockCtx);
       const skills = [
-        createMockSkill({ name: 'skill1', syncedTo: [{ agentId: 'claude', mode: 'copy' }, { agentId: 'custom', mode: 'symlink' }] }),
+        createMockSkill({
+          name: 'skill1',
+          syncedTo: [
+            { agentId: 'claude', mode: 'copy' },
+            { agentId: 'custom', mode: 'symlink' },
+          ],
+        }),
         createMockSkill({ name: 'skill2', syncedTo: [{ agentId: 'custom', mode: 'copy' }] }),
         createMockSkill({ name: 'skill3', syncedTo: [{ agentId: 'claude', mode: 'copy' }] }),
       ];
@@ -146,7 +167,9 @@ describe('createAgentActions', () => {
       await actions.removeAgent('custom');
 
       // skill1 should have custom removed from syncedTo
-      expect(mockCtx.storage.updateSkillSync).toHaveBeenCalledWith('skill1', [{ agentId: 'claude', mode: 'copy' }]);
+      expect(mockCtx.storage.updateSkillSync).toHaveBeenCalledWith('skill1', [
+        { agentId: 'claude', mode: 'copy' },
+      ]);
       // skill2 should have empty syncedTo
       expect(mockCtx.storage.updateSkillSync).toHaveBeenCalledWith('skill2', []);
       // skill3 should not be updated (no custom in syncedTo)
@@ -213,7 +236,12 @@ describe('createAgentActions', () => {
         skillsDirName: 'skills',
       });
 
-      expect(mockCtx.storage.addAgent).toHaveBeenCalledWith('restored-agent', 'Restored Agent', '/test/restored', 'skills');
+      expect(mockCtx.storage.addAgent).toHaveBeenCalledWith(
+        'restored-agent',
+        'Restored Agent',
+        '/test/restored',
+        'skills'
+      );
     });
 
     it('does nothing if id is missing', () => {
@@ -251,7 +279,12 @@ describe('createAgentActions', () => {
         basePath: '/path',
       });
 
-      expect(mockCtx.storage.addAgent).toHaveBeenCalledWith('no-dirname', 'No Dirname', '/path', undefined);
+      expect(mockCtx.storage.addAgent).toHaveBeenCalledWith(
+        'no-dirname',
+        'No Dirname',
+        '/path',
+        undefined
+      );
     });
 
     it('refreshes agents and skills after restoration', () => {

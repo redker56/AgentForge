@@ -23,11 +23,7 @@ interface StorageMock {
   updateSkillSync: ReturnType<typeof vi.fn>;
 }
 
-function createStorageMock(
-  skillDir: string,
-  claudeDir: string,
-  codexDir: string
-): StorageMock {
+function createStorageMock(skillDir: string, claudeDir: string, codexDir: string): StorageMock {
   const agents: Agent[] = [
     {
       id: 'claude',
@@ -53,11 +49,13 @@ function createStorageMock(
     getAgent: (id: string) => agents.find((a) => a.id === id),
     getSkill: (name: string) => (name === 'test-skill' ? skillMeta : undefined),
     getSkillPath: (name: string) => path.join(skillDir, name),
-    updateSkillSync: vi.fn((name: string, records: { agentId: string; mode: 'copy' | 'symlink' }[]) => {
-      if (name === 'test-skill') {
-        skillMeta.syncedTo = records;
+    updateSkillSync: vi.fn(
+      (name: string, records: { agentId: string; mode: 'copy' | 'symlink' }[]) => {
+        if (name === 'test-skill') {
+          skillMeta.syncedTo = records;
+        }
       }
-    }),
+    ),
   };
 }
 
@@ -174,7 +172,9 @@ describe('AgentSyncService full lifecycle', () => {
 
     it('throws error when skill does not exist', async () => {
       const agents = [requireAgent(storage, 'claude')];
-      await expect(service.sync('nonexistent-skill', agents, 'copy')).rejects.toThrow('Skill not found');
+      await expect(service.sync('nonexistent-skill', agents, 'copy')).rejects.toThrow(
+        'Skill not found'
+      );
     });
 
     it('updates registry after sync', async () => {
@@ -239,7 +239,10 @@ describe('AgentSyncService full lifecycle', () => {
       // Resync
       await service.resync('test-skill');
 
-      const targetContent = await fs.readFile(path.join(claudeDir, 'test-skill', 'SKILL.md'), 'utf-8');
+      const targetContent = await fs.readFile(
+        path.join(claudeDir, 'test-skill', 'SKILL.md'),
+        'utf-8'
+      );
       expect(targetContent).toContain('More content');
     });
 

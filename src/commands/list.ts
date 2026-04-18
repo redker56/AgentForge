@@ -309,9 +309,7 @@ async function listSkills(ctx: CommandContext, options: ListOptions): Promise<vo
 function listCategories(ctx: CommandContext): void {
   const skills = ctx.skills.list();
   const categoryCounts = getSkillCategoryCounts(skills);
-  const visibleCounts = categoryCounts.filter(
-    (entry) => entry.key !== ALL_SKILL_CATEGORY_FILTER
-  );
+  const visibleCounts = categoryCounts.filter((entry) => entry.key !== ALL_SKILL_CATEGORY_FILTER);
 
   console.log(chalk.bold('\nCategory List\n'));
   if (visibleCounts.length === 0) {

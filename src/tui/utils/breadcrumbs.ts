@@ -106,8 +106,8 @@ export function deriveBreadcrumbs(state: BreadcrumbState): string[] {
 
   // Detail overlay
   if (
-    state.detailOverlayVisible
-    && (state.widthBand !== 'widescreen' || state.activeTab !== 'skills')
+    state.detailOverlayVisible &&
+    (state.widthBand !== 'widescreen' || state.activeTab !== 'skills')
   ) {
     segments.push('Detail');
     hasOverlay = true;

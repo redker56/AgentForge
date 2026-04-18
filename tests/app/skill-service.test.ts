@@ -197,10 +197,7 @@ describe('SkillService core functionality', () => {
             path.join(dest, 'skills', 'glmv-stock-analyst', 'SKILL.md'),
             '# updated'
           );
-          await fs.writeFile(
-            path.join(dest, 'skills', 'glmv-stock-analyst', 'report.md'),
-            'fresh'
-          );
+          await fs.writeFile(path.join(dest, 'skills', 'glmv-stock-analyst', 'report.md'), 'fresh');
         });
 
       try {
