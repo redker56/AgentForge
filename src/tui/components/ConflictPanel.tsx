@@ -23,8 +23,8 @@ function truncateText(text: string, maxWidth = 68): string {
 }
 
 export function ConflictPanel({ store }: ConflictPanelProps): React.ReactElement {
-  const conflictState = useStore(store, s => s.conflictState);
-  const focusedConflictIndex = useStore(store, s => s.focusedConflictIndex);
+  const conflictState = useStore(store, s => s.shellState.conflictState);
+  const focusedConflictIndex = useStore(store, s => s.shellState.focusedConflictIndex);
 
   if (!conflictState) return <></>;
 

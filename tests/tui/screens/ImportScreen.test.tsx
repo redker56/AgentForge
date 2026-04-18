@@ -7,6 +7,7 @@ import { render, cleanup } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
+import { withLegacyUiState } from '../helpers/legacyUiState.js';
 describe('ImportScreen', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -49,31 +50,12 @@ describe('ImportScreen', () => {
       conflictState: null,
       ...overrides,
     };
+    withLegacyUiState(state);
     return {
       getState: () => state,
       subscribe: vi.fn(() => () => {}),
     };
   }
-
-  function makeMockCtx() {
-    return {
-      storage: {
-        getProject: vi.fn(),
-        getAgent: vi.fn(),
-      },
-      scanService: {
-        scanProject: vi.fn().mockReturnValue([]),
-      },
-      skillService: {
-        exists: vi.fn().mockReturnValue(false),
-      },
-      fileOps: {
-        listSubdirectories: vi.fn().mockReturnValue([]),
-        fileExists: vi.fn().mockReturnValue(false),
-      },
-    } as unknown as import('../../../src/tui/store/dataSlice.js').ServiceContext;
-  }
-
   it('exports ImportScreen component', async () => {
     const { ImportScreen } = await import('../../../src/tui/screens/ImportScreen.js');
     expect(ImportScreen).toBeDefined();
@@ -83,9 +65,8 @@ describe('ImportScreen', () => {
   it('renders title "Import Skills"', async () => {
     const { ImportScreen } = await import('../../../src/tui/screens/ImportScreen.js');
     const store = makeMockStore();
-    const ctx = makeMockCtx();
     const { lastFrame } = render(
-      React.createElement(ImportScreen, { store, ctx })
+      React.createElement(ImportScreen, { store })
     );
     vi.runAllTimers();
     const frame = lastFrame() || '';
@@ -95,9 +76,8 @@ describe('ImportScreen', () => {
   it('renders ImportFormTab content', async () => {
     const { ImportScreen } = await import('../../../src/tui/screens/ImportScreen.js');
     const store = makeMockStore();
-    const ctx = makeMockCtx();
     const { lastFrame } = render(
-      React.createElement(ImportScreen, { store, ctx })
+      React.createElement(ImportScreen, { store })
     );
     vi.runAllTimers();
     const frame = lastFrame() || '';
@@ -113,9 +93,8 @@ describe('ImportScreen', () => {
         { id: 'import-skill1', label: 'Importing skill1...', progress: 50, status: 'running' },
       ],
     });
-    const ctx = makeMockCtx();
     const { lastFrame } = render(
-      React.createElement(ImportScreen, { store, ctx })
+      React.createElement(ImportScreen, { store })
     );
     vi.runAllTimers();
     const frame = lastFrame() || '';
@@ -129,9 +108,8 @@ describe('ImportScreen', () => {
       importTabStep: 'select-source-type',
       updateProgressItems: [],
     });
-    const ctx = makeMockCtx();
     const { lastFrame } = render(
-      React.createElement(ImportScreen, { store, ctx })
+      React.createElement(ImportScreen, { store })
     );
     vi.runAllTimers();
     const frame = lastFrame() || '';

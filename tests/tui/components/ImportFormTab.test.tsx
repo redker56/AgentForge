@@ -12,6 +12,8 @@ import { render } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it, vi, beforeAll } from 'vitest';
 
+import { withLegacyUiState } from '../helpers/legacyUiState.js';
+
 // Module references populated by beforeAll
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let ImportFormTab: any;
@@ -30,55 +32,46 @@ beforeAll(async () => {
 });
 
 function createMockStore(overrides: Record<string, unknown> = {}) {
+  const state = {
+    importTabStep: 'select-source-type',
+    importTabSourceType: 'project' as string | null,
+    importTabSourceId: null as string | null,
+    importTabSelectedSkillNames: new Set(),
+    importTabResults: [],
+    importTabFocusedIndex: 0,
+    importDiscoveredSkills: [],
+    skills: [],
+    agents: [],
+    projects: [],
+    activeTab: 'import',
+    showSearch: false,
+    showHelp: false,
+    confirmState: null,
+    formState: null,
+    conflictState: null,
+    updateProgressItems: [],
+    setImportTabStep: vi.fn(),
+    setImportTabSourceType: vi.fn(),
+    setImportTabSourceId: vi.fn(),
+    setImportTabSelectedSkillNames: vi.fn(),
+    setImportTabResults: vi.fn(),
+    setImportTabFocusedIndex: vi.fn(),
+    setImportDiscoveredSkills: vi.fn(),
+    resetImportTab: vi.fn(),
+    toggleImportTabSkill: vi.fn(),
+    refreshSkills: vi.fn(),
+    scanProjectSkills: vi.fn().mockReturnValue([]),
+    scanAgentSkills: vi.fn().mockReturnValue([]),
+    importFromProject: vi.fn().mockResolvedValue([]),
+    importFromAgent: vi.fn().mockResolvedValue([]),
+    ...overrides,
+  };
+  withLegacyUiState(state);
   return {
-    getState: () => ({
-      importTabStep: 'select-source-type',
-      importTabSourceType: 'project' as string | null,
-      importTabSourceId: null as string | null,
-      importTabSelectedSkillNames: new Set(),
-      importTabResults: [],
-      importTabFocusedIndex: 0,
-      skills: [],
-      agents: [],
-      projects: [],
-      setImportTabStep: vi.fn(),
-      setImportTabSourceType: vi.fn(),
-      setImportTabSourceId: vi.fn(),
-      setImportTabSelectedSkillNames: vi.fn(),
-      setImportTabResults: vi.fn(),
-      setImportTabFocusedIndex: vi.fn(),
-      activeTab: 'import',
-      showSearch: false,
-      showHelp: false,
-      confirmState: null,
-      formState: null,
-      conflictState: null,
-      updateProgressItems: [],
-      resetImportTab: vi.fn(),
-      toggleImportTabSkill: vi.fn(),
-      refreshSkills: vi.fn(),
-      ...overrides,
-    }),
+    getState: () => state,
     subscribe: vi.fn(() => () => {}),
   };
 }
-
-const mockCtx = {
-  storage: {
-    getProject: vi.fn(),
-    getAgent: vi.fn(),
-  },
-  scanService: {
-    scanProject: vi.fn().mockReturnValue([]),
-  },
-  skillService: {
-    exists: vi.fn().mockReturnValue(false),
-  },
-  fileOps: {
-    listSubdirectories: vi.fn().mockReturnValue([]),
-    fileExists: vi.fn().mockReturnValue(false),
-  },
-};
 
 describe('ImportFormTab', () => {
   it('exports ImportFormTab component', () => {
@@ -87,7 +80,7 @@ describe('ImportFormTab', () => {
   });
 
   it('ImportFormTab renders a React element', () => {
-    const element = React.createElement(ImportFormTab, { store: createMockStore(), ctx: mockCtx });
+    const element = React.createElement(ImportFormTab, { store: createMockStore() });
     expect(element.type).toBe(ImportFormTab);
   });
 
@@ -152,7 +145,7 @@ describe('ImportFormTab', () => {
       importTabStep: 'select-skills',
       importTabSelectedSkillNames: new Set(),
     });
-    const element = React.createElement(ImportFormTab, { store, ctx: mockCtx });
+    const element = React.createElement(ImportFormTab, { store });
     expect(element.type).toBe(ImportFormTab);
   });
 
@@ -220,7 +213,7 @@ describe('ImportFormTab', () => {
         { id: 'import-react', label: 'Importing react-hooks...', progress: 50, status: 'running' },
       ],
     });
-    const element = React.createElement(ImportFormTab, { store, ctx: mockCtx });
+    const element = React.createElement(ImportFormTab, { store });
     expect(element.type).toBe(ImportFormTab);
   });
 
@@ -232,7 +225,7 @@ describe('ImportFormTab', () => {
         { target: 'typescript', success: true },
       ],
     });
-    const element = React.createElement(ImportFormTab, { store, ctx: mockCtx });
+    const element = React.createElement(ImportFormTab, { store });
     expect(element.type).toBe(ImportFormTab);
   });
 });

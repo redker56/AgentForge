@@ -8,6 +8,7 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ALL_SKILL_CATEGORY_FILTER } from '../../../src/types.js';
+import { withLegacyUiState } from '../helpers/legacyUiState.js';
 
 describe('SkillDetail', () => {
   afterEach(() => {
@@ -34,6 +35,7 @@ describe('SkillDetail', () => {
       ...overrides,
     };
 
+    withLegacyUiState(state);
     return {
       getState: () => state,
       subscribe: vi.fn(() => () => {}),
@@ -133,5 +135,122 @@ describe('SkillDetail', () => {
       ).lastFrame() ?? '';
 
     expect(frame).toContain('Updated: 2026-04-01T12:00:00.000Z');
+  });
+
+  it('keeps standard overlay height stable for long CJK detail lines', async () => {
+    const { SkillDetail } = await import('../../../src/tui/components/SkillDetail.js');
+
+    const shortFrame =
+      render(
+        React.createElement(SkillDetail, {
+          store: makeMockStore({
+            skillDetails: {
+              'architectural-coherence': {
+                name: 'architectural-coherence',
+                path: '/tmp/architectural-coherence',
+                source: { type: 'project' as const, projectId: 'AgentForge' },
+                createdAt: '2026-03-28T08:02:43.934Z',
+                updatedAt: '2026-04-01T12:00:00.000Z',
+                categories: ['architecture'],
+                syncedTo: [],
+                syncedProjects: [],
+                syncStatus: [],
+                projectDistribution: [],
+                skillMdPreview: null,
+              },
+            },
+          }),
+          band: 'standard',
+          columns: 100,
+        })
+      ).lastFrame() ?? '';
+
+    const cjkFrame =
+      render(
+        React.createElement(SkillDetail, {
+          store: makeMockStore({
+            skillDetails: {
+              'architectural-coherence': {
+                name: 'architectural-coherence',
+                path: '/tmp/architectural-coherence',
+                source: { type: 'project' as const, projectId: 'AgentForge' },
+                createdAt: '2026-03-28T08:02:43.934Z',
+                updatedAt: '2026-04-01T12:00:00.000Z',
+                categories: [
+                  '数字生命卡兹克的长中文分类标签',
+                  '这是一个会占用双倍显示宽度的测试分类标签',
+                  '用来验证详情框不会因为中文长行而把边框撑坏',
+                ],
+                syncedTo: [],
+                syncedProjects: [],
+                syncStatus: [],
+                projectDistribution: [],
+                skillMdPreview: null,
+              },
+            },
+          }),
+          band: 'standard',
+          columns: 100,
+        })
+      ).lastFrame() ?? '';
+
+    expect(shortFrame.split('\n').length).toBe(cjkFrame.split('\n').length);
+  });
+
+  it('sanitizes CRLF preview content before rendering the standard overlay', async () => {
+    const { SkillDetail } = await import('../../../src/tui/components/SkillDetail.js');
+
+    const crlfFrame =
+      render(
+        React.createElement(SkillDetail, {
+          store: makeMockStore({
+            skillDetails: {
+              'architectural-coherence': {
+                name: 'architectural-coherence',
+                path: '/tmp/architectural-coherence',
+                source: { type: 'project' as const, projectId: 'AgentForge' },
+                createdAt: '2026-03-28T08:02:43.934Z',
+                updatedAt: '2026-04-01T12:00:00.000Z',
+                categories: ['architecture'],
+                syncedTo: [],
+                syncedProjects: [],
+                syncStatus: [],
+                projectDistribution: [],
+                skillMdPreview: '# Title\r\n> quoted line\r\nfinal line',
+              },
+            },
+          }),
+          band: 'standard',
+          columns: 100,
+        })
+      ).lastFrame() ?? '';
+
+    const lfFrame =
+      render(
+        React.createElement(SkillDetail, {
+          store: makeMockStore({
+            skillDetails: {
+              'architectural-coherence': {
+                name: 'architectural-coherence',
+                path: '/tmp/architectural-coherence',
+                source: { type: 'project' as const, projectId: 'AgentForge' },
+                createdAt: '2026-03-28T08:02:43.934Z',
+                updatedAt: '2026-04-01T12:00:00.000Z',
+                categories: ['architecture'],
+                syncedTo: [],
+                syncedProjects: [],
+                syncStatus: [],
+                projectDistribution: [],
+                skillMdPreview: '# Title\n> quoted line\nfinal line',
+              },
+            },
+          }),
+          band: 'standard',
+          columns: 100,
+        })
+      ).lastFrame() ?? '';
+
+    expect(crlfFrame).not.toContain('\r');
+    expect(crlfFrame).toBe(lfFrame);
   });
 });

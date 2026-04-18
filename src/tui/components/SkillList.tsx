@@ -29,9 +29,9 @@ function truncateText(text: string, maxWidth: number): string {
 
 export function SkillList({ store, columns }: SkillListProps): React.ReactElement {
   const skills = useStore(store, (s) => s.skills);
-  const focusedIndex = useStore(store, (s) => s.focusedSkillIndex);
-  const activeSkillCategoryFilter = useStore(store, (s) => s.activeSkillCategoryFilter);
-  const selectedNames = useStore(store, (s) => s.selectedSkillNames);
+  const focusedIndex = useStore(store, (s) => s.skillsBrowserState.focusedIndex);
+  const activeSkillCategoryFilter = useStore(store, (s) => s.skillsBrowserState.activeCategoryFilter);
+  const selectedNames = useStore(store, (s) => s.skillsBrowserState.selectedNames);
   const visibleSkills = getVisibleSkills(skills, activeSkillCategoryFilter);
   const visibleFocusedIndex = getVisibleFocusedSkillIndex(
     skills,

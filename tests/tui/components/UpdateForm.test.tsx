@@ -2,15 +2,18 @@ import { render } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { UpdateForm } from '../../../src/tui/components/UpdateForm.js';
+import { getProgressViewport, UpdateForm } from '../../../src/tui/components/UpdateForm.js';
 
 function createMockStore(overrides: Record<string, unknown> = {}) {
   const state = {
-    formState: {
-      formType: 'updateSelected' as const,
-      data: {
-        skillNames: JSON.stringify(['git-skill', 'local-skill', 'project-skill']),
+    shellState: {
+      formState: {
+        formType: 'updateSelected' as const,
+        data: {
+          skillNames: JSON.stringify(['git-skill', 'local-skill', 'project-skill']),
+        },
       },
+      updateProgressItems: [],
     },
     skills: [
       {
@@ -35,7 +38,6 @@ function createMockStore(overrides: Record<string, unknown> = {}) {
         exists: true,
       },
     ],
-    updateProgressItems: [],
     setFormState: vi.fn(),
     updateSkills: vi.fn(() => Promise.resolve([])),
     ...overrides,
@@ -68,11 +70,14 @@ describe('UpdateForm', () => {
 
   it('shows empty-state close guidance when there are no git-backed skills', () => {
     const store = createMockStore({
-      formState: {
-        formType: 'updateAllGit' as const,
-        data: {
-          skillNames: JSON.stringify(['local-skill']),
+      shellState: {
+        formState: {
+          formType: 'updateAllGit' as const,
+          data: {
+            skillNames: JSON.stringify(['local-skill']),
+          },
         },
+        updateProgressItems: [],
       },
       skills: [
         {
@@ -89,5 +94,32 @@ describe('UpdateForm', () => {
 
     expect(frame).toContain('No git-backed skills to update');
     expect(frame).not.toContain('Preparing update tasks');
+  });
+
+  it('auto-scrolls the executing viewport to keep the running task visible', () => {
+    const items = Array.from({ length: 8 }, (_, index) => ({
+      id: `update-skill-${index + 1}`,
+      label: `skill-${index + 1}`,
+      progress: index < 6 ? 100 : index === 6 ? 30 : 0,
+      status:
+        index < 6
+          ? ('success' as const)
+          : index === 6
+            ? ('running' as const)
+            : ('pending' as const),
+    }));
+
+    const viewport = getProgressViewport(items, 6);
+
+    expect(viewport.visibleItems.map((item) => item.label)).toEqual([
+      'skill-2',
+      'skill-3',
+      'skill-4',
+      'skill-5',
+      'skill-6',
+      'skill-7',
+    ]);
+    expect(viewport.hiddenAboveCount).toBe(1);
+    expect(viewport.hiddenBelowCount).toBe(1);
   });
 });

@@ -17,9 +17,9 @@ interface SyncScreenProps {
 }
 
 export function SyncScreen({ store }: SyncScreenProps): React.ReactElement {
-  const updateProgressItems = useStore(store, (s) => s.updateProgressItems);
-  const syncFormOperation = useStore(store, (s) => s.syncFormOperation);
-  const syncFormUnsyncScope = useStore(store, (s) => s.syncFormUnsyncScope);
+  const updateProgressItems = useStore(store, (s) => s.shellState.updateProgressItems);
+  const syncFormOperation = useStore(store, (s) => s.syncWorkflowState.operation);
+  const syncFormUnsyncScope = useStore(store, (s) => s.syncWorkflowState.unsyncScope);
 
   const title =
     syncFormOperation === 'unsync' && syncFormUnsyncScope === 'projects'

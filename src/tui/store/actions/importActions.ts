@@ -2,18 +2,18 @@
  * Import action creators -- import from project and import from agent
  */
 
-import type { StoreApi } from 'zustand';
+import type { StateCreator, StoreApi } from 'zustand';
 
 import type { ContextSkillRow } from '../../contextTypes.js';
-import type { ServiceContext } from '../dataSlice.js';
 import type { AppStore } from '../index.js';
 import type { ConflictEntry, OperationResult } from '../uiSlice.js';
+import type { WorkbenchContext } from '../workbenchContext.js';
 
 import { doImportFromProject, doImportFromAgent } from './syncActions.js';
 
 export interface ImportActions {
-  importFromProject: (projectId: string, skillNames: string[]) => Promise<void>;
-  importFromAgent: (agentId: string, skillNames: string[]) => Promise<void>;
+  importFromProject: (projectId: string, skillNames: string[]) => Promise<OperationResult[]>;
+  importFromAgent: (agentId: string, skillNames: string[]) => Promise<OperationResult[]>;
   importContextSkills: (rows: ContextSkillRow[]) => Promise<OperationResult[]>;
   scanProjectSkills: (
     projectId: string
@@ -23,19 +23,22 @@ export interface ImportActions {
   ) => Array<{ name: string; path: string; alreadyExists: boolean; hasSkillMd: boolean }>;
 }
 
-export function createImportActions(store: StoreApi<AppStore>, ctx: ServiceContext): ImportActions {
+function createImportActionsImpl(
+  store: StoreApi<AppStore>,
+  ctx: WorkbenchContext
+): ImportActions {
   /**
    * Post-import conflict detection
    */
   function setupConflictDetection(skillName: string): void {
-    const conflicts = ctx.syncCheck.detectConflicts(skillName);
+    const conflicts = ctx.commands.detectConflicts(skillName);
     if (conflicts.length === 0) return;
 
-    const entries: ConflictEntry[] = conflicts.map((c) => ({
-      agentId: c.agentId,
-      agentName: c.agentName,
-      sameContent: c.sameContent,
-      resolution: c.sameContent ? 'link' : 'pending',
+    const entries: ConflictEntry[] = conflicts.map((conflict) => ({
+      agentId: conflict.agentId,
+      agentName: conflict.agentName,
+      sameContent: conflict.sameContent,
+      resolution: conflict.sameContent ? 'link' : 'pending',
     }));
 
     store.getState().setConflictState({
@@ -43,7 +46,7 @@ export function createImportActions(store: StoreApi<AppStore>, ctx: ServiceConte
       conflicts: entries,
       onComplete: () => {
         const state = store.getState();
-        const conflictInfo = state.conflictState;
+        const conflictInfo = state.shellState.conflictState;
         if (!conflictInfo) return;
 
         const resolutions = new Map<string, 'link' | 'skip' | 'cancel'>();
@@ -54,20 +57,7 @@ export function createImportActions(store: StoreApi<AppStore>, ctx: ServiceConte
           );
         }
 
-        const linkedAgentIds = ctx.syncCheck.resolveConflicts(skillName, resolutions);
-
-        const skill = ctx.storage.getSkill(skillName);
-        if (skill) {
-          const merged = new Map<string, (typeof skill.syncedTo)[0]>();
-          for (const record of skill.syncedTo) {
-            merged.set(record.agentId, record);
-          }
-          for (const agentId of linkedAgentIds) {
-            merged.set(agentId, { agentId, mode: 'copy' as const });
-          }
-          ctx.storage.updateSkillSync(skillName, Array.from(merged.values()));
-        }
-
+        ctx.commands.resolveConflicts(skillName, resolutions);
         void state.refreshSkills();
       },
     });
@@ -77,41 +67,35 @@ export function createImportActions(store: StoreApi<AppStore>, ctx: ServiceConte
     scanProjectSkills: (
       projectId
     ): Array<{ name: string; path: string; alreadyExists: boolean }> => {
-      const project = ctx.storage.getProject(projectId);
-      if (!project) return [];
-
-      const discovered = ctx.scanService.scanProject(project.path);
-      return discovered.map((skill) => ({
-        name: skill.name,
-        path: skill.path,
-        alreadyExists: ctx.skillService.exists(skill.name),
-      }));
+      const preview = ctx.queries.loadImportSourcePreview({
+        sourceType: 'project',
+        sourceId: projectId,
+      });
+      return (
+        preview?.candidates.map((candidate) => ({
+          name: candidate.name,
+          path: candidate.path,
+          alreadyExists: candidate.alreadyExists,
+        })) ?? []
+      );
     },
 
     scanAgentSkills: (
       agentId
     ): Array<{ name: string; path: string; alreadyExists: boolean; hasSkillMd: boolean }> => {
-      const agent = ctx.storage.getAgent(agentId);
-      if (!agent) return [];
-
-      const subdirs = ctx.fileOps.listSubdirectories(agent.basePath);
-      return subdirs
-        .map((name) => {
-          const skillPath = `${agent.basePath}/${name}`;
-          const hasSkillMd =
-            ctx.fileOps.fileExists(`${skillPath}/SKILL.md`) ||
-            ctx.fileOps.fileExists(`${skillPath}/skill.md`);
-          return {
-            name,
-            path: skillPath,
-            alreadyExists: ctx.skillService.exists(name),
-            hasSkillMd,
-          };
-        })
-        .filter((s) => s.hasSkillMd);
+      const preview = ctx.queries.loadImportSourcePreview({
+        sourceType: 'agent',
+        sourceId: agentId,
+      });
+      return (
+        preview?.candidates.map((candidate) => ({
+          ...candidate,
+          hasSkillMd: candidate.hasSkillMd ?? false,
+        })) ?? []
+      );
     },
 
-    importFromProject: async (projectId, skillNames): Promise<void> => {
+    importFromProject: async (projectId, skillNames): Promise<OperationResult[]> => {
       const results = await doImportFromProject(ctx, projectId, skillNames);
 
       // Handle conflict detection for any successfully imported skill
@@ -122,9 +106,10 @@ export function createImportActions(store: StoreApi<AppStore>, ctx: ServiceConte
 
       store.getState().setFormState(null);
       await store.getState().refreshSkills();
+      return results;
     },
 
-    importFromAgent: async (agentId, skillNames): Promise<void> => {
+    importFromAgent: async (agentId, skillNames): Promise<OperationResult[]> => {
       const results = await doImportFromAgent(ctx, agentId, skillNames);
 
       // Handle conflict detection for any successfully imported skill
@@ -135,52 +120,26 @@ export function createImportActions(store: StoreApi<AppStore>, ctx: ServiceConte
 
       store.getState().setFormState(null);
       await store.getState().refreshSkills();
+      return results;
     },
 
     importContextSkills: async (rows): Promise<OperationResult[]> => {
       const uniqueRows = Array.from(new Map(rows.map((row) => [row.rowId, row] as const)).values());
       const results: OperationResult[] = [];
 
-      for (const row of uniqueRows) {
-        if (row.registrySkillName || ctx.skillService.exists(row.name)) {
-          results.push({
-            target: row.projectId ? `${row.projectId}:${row.name}` : row.name,
-            success: false,
-            outcome: 'skipped',
-            error: 'Already imported',
-          });
-          continue;
-        }
-
-        try {
-          if (row.projectId) {
-            await ctx.skillService.importFromPath(row.path, row.name, {
-              type: 'project',
-              projectId: row.projectId,
-            });
-          } else {
-            await ctx.skillService.importFromPath(row.path, row.name, {
-              type: 'local',
-              importedFrom: {
-                agent: row.agentId ?? 'unknown',
-                path: row.path,
-              },
-            });
-          }
-
-          results.push({
-            target: row.projectId ? `${row.projectId}:${row.name}` : row.name,
-            success: true,
-            outcome: 'success',
-          });
-          setupConflictDetection(row.name);
-        } catch (error: unknown) {
-          results.push({
-            target: row.projectId ? `${row.projectId}:${row.name}` : row.name,
-            success: false,
-            outcome: 'error',
-            error: error instanceof Error ? error.message : String(error),
-          });
+      const importedResults = await ctx.commands.importContextSkills(uniqueRows);
+      for (const result of importedResults) {
+        results.push({
+          target: result.target,
+          success: result.success,
+          outcome: result.outcome,
+          error: result.error,
+        });
+        if (result.success) {
+          const row = uniqueRows.find((entry) =>
+            result.target === (entry.projectId ? `${entry.projectId}:${entry.name}` : entry.name)
+          );
+          if (row) setupConflictDetection(row.name);
         }
       }
 
@@ -190,4 +149,14 @@ export function createImportActions(store: StoreApi<AppStore>, ctx: ServiceConte
       return results;
     },
   };
+}
+
+export function createImportActions(store: StoreApi<AppStore>, ctx: WorkbenchContext): ImportActions {
+  return createImportActionsImpl(store, ctx);
+}
+
+export function createImportActionsSlice(
+  ctx: WorkbenchContext
+): StateCreator<AppStore, [], [], ImportActions> {
+  return (_set, _get, store) => createImportActionsImpl(store as StoreApi<AppStore>, ctx);
 }

@@ -6,8 +6,10 @@ import { render } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it } from 'vitest';
 
+import { withLegacyUiState } from '../helpers/legacyUiState.js';
+
 function createMockStore(overrides: Record<string, unknown> = {}) {
-  const state = {
+  const state = withLegacyUiState({
     skills: [{ name: 's1' }],
     agents: [{ id: 'claude', name: 'Claude Code' }],
     projects: [{ id: 'voice', name: 'Voice' }],
@@ -22,7 +24,7 @@ function createMockStore(overrides: Record<string, unknown> = {}) {
     undoBuffer: null,
     activeToast: null,
     ...overrides,
-  };
+  });
 
   return {
     getState: () => state,
@@ -39,8 +41,7 @@ describe('StatusBar', () => {
 
   it('renders a React element with store/band/columns props', async () => {
     const { StatusBar } = await import('../../../src/tui/components/StatusBar.js');
-    const mockStore = {
-      getState: () => ({
+    const state = withLegacyUiState({
         skills: [],
         agents: [],
         projects: [],
@@ -50,7 +51,9 @@ describe('StatusBar', () => {
         undoActive: false,
         undoBuffer: null,
         activeToast: null,
-      }),
+      });
+    const mockStore = {
+      getState: () => state,
       subscribe: () => () => {},
     };
     const element = React.createElement(StatusBar, {
@@ -64,8 +67,7 @@ describe('StatusBar', () => {
   // Sprint 3: Toast rendering
   it('renders active toast as success (green checkmark) format', async () => {
     const { StatusBar } = await import('../../../src/tui/components/StatusBar.js');
-    const mockStore = {
-      getState: () => ({
+    const state = withLegacyUiState({
         skills: [],
         agents: [],
         projects: [],
@@ -75,7 +77,9 @@ describe('StatusBar', () => {
         undoActive: false,
         undoBuffer: null,
         activeToast: { id: '1', message: 'Skill deleted', variant: 'success' as const, expiresAt: Date.now() + 2000 },
-      }),
+      });
+    const mockStore = {
+      getState: () => state,
       subscribe: () => () => {},
     };
     const element = React.createElement(StatusBar, {
@@ -88,8 +92,7 @@ describe('StatusBar', () => {
 
   it('renders active toast as error (red cross) format', async () => {
     const { StatusBar } = await import('../../../src/tui/components/StatusBar.js');
-    const mockStore = {
-      getState: () => ({
+    const state = withLegacyUiState({
         skills: [],
         agents: [],
         projects: [],
@@ -99,7 +102,9 @@ describe('StatusBar', () => {
         undoActive: false,
         undoBuffer: null,
         activeToast: { id: '1', message: '1 of 4 failed', variant: 'error' as const, expiresAt: Date.now() + 2000 },
-      }),
+      });
+    const mockStore = {
+      getState: () => state,
       subscribe: () => () => {},
     };
     const element = React.createElement(StatusBar, {
@@ -112,8 +117,7 @@ describe('StatusBar', () => {
 
   it('renders active toast as info (cyan) format', async () => {
     const { StatusBar } = await import('../../../src/tui/components/StatusBar.js');
-    const mockStore = {
-      getState: () => ({
+    const state = withLegacyUiState({
         skills: [],
         agents: [],
         projects: [],
@@ -123,7 +127,9 @@ describe('StatusBar', () => {
         undoActive: false,
         undoBuffer: null,
         activeToast: { id: '1', message: 'Info message', variant: 'info' as const, expiresAt: Date.now() + 2000 },
-      }),
+      });
+    const mockStore = {
+      getState: () => state,
       subscribe: () => () => {},
     };
     const element = React.createElement(StatusBar, {
@@ -137,8 +143,7 @@ describe('StatusBar', () => {
   // Sprint 3: Undo countdown rendering
   it('renders undo countdown as x Deleted name -- Undo Ns', async () => {
     const { StatusBar } = await import('../../../src/tui/components/StatusBar.js');
-    const mockStore = {
-      getState: () => ({
+    const state = withLegacyUiState({
         skills: [],
         agents: [],
         projects: [],
@@ -153,7 +158,9 @@ describe('StatusBar', () => {
           remainingMs: 6000,
         },
         activeToast: null,
-      }),
+      });
+    const mockStore = {
+      getState: () => state,
       subscribe: () => () => {},
     };
     const element = React.createElement(StatusBar, {
@@ -166,8 +173,7 @@ describe('StatusBar', () => {
 
   it('undo countdown takes priority over toast', async () => {
     const { StatusBar } = await import('../../../src/tui/components/StatusBar.js');
-    const mockStore = {
-      getState: () => ({
+    const state = withLegacyUiState({
         skills: [],
         agents: [],
         projects: [],
@@ -182,7 +188,9 @@ describe('StatusBar', () => {
           remainingMs: 4000,
         },
         activeToast: { id: '1', message: 'Queued toast', variant: 'success' as const, expiresAt: Date.now() + 2000 },
-      }),
+      });
+    const mockStore = {
+      getState: () => state,
       subscribe: () => () => {},
     };
     const element = React.createElement(StatusBar, {
@@ -195,8 +203,7 @@ describe('StatusBar', () => {
 
   it('shows counts when no toast and no undo', async () => {
     const { StatusBar } = await import('../../../src/tui/components/StatusBar.js');
-    const mockStore = {
-      getState: () => ({
+    const state = withLegacyUiState({
         skills: [{ name: 's1' }],
         agents: [{ id: 'claude', name: 'Claude Code' }],
         projects: [],
@@ -206,7 +213,9 @@ describe('StatusBar', () => {
         undoActive: false,
         undoBuffer: null,
         activeToast: null,
-      }),
+      });
+    const mockStore = {
+      getState: () => state,
       subscribe: () => () => {},
     };
     const element = React.createElement(StatusBar, {

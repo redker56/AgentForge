@@ -2,6 +2,8 @@ import { cleanup, render } from 'ink-testing-library';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { withLegacyUiState } from '../helpers/legacyUiState.js';
+
 describe('SyncForm layout safety', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -76,6 +78,7 @@ describe('SyncForm layout safety', () => {
       updateProgressItem: vi.fn(),
     };
 
+    withLegacyUiState(state);
     return {
       getState: () => state,
       subscribe: vi.fn(() => () => {}),

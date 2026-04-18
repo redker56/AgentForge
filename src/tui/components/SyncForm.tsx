@@ -10,8 +10,8 @@ import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
+import type { SkillDetailData } from '../../app/workbench-types.js';
 import type { SyncMode } from '../../types.js';
-import type { SkillDetailData } from '../store/dataSlice.js';
 import type { AppStore } from '../store/index.js';
 import type { OperationResult, SyncOperation } from '../store/uiSlice.js';
 import { inkColors, renderFocusPrefix, selectionMarkers, spacing } from '../theme.js';
@@ -252,7 +252,7 @@ async function prepareUnsyncDetails(storeApi: StoreApi<AppStore>): Promise<void>
   state.setSyncFormLoadingTargets(true);
   try {
     await Promise.all(
-      [...state.syncFormSelectedSkillNames].map((skillName) => {
+      [...state.syncWorkflowState.selectedSkillNames].map((skillName) => {
         if (storeApi.getState().skillDetails[skillName]) {
           return Promise.resolve();
         }
@@ -266,36 +266,36 @@ async function prepareUnsyncDetails(storeApi: StoreApi<AppStore>): Promise<void>
 
 async function executeSync(storeApi: StoreApi<AppStore>): Promise<void> {
   const state = storeApi.getState();
-  const skillNames = [...state.syncFormSelectedSkillNames];
-  const targetIds = [...state.syncFormSelectedTargetIds];
+  const skillNames = [...state.syncWorkflowState.selectedSkillNames];
+  const targetIds = [...state.syncWorkflowState.selectedTargetIds];
 
-  if (state.syncFormOperation === 'sync-agents') {
-    await storeApi.getState().syncSkillsToAgents(skillNames, targetIds, state.syncFormMode as SyncMode);
+  if (state.syncWorkflowState.operation === 'sync-agents') {
+    await storeApi.getState().syncSkillsToAgents(skillNames, targetIds, state.syncWorkflowState.mode as SyncMode);
     return;
   }
 
-  if (state.syncFormOperation === 'sync-projects') {
+  if (state.syncWorkflowState.operation === 'sync-projects') {
     const agentTypes =
-      state.syncFormSelectedAgentTypes.size > 0
-        ? [...state.syncFormSelectedAgentTypes]
+      state.syncWorkflowState.selectedAgentTypes.size > 0
+        ? [...state.syncWorkflowState.selectedAgentTypes]
         : state.agents.map((agent) => agent.id);
     await storeApi
       .getState()
-      .syncSkillsToProjects(skillNames, targetIds, agentTypes, state.syncFormMode as SyncMode);
+      .syncSkillsToProjects(skillNames, targetIds, agentTypes, state.syncWorkflowState.mode as SyncMode);
     return;
   }
 
-  if (state.syncFormOperation === 'unsync' && state.syncFormUnsyncScope === 'agents') {
+  if (state.syncWorkflowState.operation === 'unsync' && state.syncWorkflowState.unsyncScope === 'agents') {
     await storeApi.getState().unsyncFromAgents(skillNames, targetIds);
     return;
   }
 
-  if (state.syncFormOperation === 'unsync' && state.syncFormUnsyncScope === 'projects') {
+  if (state.syncWorkflowState.operation === 'unsync' && state.syncWorkflowState.unsyncScope === 'projects') {
     await storeApi.getState().unsyncFromProjects(skillNames, targetIds, {
-      mode: state.syncFormProjectUnsyncMode || 'all',
+      mode: state.syncWorkflowState.projectUnsyncMode || 'all',
       agentTypes:
-        state.syncFormProjectUnsyncMode === 'specific'
-          ? [...state.syncFormSelectedAgentTypes]
+        state.syncWorkflowState.projectUnsyncMode === 'specific'
+          ? [...state.syncWorkflowState.selectedAgentTypes]
           : undefined,
     });
   }
@@ -303,9 +303,9 @@ async function executeSync(storeApi: StoreApi<AppStore>): Promise<void> {
 
 function handleSyncBack(storeApi: StoreApi<AppStore>): void {
   const state = storeApi.getState();
-  switch (state.syncFormStep) {
+  switch (state.syncWorkflowState.step) {
     case 'select-targets':
-      if (state.syncFormOperation === 'unsync') {
+      if (state.syncWorkflowState.operation === 'unsync') {
         state.setSyncFormStep('select-unsync-scope');
       } else {
         state.setSyncFormStep('select-skills');
@@ -318,24 +318,24 @@ function handleSyncBack(storeApi: StoreApi<AppStore>): void {
       state.setSyncFormStep('select-targets');
       break;
     case 'select-agent-types':
-      if (state.syncFormOperation === 'unsync') {
+      if (state.syncWorkflowState.operation === 'unsync') {
         state.setSyncFormStep('select-unsync-project-mode');
       } else {
         state.setSyncFormStep('select-targets');
       }
       break;
     case 'select-mode':
-      if (state.syncFormOperation === 'sync-projects') {
+      if (state.syncWorkflowState.operation === 'sync-projects') {
         state.setSyncFormStep('select-agent-types');
       } else {
         state.setSyncFormStep('select-targets');
       }
       break;
     case 'confirm':
-      if (state.syncFormOperation === 'sync-projects' || state.syncFormOperation === 'sync-agents') {
+      if (state.syncWorkflowState.operation === 'sync-projects' || state.syncWorkflowState.operation === 'sync-agents') {
         state.setSyncFormStep('select-mode');
-      } else if (state.syncFormOperation === 'unsync' && state.syncFormUnsyncScope === 'projects') {
-        if (state.syncFormProjectUnsyncMode === 'specific') {
+      } else if (state.syncWorkflowState.operation === 'unsync' && state.syncWorkflowState.unsyncScope === 'projects') {
+        if (state.syncWorkflowState.projectUnsyncMode === 'specific') {
           state.setSyncFormStep('select-agent-types');
         } else {
           state.setSyncFormStep('select-unsync-project-mode');
@@ -353,28 +353,28 @@ function handleSyncBack(storeApi: StoreApi<AppStore>): void {
 
 export function SyncForm({ store }: SyncFormProps): React.ReactElement {
   const { stdout } = useStdout();
-  const syncFormStep = useStore(store, (s) => s.syncFormStep);
-  const syncFormOperation = useStore(store, (s) => s.syncFormOperation);
-  const syncFormSelectedSkillNames = useStore(store, (s) => s.syncFormSelectedSkillNames);
-  const syncFormUnsyncScope = useStore(store, (s) => s.syncFormUnsyncScope);
-  const syncFormSelectedTargetIds = useStore(store, (s) => s.syncFormSelectedTargetIds);
-  const syncFormProjectUnsyncMode = useStore(store, (s) => s.syncFormProjectUnsyncMode);
-  const syncFormSelectedAgentTypes = useStore(store, (s) => s.syncFormSelectedAgentTypes);
-  const syncFormLoadingTargets = useStore(store, (s) => s.syncFormLoadingTargets);
-  const syncFormMode = useStore(store, (s) => s.syncFormMode);
-  const syncFormResults = useStore(store, (s) => s.syncFormResults);
-  const syncFormFocusedIndex = useStore(store, (s) => s.syncFormFocusedIndex);
+  const syncFormStep = useStore(store, (s) => s.syncWorkflowState.step);
+  const syncFormOperation = useStore(store, (s) => s.syncWorkflowState.operation);
+  const syncFormSelectedSkillNames = useStore(store, (s) => s.syncWorkflowState.selectedSkillNames);
+  const syncFormUnsyncScope = useStore(store, (s) => s.syncWorkflowState.unsyncScope);
+  const syncFormSelectedTargetIds = useStore(store, (s) => s.syncWorkflowState.selectedTargetIds);
+  const syncFormProjectUnsyncMode = useStore(store, (s) => s.syncWorkflowState.projectUnsyncMode);
+  const syncFormSelectedAgentTypes = useStore(store, (s) => s.syncWorkflowState.selectedAgentTypes);
+  const syncFormLoadingTargets = useStore(store, (s) => s.syncWorkflowState.loadingTargets);
+  const syncFormMode = useStore(store, (s) => s.syncWorkflowState.mode);
+  const syncFormResults = useStore(store, (s) => s.syncWorkflowState.results);
+  const syncFormFocusedIndex = useStore(store, (s) => s.syncWorkflowState.focusedIndex);
   const skills = useStore(store, (s) => s.skills);
   const skillDetails = useStore(store, (s) => s.skillDetails);
   const agents = useStore(store, (s) => s.agents);
   const projects = useStore(store, (s) => s.projects);
-  const activeTab = useStore(store, (s) => s.activeTab);
-  const showSearch = useStore(store, (s) => s.showSearch);
-  const showHelp = useStore(store, (s) => s.showHelp);
-  const confirmState = useStore(store, (s) => s.confirmState);
-  const formState = useStore(store, (s) => s.formState);
-  const conflictState = useStore(store, (s) => s.conflictState);
-  const updateProgressItems = useStore(store, (s) => s.updateProgressItems);
+  const activeTab = useStore(store, (s) => s.shellState.activeTab);
+  const showSearch = useStore(store, (s) => s.shellState.showSearch);
+  const showHelp = useStore(store, (s) => s.shellState.showHelp);
+  const confirmState = useStore(store, (s) => s.shellState.confirmState);
+  const formState = useStore(store, (s) => s.shellState.formState);
+  const conflictState = useStore(store, (s) => s.shellState.conflictState);
+  const updateProgressItems = useStore(store, (s) => s.shellState.updateProgressItems);
 
   const targetList = buildTargetList(
     syncFormOperation,
@@ -402,21 +402,21 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
     (input, key) => {
       const state = store.getState();
 
-      if (state.syncFormStep === 'results' || state.syncFormStep === 'executing') {
+      if (state.syncWorkflowState.step === 'results' || state.syncWorkflowState.step === 'executing') {
         if (key.return || key.escape) {
           state.resetSyncForm();
         }
         return;
       }
 
-      if (state.syncFormStep === 'select-op') {
+      if (state.syncWorkflowState.step === 'select-op') {
         if (key.escape) {
           state.resetSyncForm();
           return;
         }
         if (key.upArrow || key.downArrow) {
           const options: SyncOperation[] = ['sync-agents', 'sync-projects', 'unsync'];
-          const current = state.syncFormOperation || 'sync-agents';
+          const current = state.syncWorkflowState.operation || 'sync-agents';
           const currentIndex = options.indexOf(current);
           const nextIndex = key.upArrow ? Math.max(0, currentIndex - 1) : Math.min(options.length - 1, currentIndex + 1);
           const nextOperation = options[nextIndex];
@@ -433,27 +433,27 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
         return;
       }
 
-      if (state.syncFormStep === 'select-skills') {
+      if (state.syncWorkflowState.step === 'select-skills') {
         if (key.escape) {
           state.setSyncFormStep('select-op');
           return;
         }
         if (key.upArrow) {
-          state.setSyncFormFocusedIndex(Math.max(0, state.syncFormFocusedIndex - 1));
+          state.setSyncFormFocusedIndex(Math.max(0, state.syncWorkflowState.focusedIndex - 1));
         }
         if (key.downArrow) {
-          state.setSyncFormFocusedIndex(Math.min(state.skills.length - 1, state.syncFormFocusedIndex + 1));
+          state.setSyncFormFocusedIndex(Math.min(state.skills.length - 1, state.syncWorkflowState.focusedIndex + 1));
         }
         if (input === ' ') {
-          const focused = state.skills[state.syncFormFocusedIndex];
+          const focused = state.skills[state.syncWorkflowState.focusedIndex];
           if (focused) state.toggleSyncFormSkill(focused.name);
         }
         if (key.return) {
-          if (state.syncFormSelectedSkillNames.size === 0) return;
+          if (state.syncWorkflowState.selectedSkillNames.size === 0) return;
           state.setSyncFormSelectedTargetIds(new Set());
           state.setSyncFormSelectedAgentTypes(new Set());
           state.setSyncFormFocusedIndex(0);
-          if (state.syncFormOperation === 'unsync') {
+          if (state.syncWorkflowState.operation === 'unsync') {
             state.setSyncFormUnsyncScope(null);
             state.setSyncFormProjectUnsyncMode(null);
             state.setSyncFormStep('select-unsync-scope');
@@ -465,17 +465,17 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
         return;
       }
 
-      if (state.syncFormStep === 'select-unsync-scope') {
+      if (state.syncWorkflowState.step === 'select-unsync-scope') {
         if (key.escape) {
           state.setSyncFormStep('select-skills');
           return;
         }
         if (key.upArrow || key.downArrow) {
-          const nextScope = state.syncFormFocusedIndex === 0 ? 1 : 0;
+          const nextScope = state.syncWorkflowState.focusedIndex === 0 ? 1 : 0;
           state.setSyncFormFocusedIndex(nextScope);
         }
         if (key.return) {
-          const scope = state.syncFormFocusedIndex === 0 ? 'agents' : 'projects';
+          const scope = state.syncWorkflowState.focusedIndex === 0 ? 'agents' : 'projects';
           state.setSyncFormUnsyncScope(scope);
           state.setSyncFormSelectedTargetIds(new Set());
           state.setSyncFormSelectedAgentTypes(new Set());
@@ -486,37 +486,37 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
         return;
       }
 
-      if (state.syncFormStep === 'select-targets') {
+      if (state.syncWorkflowState.step === 'select-targets') {
         if (key.escape) {
-          if (state.syncFormOperation === 'unsync') {
+          if (state.syncWorkflowState.operation === 'unsync') {
             state.setSyncFormStep('select-unsync-scope');
           } else {
             state.setSyncFormStep('select-skills');
           }
           return;
         }
-        if (state.syncFormLoadingTargets) {
+        if (state.syncWorkflowState.loadingTargets) {
           return;
         }
         if (key.upArrow) {
-          state.setSyncFormFocusedIndex(Math.max(0, state.syncFormFocusedIndex - 1));
+          state.setSyncFormFocusedIndex(Math.max(0, state.syncWorkflowState.focusedIndex - 1));
         }
         if (key.downArrow) {
-          state.setSyncFormFocusedIndex(Math.min(targetList.length - 1, state.syncFormFocusedIndex + 1));
+          state.setSyncFormFocusedIndex(Math.min(targetList.length - 1, state.syncWorkflowState.focusedIndex + 1));
         }
         if (input === ' ') {
-          const focused = targetList[state.syncFormFocusedIndex];
+          const focused = targetList[state.syncWorkflowState.focusedIndex];
           if (focused) state.toggleSyncFormTarget(focused.id);
         }
         if (key.return) {
-          if (targetList.length > 0 && state.syncFormSelectedTargetIds.size === 0) return;
+          if (targetList.length > 0 && state.syncWorkflowState.selectedTargetIds.size === 0) return;
           if (targetList.length === 0) {
             const errorMessage =
-              state.syncFormOperation === 'sync-agents'
+              state.syncWorkflowState.operation === 'sync-agents'
                 ? 'No agents configured'
-                : state.syncFormOperation === 'sync-projects'
+                : state.syncWorkflowState.operation === 'sync-projects'
                   ? 'No projects configured'
-                  : state.syncFormUnsyncScope === 'projects'
+                  : state.syncWorkflowState.unsyncScope === 'projects'
                     ? 'No synced projects found'
                     : 'No synced agents found';
             state.setSyncFormResults([makeEmptyResult(errorMessage)]);
@@ -524,20 +524,20 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
             return;
           }
 
-          if (state.syncFormOperation === 'sync-projects') {
+          if (state.syncWorkflowState.operation === 'sync-projects') {
             state.setSyncFormStep('select-agent-types');
             state.setSyncFormSelectedAgentTypes(new Set());
             state.setSyncFormFocusedIndex(0);
             return;
           }
 
-          if (state.syncFormOperation === 'sync-agents') {
+          if (state.syncWorkflowState.operation === 'sync-agents') {
             state.setSyncFormStep('select-mode');
             state.setSyncFormFocusedIndex(0);
             return;
           }
 
-          if (state.syncFormOperation === 'unsync' && state.syncFormUnsyncScope === 'projects') {
+          if (state.syncWorkflowState.operation === 'unsync' && state.syncWorkflowState.unsyncScope === 'projects') {
             state.setSyncFormProjectUnsyncMode('all');
             state.setSyncFormStep('select-unsync-project-mode');
             state.setSyncFormFocusedIndex(0);
@@ -549,16 +549,16 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
         return;
       }
 
-      if (state.syncFormStep === 'select-unsync-project-mode') {
+      if (state.syncWorkflowState.step === 'select-unsync-project-mode') {
         if (key.escape) {
           state.setSyncFormStep('select-targets');
           return;
         }
         if (key.upArrow || key.downArrow) {
-          state.setSyncFormFocusedIndex(state.syncFormFocusedIndex === 0 ? 1 : 0);
+          state.setSyncFormFocusedIndex(state.syncWorkflowState.focusedIndex === 0 ? 1 : 0);
         }
         if (key.return) {
-          const mode = state.syncFormFocusedIndex === 0 ? 'all' : 'specific';
+          const mode = state.syncWorkflowState.focusedIndex === 0 ? 'all' : 'specific';
           state.setSyncFormProjectUnsyncMode(mode);
           state.setSyncFormSelectedAgentTypes(new Set());
           state.setSyncFormFocusedIndex(0);
@@ -567,9 +567,9 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
         return;
       }
 
-      if (state.syncFormStep === 'select-agent-types') {
+      if (state.syncWorkflowState.step === 'select-agent-types') {
         if (key.escape) {
-          if (state.syncFormOperation === 'unsync') {
+          if (state.syncWorkflowState.operation === 'unsync') {
             state.setSyncFormStep('select-unsync-project-mode');
           } else {
             state.setSyncFormStep('select-targets');
@@ -578,28 +578,28 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
         }
 
         const availableTypes =
-          state.syncFormOperation === 'unsync'
+          state.syncWorkflowState.operation === 'unsync'
             ? buildUnsyncProjectAgentTypes(
-                state.syncFormSelectedSkillNames,
-                state.syncFormSelectedTargetIds,
+                state.syncWorkflowState.selectedSkillNames,
+                state.syncWorkflowState.selectedTargetIds,
                 state.skillDetails,
                 state.agents
               )
             : uniqueAgentTypes(new Set(state.agents.map((agent) => agent.id)), state.agents);
 
         if (key.upArrow) {
-          state.setSyncFormFocusedIndex(Math.max(0, state.syncFormFocusedIndex - 1));
+          state.setSyncFormFocusedIndex(Math.max(0, state.syncWorkflowState.focusedIndex - 1));
         }
         if (key.downArrow) {
-          state.setSyncFormFocusedIndex(Math.min(availableTypes.length - 1, state.syncFormFocusedIndex + 1));
+          state.setSyncFormFocusedIndex(Math.min(availableTypes.length - 1, state.syncWorkflowState.focusedIndex + 1));
         }
         if (input === ' ') {
-          const focused = availableTypes[state.syncFormFocusedIndex];
+          const focused = availableTypes[state.syncWorkflowState.focusedIndex];
           if (focused) state.toggleSyncFormAgentType(focused.id);
         }
         if (key.return) {
-          if (state.syncFormSelectedAgentTypes.size === 0 && availableTypes.length > 0) return;
-          if (state.syncFormOperation === 'unsync') {
+          if (state.syncWorkflowState.selectedAgentTypes.size === 0 && availableTypes.length > 0) return;
+          if (state.syncWorkflowState.operation === 'unsync') {
             state.setSyncFormStep('confirm');
           } else {
             state.setSyncFormStep('select-mode');
@@ -608,15 +608,15 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
         return;
       }
 
-      if (state.syncFormStep === 'select-mode') {
+      if (state.syncWorkflowState.step === 'select-mode') {
         if (key.escape) {
           state.setSyncFormStep(
-            state.syncFormOperation === 'sync-projects' ? 'select-agent-types' : 'select-targets'
+            state.syncWorkflowState.operation === 'sync-projects' ? 'select-agent-types' : 'select-targets'
           );
           return;
         }
         if (key.upArrow || key.downArrow) {
-          state.setSyncFormMode(state.syncFormMode === 'copy' ? 'symlink' : 'copy');
+          state.setSyncFormMode(state.syncWorkflowState.mode === 'copy' ? 'symlink' : 'copy');
         }
         if (key.return || input === ' ') {
           state.setSyncFormStep('confirm');
@@ -624,7 +624,7 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
         return;
       }
 
-      if (state.syncFormStep === 'confirm') {
+      if (state.syncWorkflowState.step === 'confirm') {
         if (key.return) {
           void executeSync(store);
         }

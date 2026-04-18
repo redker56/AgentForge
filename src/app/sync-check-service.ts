@@ -16,7 +16,7 @@
 import { select } from '@inquirer/prompts';
 import chalk from 'chalk';
 
-import { Storage } from '../infra/storage.js';
+import type { RegistryRepository } from '../infra/registry-repository.js';
 import type { SyncRecord } from '../types.js';
 
 import { AgentSyncService } from './sync/agent-sync-service.js';
@@ -33,7 +33,7 @@ export type ConflictResolution = 'link' | 'skip' | 'cancel';
 
 export class SyncCheckService {
   constructor(
-    private readonly storage: Storage,
+    private readonly storage: RegistryRepository,
     private readonly sync: AgentSyncService
   ) {}
 

@@ -7,6 +7,8 @@ import { render, cleanup } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
+import { withLegacyUiState } from '../helpers/legacyUiState.js';
+
 describe('AgentTable', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -65,6 +67,7 @@ describe('AgentTable', () => {
       loadProjectDetail: vi.fn(),
       ...overrides,
     };
+    withLegacyUiState(state);
     return {
       getState: () => state,
       subscribe: vi.fn(() => () => {}),

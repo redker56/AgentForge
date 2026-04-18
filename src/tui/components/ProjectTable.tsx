@@ -39,7 +39,7 @@ function formatDate(isoString: string): string {
 
 export function ProjectTable({ store, columns }: ProjectTableProps): React.ReactElement {
   const projects = useStore(store, (s) => s.projects);
-  const focusedProjectIndex = useStore(store, (s) => s.focusedProjectIndex);
+  const focusedProjectIndex = useStore(store, (s) => s.projectsBrowserState.focusedIndex);
   const projectSummaries = useStore(store, (s) => s.projectSummaries);
 
   const { visibleItems, scrollTop, hiddenAbove, hiddenBelow } = useNavigation({

@@ -1,82 +1,40 @@
 /**
- * TUI Zustand store test -- verifies basic store creation
+ * TUI Zustand store test -- verifies basic store creation against the nested UI model.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { createAppStore } from '../../src/tui/store/index.js';
 
-function createMockContext() {
-  return {
-    skills: {
-      list: vi.fn(() => []),
-      get: vi.fn(() => undefined),
-      add: vi.fn(),
-      remove: vi.fn(),
-      setSynced: vi.fn(),
-    },
-    storage: {
-      getAgent: vi.fn(() => undefined),
-      listAgents: vi.fn(() => []),
-      getProject: vi.fn(() => undefined),
-      listProjects: vi.fn(() => []),
-    } as any,
-    scan: {
-      getSkillProjectDistributionWithStatus: vi.fn(() => []),
-      scanProjectForSkills: vi.fn(() => []),
-    } as any,
-    sync: {
-      sync: vi.fn(),
-      unsync: vi.fn(),
-    } as any,
-    projectSync: {
-      syncToProject: vi.fn(),
-      unsync: vi.fn(),
-      unsyncFromProject: vi.fn(),
-    } as any,
-    fileOps: {
-      pathExists: vi.fn(() => false),
-      mkdirSync: vi.fn(),
-      readFileSync: vi.fn(() => ''),
-      writeFileSync: vi.fn(),
-      removeSync: vi.fn(),
-    } as any,
-    cli: {
-      buildLink: vi.fn(() => ''),
-    } as any,
-  };
-}
+import { createMockServiceContext } from './store/actions/mockContext.js';
 
 describe('createAppStore', () => {
-  it('creates store with correct initial tab', () => {
-    const ctx = createMockContext();
-    const store = createAppStore(ctx);
+  it('creates store with the expected initial shell state', () => {
+    const store = createAppStore(createMockServiceContext());
+    const state = store.getState();
 
-    expect(store.getState().activeTab).toBe('skills');
-    expect(store.getState().focusedSkillIndex).toBe(0);
-    expect(store.getState().selectedSkillNames).toEqual(new Set());
-    expect(store.getState().showSearch).toBe(false);
-    expect(store.getState().showHelp).toBe(false);
+    expect(state.shellState.activeTab).toBe('skills');
+    expect(state.shellState.showSearch).toBe(false);
+    expect(state.shellState.showHelp).toBe(false);
+    expect(state.skillsBrowserState.focusedIndex).toBe(0);
+    expect(state.skillsBrowserState.selectedNames).toEqual(new Set());
   });
 
-  it('creates store with correct initial completion modal state', () => {
-    const ctx = createMockContext();
-    const store = createAppStore(ctx);
-
-    expect(store.getState().completionModalOpen).toBeNull();
+  it('creates store with the expected initial completion modal state', () => {
+    const store = createAppStore(createMockServiceContext());
+    expect(store.getState().shellState.completionModalOpen).toBeNull();
   });
 
-  it('has setCompletionModalOpen action', () => {
-    const ctx = createMockContext();
-    const store = createAppStore(ctx);
+  it('updates completion modal state through the store action', () => {
+    const store = createAppStore(createMockServiceContext());
 
     store.getState().setCompletionModalOpen(true);
-    expect(store.getState().completionModalOpen).toBe(true);
+    expect(store.getState().shellState.completionModalOpen).toBe(true);
 
     store.getState().setCompletionModalOpen(false);
-    expect(store.getState().completionModalOpen).toBe(false);
+    expect(store.getState().shellState.completionModalOpen).toBe(false);
 
     store.getState().setCompletionModalOpen(null);
-    expect(store.getState().completionModalOpen).toBeNull();
+    expect(store.getState().shellState.completionModalOpen).toBeNull();
   });
 });

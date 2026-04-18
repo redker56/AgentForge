@@ -7,6 +7,8 @@ import { render, cleanup } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
+import { withLegacyUiState } from '../helpers/legacyUiState.js';
+
 describe('TabBar', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -29,11 +31,12 @@ describe('TabBar', () => {
   });
 
   function makeMockStore(overrides?: Partial<Record<string, unknown>>) {
+    const state = withLegacyUiState({
+      activeTab: 'skills',
+      ...overrides,
+    });
     return {
-      getState: () => ({
-        activeTab: 'skills',
-        ...overrides,
-      }),
+      getState: () => state,
       subscribe: vi.fn(() => () => {}),
     };
   }

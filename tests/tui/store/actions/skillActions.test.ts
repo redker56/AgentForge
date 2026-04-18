@@ -5,19 +5,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createSkillActions } from '../../../../src/tui/store/actions/skillActions.js';
-import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
 import { createAppStore } from '../../../../src/tui/store/index.js';
+import { withLegacyUiState } from '../../helpers/legacyUiState.js';
 
-import { createMockServiceContext, createMockSkill } from './mockContext.js';
+import {
+  createMockServiceContext,
+  createMockSkill,
+  type MockWorkbenchContext,
+} from './mockContext.js';
 
 describe('createSkillActions', () => {
-  let mockCtx: ServiceContext;
+  let mockCtx: MockWorkbenchContext;
   let store: ReturnType<typeof createAppStore>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockCtx = createMockServiceContext();
     store = createAppStore(mockCtx);
+    withLegacyUiState(store.getState() as unknown as Record<string, unknown>);
   });
 
   describe('addSkillFromUrl', () => {
@@ -74,10 +79,10 @@ describe('createSkillActions', () => {
 
       // Should set form state for discovery
       const state = store.getState();
-      expect(state.formState).not.toBeNull();
-      expect(state.formState?.formType).toBe('addSkill');
-      expect(state.formState?.data.phase).toBe('discover');
-      expect(state.formState?.data.discoveredSkills).toBe(
+      expect(state.shellState.formState).not.toBeNull();
+      expect(state.shellState.formState?.formType).toBe('addSkill');
+      expect(state.shellState.formState?.data.phase).toBe('discover');
+      expect(state.shellState.formState?.data.discoveredSkills).toBe(
         JSON.stringify([
           { name: 'skill1', subPath: 'skills/skill1' },
           { name: 'skill2', subPath: 'skills/skill2' },
@@ -110,8 +115,8 @@ describe('createSkillActions', () => {
       await actions.addSkillFromUrl('https://github.com/example/repo.git', 'my-skill');
 
       const state = store.getState();
-      expect(state.formState).not.toBeNull();
-      expect(state.formState?.data.error).toBe('Git clone failed');
+      expect(state.shellState.formState).not.toBeNull();
+      expect(state.shellState.formState?.data.error).toBe('Git clone failed');
     });
 
     it('throws error when no skills found in repo', async () => {
@@ -123,7 +128,7 @@ describe('createSkillActions', () => {
       await actions.addSkillFromUrl('https://github.com/example/repo.git');
 
       const state = store.getState();
-      expect(state.formState?.data.error).toBe('No skills found in repository');
+      expect(state.shellState.formState?.data.error).toBe('No skills found in repository');
     });
 
     it('runs conflict detection after successful install', async () => {
@@ -150,11 +155,11 @@ describe('createSkillActions', () => {
       await actions.addSkillFromUrl('https://github.com/example/repo.git', 'conflict-skill');
 
       const state = store.getState();
-      expect(state.conflictState).not.toBeNull();
-      expect(state.conflictState?.skillName).toBe('conflict-skill');
-      expect(state.conflictState?.conflicts).toHaveLength(1);
+      expect(state.shellState.conflictState).not.toBeNull();
+      expect(state.shellState.conflictState?.skillName).toBe('conflict-skill');
+      expect(state.shellState.conflictState?.conflicts).toHaveLength(1);
       // sameContent=false should default to 'pending'
-      expect(state.conflictState?.conflicts[0].resolution).toBe('pending');
+      expect(state.shellState.conflictState?.conflicts[0].resolution).toBe('pending');
     });
 
     it('pushes success toast after install', async () => {
@@ -167,9 +172,9 @@ describe('createSkillActions', () => {
       await actions.addSkillFromUrl('https://github.com/example/repo.git', 'success-skill');
 
       const state = store.getState();
-      expect(state.activeToast).not.toBeNull();
-      expect(state.activeToast?.message).toContain('success-skill');
-      expect(state.activeToast?.variant).toBe('success');
+      expect(state.shellState.activeToast).not.toBeNull();
+      expect(state.shellState.activeToast?.message).toContain('success-skill');
+      expect(state.shellState.activeToast?.variant).toBe('success');
     });
   });
 
@@ -228,7 +233,7 @@ describe('createSkillActions', () => {
       );
 
       const state = store.getState();
-      expect(state.formState?.data.error).toBe('Install failed');
+      expect(state.shellState.formState?.data.error).toBe('Install failed');
     });
 
     it('clears form state on success', async () => {
@@ -246,7 +251,7 @@ describe('createSkillActions', () => {
       );
 
       const state = store.getState();
-      expect(state.formState).toBeNull();
+      expect(state.shellState.formState).toBeNull();
     });
   });
 
@@ -331,11 +336,11 @@ describe('createSkillActions', () => {
       vi.mocked(mockCtx.syncService.unsync).mockResolvedValue();
       vi.mocked(mockCtx.projectSyncService.unsync).mockResolvedValue();
       vi.mocked(mockCtx.skillService.delete).mockResolvedValue();
-      vi.mocked(mockCtx.skillService.list).mockReturnValue([]);
+      vi.mocked(mockCtx.storage.listSkills).mockReturnValue([]);
 
       await actions.removeSkill('test-skill');
 
-      expect(mockCtx.skillService.list).toHaveBeenCalled();
+      expect(mockCtx.storage.listSkills).toHaveBeenCalled();
     });
   });
 

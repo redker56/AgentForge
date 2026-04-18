@@ -29,6 +29,8 @@ import {
   type StorageInterface,
 } from '../types.js';
 
+import type { RegistryRepository } from './registry-repository.js';
+
 const FORGE_DIR = path.join(os.homedir(), '.agentforge');
 const SKILLS_DIR = path.join(FORGE_DIR, 'skills');
 const REGISTRY_FILE = path.join(FORGE_DIR, 'registry.json');
@@ -40,20 +42,13 @@ const DEFAULT_REGISTRY: RegistryData = {
   projects: {},
 };
 
-export class Storage implements StorageInterface {
+export class Storage implements StorageInterface, RegistryRepository {
   private data: RegistryData;
-  private static instance: Storage;
+  private batchDepth = 0;
+  private batchDirty = false;
 
-  private constructor() {
+  constructor() {
     this.data = this.load();
-  }
-
-  /** Get the singleton Storage instance, creating it on first access. */
-  static getInstance(): Storage {
-    if (!Storage.instance) {
-      Storage.instance = new Storage();
-    }
-    return Storage.instance;
   }
 
   // ========== Path ==========
@@ -87,7 +82,7 @@ export class Storage implements StorageInterface {
       categories: [],
       syncedTo: [],
     };
-    this.persist();
+    this.schedulePersist();
   }
 
   /**
@@ -100,14 +95,14 @@ export class Storage implements StorageInterface {
       ...meta,
       categories: normalizeSkillCategories(meta.categories),
     };
-    this.persist();
+    this.schedulePersist();
   }
 
   /** Remove a skill entry from the registry and persist. Does not touch the file system. */
   deleteSkill(name: string): void {
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.data.skills[name];
-    this.persist();
+    this.schedulePersist();
   }
 
   /** Replace the user-level sync records for a skill. */
@@ -115,7 +110,7 @@ export class Storage implements StorageInterface {
     const skill = this.data.skills[name];
     if (skill) {
       skill.syncedTo = records;
-      this.persist();
+      this.schedulePersist();
     }
   }
 
@@ -124,7 +119,7 @@ export class Storage implements StorageInterface {
     const skill = this.data.skills[name];
     if (skill) {
       skill.syncedProjects = records;
-      this.persist();
+      this.schedulePersist();
     }
   }
 
@@ -184,7 +179,7 @@ export class Storage implements StorageInterface {
   /** Register a custom agent and persist. */
   addAgent(id: string, name: string, basePath: string, skillsDirName?: string): void {
     this.data.agents[id] = { name, basePath, skillsDirName };
-    this.persist();
+    this.schedulePersist();
   }
 
   /** Remove a custom agent. Returns `true` if the agent existed and was removed. */
@@ -192,7 +187,7 @@ export class Storage implements StorageInterface {
     if (this.data.agents[id]) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this.data.agents[id];
-      this.persist();
+      this.schedulePersist();
       return true;
     }
     return false;
@@ -215,7 +210,7 @@ export class Storage implements StorageInterface {
       path: projectPath,
       addedAt: addedAt ?? new Date().toISOString(),
     };
-    this.persist();
+    this.schedulePersist();
   }
 
   /** Remove a project. Returns `true` if the project existed and was removed. */
@@ -223,10 +218,27 @@ export class Storage implements StorageInterface {
     if (this.data.projects[id]) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this.data.projects[id];
-      this.persist();
+      this.schedulePersist();
       return true;
     }
     return false;
+  }
+
+  runBatch<T>(mutator: (repo: RegistryRepository) => T): T {
+    this.batchDepth += 1;
+    try {
+      return mutator(this);
+    } finally {
+      this.batchDepth -= 1;
+      if (this.batchDepth === 0 && this.batchDirty) {
+        this.persist();
+        this.batchDirty = false;
+      }
+    }
+  }
+
+  snapshot(): RegistryData {
+    return JSON.parse(JSON.stringify(this.data)) as RegistryData;
   }
 
   // ========== Internal ==========
@@ -288,5 +300,14 @@ export class Storage implements StorageInterface {
   private persist(): void {
     fs.ensureDirSync(FORGE_DIR);
     fs.writeFileSync(REGISTRY_FILE, JSON.stringify(this.data, null, 2));
+  }
+
+  private schedulePersist(): void {
+    if (this.batchDepth > 0) {
+      this.batchDirty = true;
+      return;
+    }
+
+    this.persist();
   }
 }

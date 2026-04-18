@@ -37,20 +37,19 @@ import { deriveBreadcrumbs } from './utils/breadcrumbs.js';
 
 interface AppProps {
   store: StoreApi<AppStore>;
-  ctx: import('./store/dataSlice.js').ServiceContext;
 }
 
-export function App({ store, ctx }: AppProps): React.ReactElement {
-  const activeTab = useStore(store, (s) => s.activeTab);
-  const showSearch = useStore(store, (s) => s.showSearch);
-  const showHelp = useStore(store, (s) => s.showHelp);
-  const formState = useStore(store, (s) => s.formState);
-  const confirmState = useStore(store, (s) => s.confirmState);
-  const completionModalOpen = useStore(store, (s) => s.completionModalOpen);
-  const conflictState = useStore(store, (s) => s.conflictState);
-  const updateProgressItems = useStore(store, (s) => s.updateProgressItems);
-  const showCommandPalette = useStore(store, (s) => s.showCommandPalette);
-  const dirtyConfirmActive = useStore(store, (s) => s.dirtyConfirmActive);
+export function App({ store }: AppProps): React.ReactElement {
+  const activeTab = useStore(store, (s) => s.shellState.activeTab);
+  const showSearch = useStore(store, (s) => s.shellState.showSearch);
+  const showHelp = useStore(store, (s) => s.shellState.showHelp);
+  const formState = useStore(store, (s) => s.shellState.formState);
+  const confirmState = useStore(store, (s) => s.shellState.confirmState);
+  const completionModalOpen = useStore(store, (s) => s.shellState.completionModalOpen);
+  const conflictState = useStore(store, (s) => s.shellState.conflictState);
+  const updateProgressItems = useStore(store, (s) => s.shellState.updateProgressItems);
+  const showCommandPalette = useStore(store, (s) => s.shellState.showCommandPalette);
+  const dirtyConfirmActive = useStore(store, (s) => s.shellState.dirtyConfirmActive);
   const setWidthBand = useStore(store, (s) => s.setWidthBand);
   useInputHandler(store);
 
@@ -67,16 +66,16 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
     formState?.formType === 'updateSelected' || formState?.formType === 'updateAllGit';
 
   const breadcrumbState = useStore(store, useShallow((s) => ({
-    activeTab: s.activeTab,
-    showSearch: s.showSearch,
-    showHelp: s.showHelp,
-    showCommandPalette: s.showCommandPalette,
-    confirmState: s.confirmState,
-    formState: s.formState,
-    syncFormStep: s.syncFormStep,
-    importTabStep: s.importTabStep,
-    detailOverlayVisible: s.detailOverlayVisible,
-    widthBand: s.widthBand,
+    activeTab: s.shellState.activeTab,
+    showSearch: s.shellState.showSearch,
+    showHelp: s.shellState.showHelp,
+    showCommandPalette: s.shellState.showCommandPalette,
+    confirmState: s.shellState.confirmState,
+    formState: s.shellState.formState,
+    syncFormStep: s.syncWorkflowState.step,
+    importTabStep: s.importWorkflowState.step,
+    detailOverlayVisible: s.shellState.detailOverlayVisible,
+    widthBand: s.shellState.widthBand,
   })));
   const breadcrumbSegments = deriveBreadcrumbs(breadcrumbState);
 
@@ -95,7 +94,7 @@ export function App({ store, ctx }: AppProps): React.ReactElement {
           {activeTab === 'agents' && <AgentsScreen store={store} band={band} columns={columns} />}
           {activeTab === 'projects' && <ProjectsScreen store={store} band={band} columns={columns} />}
           {activeTab === 'sync' && <SyncScreen store={store} />}
-          {activeTab === 'import' && <ImportScreen store={store} ctx={ctx} />}
+          {activeTab === 'import' && <ImportScreen store={store} />}
         </>
       </Box>
       {dirtyConfirmActive && (

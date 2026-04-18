@@ -8,6 +8,7 @@ import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 import { ALL_SKILL_CATEGORY_FILTER } from '../../../src/types.js';
+import { withLegacyUiState } from '../helpers/legacyUiState.js';
 
 describe('SkillList', () => {
   beforeEach(() => {
@@ -83,6 +84,7 @@ describe('SkillList', () => {
       loadSkillDetail: vi.fn(),
       ...overrides,
     };
+    withLegacyUiState(state);
     return {
       getState: () => state,
       subscribe: vi.fn(() => () => {}),

@@ -2,8 +2,7 @@
  * Multi-step form for import workflows rendered inside the Import tab screen.
  * Distinct from the overlay ImportForm.tsx used by the `i` key shortcut from other tabs.
  *
- * Uses isolated helpers from syncActions.ts (Known Deviation 1) -- does NOT call
- * setFormState or use Sprint 3 overlay action creators for execution.
+ * Uses store-owned workflow state and import actions.
  */
 
 import { Box, Text, useInput, useStdout } from 'ink';
@@ -11,8 +10,6 @@ import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
-import { doImportFromProject, doImportFromAgent } from '../store/actions/syncActions.js';
-import type { ServiceContext } from '../store/dataSlice.js';
 import type { AppStore } from '../store/index.js';
 import type { OperationResult } from '../store/uiSlice.js';
 import { inkColors, renderFocusPrefix, spacing } from '../theme.js';
@@ -23,7 +20,6 @@ import { StepIndicator } from './StepIndicator.js';
 
 interface ImportFormTabProps {
   store: StoreApi<AppStore>;
-  ctx: ServiceContext;
 }
 
 const STEP_INDICATOR_WIDTH = 22;
@@ -36,57 +32,47 @@ function truncateText(text: string, maxWidth: number): string {
   return `${text.slice(0, maxWidth - 3)}...`;
 }
 
-/**
- * Cached skill discovery data -- module-level so it persists across re-renders.
- */
-let cachedDiscoveredSkills: Array<{
-  name: string;
-  path: string;
-  alreadyExists: boolean;
-  hasSkillMd?: boolean;
-}> = [];
-
-export function ImportFormTab({ store, ctx }: ImportFormTabProps): React.ReactElement {
+export function ImportFormTab({ store }: ImportFormTabProps): React.ReactElement {
   const { stdout } = useStdout();
-  const importTabStep = useStore(store, (s) => s.importTabStep);
-  const importTabSourceType = useStore(store, (s) => s.importTabSourceType);
-  const importTabSourceId = useStore(store, (s) => s.importTabSourceId);
-  const importTabSelectedSkillNames = useStore(store, (s) => s.importTabSelectedSkillNames);
-  const importTabResults = useStore(store, (s) => s.importTabResults);
-  const importTabFocusedIndex = useStore(store, (s) => s.importTabFocusedIndex);
+  const importTabStep = useStore(store, (s) => s.importWorkflowState.step);
+  const importTabSourceType = useStore(store, (s) => s.importWorkflowState.sourceType);
+  const importTabSourceId = useStore(store, (s) => s.importWorkflowState.sourceId);
+  const importTabSelectedSkillNames = useStore(store, (s) => s.importWorkflowState.selectedSkillNames);
+  const importTabResults = useStore(store, (s) => s.importWorkflowState.results);
+  const importTabFocusedIndex = useStore(store, (s) => s.importWorkflowState.focusedIndex);
+  const discoveredSkills = useStore(store, (s) => s.importWorkflowState.discoveredSkills);
   const agents = useStore(store, (s) => s.agents);
   const projects = useStore(store, (s) => s.projects);
-  const activeTab = useStore(store, (s) => s.activeTab);
-  const showSearch = useStore(store, (s) => s.showSearch);
-  const showHelp = useStore(store, (s) => s.showHelp);
-  const confirmState = useStore(store, (s) => s.confirmState);
-  const formState = useStore(store, (s) => s.formState);
-  const conflictState = useStore(store, (s) => s.conflictState);
-  const updateProgressItems = useStore(store, (s) => s.updateProgressItems);
+  const activeTab = useStore(store, (s) => s.shellState.activeTab);
+  const showSearch = useStore(store, (s) => s.shellState.showSearch);
+  const showHelp = useStore(store, (s) => s.shellState.showHelp);
+  const confirmState = useStore(store, (s) => s.shellState.confirmState);
+  const formState = useStore(store, (s) => s.shellState.formState);
+  const conflictState = useStore(store, (s) => s.shellState.conflictState);
+  const updateProgressItems = useStore(store, (s) => s.shellState.updateProgressItems);
 
   // Local useInput for form navigation
   useInput(
     (input, key) => {
       const s = store.getState();
 
-      if (s.importTabStep === 'results' || s.importTabStep === 'executing') {
+      if (s.importWorkflowState.step === 'results' || s.importWorkflowState.step === 'executing') {
         if (key.return || key.escape) {
           s.resetImportTab();
         }
         return;
       }
 
-      if (s.importTabStep === 'select-source-type') {
+      if (s.importWorkflowState.step === 'select-source-type') {
         if (key.escape) {
           s.resetImportTab();
-          cachedDiscoveredSkills = [];
           return;
         }
         if (key.upArrow || key.downArrow) {
-          s.setImportTabSourceType(s.importTabSourceType === 'project' ? 'agent' : 'project');
+          s.setImportTabSourceType(s.importWorkflowState.sourceType === 'project' ? 'agent' : 'project');
         }
         if (key.return || input === ' ') {
-          if (!s.importTabSourceType) {
+          if (!s.importWorkflowState.sourceType) {
             s.setImportTabSourceType('project');
           }
           s.setImportTabStep('select-source');
@@ -96,59 +82,60 @@ export function ImportFormTab({ store, ctx }: ImportFormTabProps): React.ReactEl
         return;
       }
 
-      if (s.importTabStep === 'select-source') {
+      if (s.importWorkflowState.step === 'select-source') {
         if (key.escape) {
           s.setImportTabStep('select-source-type');
           return;
         }
-        const sourceList = s.importTabSourceType === 'project' ? s.projects : s.agents;
+        const sourceList = s.importWorkflowState.sourceType === 'project' ? s.projects : s.agents;
         if (key.upArrow) {
-          s.setImportTabFocusedIndex(Math.max(0, s.importTabFocusedIndex - 1));
+          s.setImportTabFocusedIndex(Math.max(0, s.importWorkflowState.focusedIndex - 1));
         }
         if (key.downArrow) {
-          s.setImportTabFocusedIndex(Math.min(sourceList.length - 1, s.importTabFocusedIndex + 1));
+          s.setImportTabFocusedIndex(Math.min(sourceList.length - 1, s.importWorkflowState.focusedIndex + 1));
         }
         if (key.return || input === ' ') {
-          const focused = sourceList[s.importTabFocusedIndex];
+          const focused = sourceList[s.importWorkflowState.focusedIndex];
           if (!focused) return;
           const id = 'id' in focused ? focused.id : '';
           s.setImportTabSourceId(id);
           s.setImportTabStep('select-skills');
           s.setImportTabSelectedSkillNames(new Set());
           s.setImportTabFocusedIndex(0);
-          // Run discovery
-          runDiscovery(s, ctx);
+          runDiscovery(store);
         }
         return;
       }
 
-      if (s.importTabStep === 'select-skills') {
+      if (s.importWorkflowState.step === 'select-skills') {
         if (key.escape) {
           s.setImportTabStep('select-source');
           return;
         }
         if (key.upArrow) {
-          s.setImportTabFocusedIndex(Math.max(0, s.importTabFocusedIndex - 1));
+          s.setImportTabFocusedIndex(Math.max(0, s.importWorkflowState.focusedIndex - 1));
         }
         if (key.downArrow) {
-          s.setImportTabFocusedIndex(Math.min(cachedDiscoveredSkills.length - 1, s.importTabFocusedIndex + 1));
+          s.setImportTabFocusedIndex(
+            Math.min(discoveredSkills.length - 1, s.importWorkflowState.focusedIndex + 1)
+          );
         }
         if (input === ' ') {
-          const skill = cachedDiscoveredSkills[s.importTabFocusedIndex];
+          const skill = discoveredSkills[s.importWorkflowState.focusedIndex];
           if (skill && !skill.alreadyExists) {
             s.toggleImportTabSkill(skill.name);
           }
         }
         if (key.return) {
-          if (s.importTabSelectedSkillNames.size === 0) return;
+          if (s.importWorkflowState.selectedSkillNames.size === 0) return;
           s.setImportTabStep('confirm');
         }
         return;
       }
 
-      if (s.importTabStep === 'confirm') {
+      if (s.importWorkflowState.step === 'confirm') {
         if (key.return) {
-          void executeImport(s, store, ctx);
+          void executeImport(s, store);
         }
         if (key.escape) {
           s.setImportTabStep('select-skills');
@@ -205,12 +192,18 @@ export function ImportFormTab({ store, ctx }: ImportFormTabProps): React.ReactEl
         )}
         {importTabStep === 'select-skills' && (
           <ImportChecklist
-            skills={cachedDiscoveredSkills}
+            skills={discoveredSkills}
             selected={importTabSelectedSkillNames}
             focusedIndex={importTabFocusedIndex}
             onToggle={(name) => toggleImportSkill(store, name)}
-            onUp={() => store.getState().setImportTabFocusedIndex(Math.max(0, store.getState().importTabFocusedIndex - 1))}
-            onDown={() => store.getState().setImportTabFocusedIndex(Math.min(cachedDiscoveredSkills.length - 1, store.getState().importTabFocusedIndex + 1))}
+            onUp={() => store.getState().setImportTabFocusedIndex(Math.max(0, store.getState().importWorkflowState.focusedIndex - 1))}
+            onDown={() =>
+              store
+                .getState()
+                .setImportTabFocusedIndex(
+                  Math.min(discoveredSkills.length - 1, store.getState().importWorkflowState.focusedIndex + 1)
+                )
+            }
             columns={contentWidth}
           />
         )}
@@ -233,53 +226,28 @@ export function ImportFormTab({ store, ctx }: ImportFormTabProps): React.ReactEl
 // Discovery & Execution
 // ============================================================
 
-function runDiscovery(
-  s: ReturnType<StoreApi<AppStore>['getState']>,
-  ctx: ServiceContext,
-): void {
-  if (s.importTabSourceType === 'project' && s.importTabSourceId) {
-    const project = ctx.storage.getProject(s.importTabSourceId);
-    if (!project) {
-      cachedDiscoveredSkills = [];
-      return;
-    }
-    const discovered = ctx.scanService.scanProject(project.path);
-    cachedDiscoveredSkills = discovered.map((skill) => ({
-      name: skill.name,
-      path: skill.path,
-      alreadyExists: ctx.skillService.exists(skill.name),
-      hasSkillMd: skill.hasSkillMd,
-    }));
-  } else if (s.importTabSourceType === 'agent' && s.importTabSourceId) {
-    const agent = ctx.storage.getAgent(s.importTabSourceId);
-    if (!agent) {
-      cachedDiscoveredSkills = [];
-      return;
-    }
-    const subdirs = ctx.fileOps.listSubdirectories(agent.basePath);
-    cachedDiscoveredSkills = subdirs
-      .map((name) => {
-        const skillPath = `${agent.basePath}/${name}`;
-        const hasSkillMd =
-          ctx.fileOps.fileExists(`${skillPath}/SKILL.md`) || ctx.fileOps.fileExists(`${skillPath}/skill.md`);
-        return {
-          name,
-          path: skillPath,
-          alreadyExists: ctx.skillService.exists(name),
-          hasSkillMd,
-        };
-      })
-      .filter((s) => s.hasSkillMd);
+function runDiscovery(storeApi: StoreApi<AppStore>): void {
+  const state = storeApi.getState();
+  const sourceType = state.importWorkflowState.sourceType;
+  const sourceId = state.importWorkflowState.sourceId;
+  if (!sourceType || !sourceId) {
+    state.setImportDiscoveredSkills([]);
+    return;
   }
+
+  const candidates =
+    sourceType === 'project'
+      ? state.scanProjectSkills(sourceId)
+      : state.scanAgentSkills(sourceId);
+  state.setImportDiscoveredSkills(candidates);
 }
 
 async function executeImport(
   s: ReturnType<StoreApi<AppStore>['getState']>,
-  storeApi: StoreApi<AppStore>,
-  ctx: ServiceContext,
+  _storeApi: StoreApi<AppStore>,
 ): Promise<void> {
-  const skillNames = [...s.importTabSelectedSkillNames];
-  const sourceId = s.importTabSourceId;
+  const skillNames = [...s.importWorkflowState.selectedSkillNames];
+  const sourceId = s.importWorkflowState.sourceId;
 
   if (!sourceId) return;
 
@@ -296,10 +264,10 @@ async function executeImport(
 
   let results: OperationResult[];
 
-  if (s.importTabSourceType === 'project') {
-    results = await doImportFromProject(ctx, sourceId, skillNames);
+  if (s.importWorkflowState.sourceType === 'project') {
+    results = await s.importFromProject(sourceId, skillNames);
   } else {
-    results = await doImportFromAgent(ctx, sourceId, skillNames);
+    results = await s.importFromAgent(sourceId, skillNames);
   }
 
   for (const r of results) {
@@ -315,14 +283,13 @@ async function executeImport(
 
   s.setImportTabResults(results);
   s.setImportTabStep('results');
-  await s.refreshSkills();
 }
 
 function toggleImportSkill(storeApi: StoreApi<AppStore>, skillName: string): void {
   const s = storeApi.getState();
-  const skill = cachedDiscoveredSkills.find(sk => sk.name === skillName);
+  const skill = s.importWorkflowState.discoveredSkills.find((entry) => entry.name === skillName);
   if (skill?.alreadyExists) return; // Cannot toggle already-imported
-  const newSelected = new Set(s.importTabSelectedSkillNames);
+  const newSelected = new Set(s.importWorkflowState.selectedSkillNames);
   if (newSelected.has(skillName)) {
     newSelected.delete(skillName);
   } else {
@@ -333,10 +300,9 @@ function toggleImportSkill(storeApi: StoreApi<AppStore>, skillName: string): voi
 
 function handleImportBack(storeApi: StoreApi<AppStore>): void {
   const s = storeApi.getState();
-  switch (s.importTabStep) {
+  switch (s.importWorkflowState.step) {
     case 'select-source':
       s.resetImportTab();
-      cachedDiscoveredSkills = [];
       break;
     case 'select-skills':
       s.setImportTabStep('select-source');
@@ -346,7 +312,6 @@ function handleImportBack(storeApi: StoreApi<AppStore>): void {
       break;
     default:
       s.resetImportTab();
-      cachedDiscoveredSkills = [];
   }
 }
 

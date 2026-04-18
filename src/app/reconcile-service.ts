@@ -8,6 +8,7 @@ import path from 'path';
 
 import fs from 'fs-extra';
 
+import type { ProjectStateRepository } from '../infra/project-state-repository.js';
 import {
   type Agent,
   type ProjectConfig,
@@ -128,21 +129,48 @@ const isSameProjectLocalRecords = (
 };
 
 export class ReconcileService {
-  private readonly projectStorage = new ProjectStorage();
-
   constructor(
     private readonly storage: StorageLike,
-    private readonly scanService: ScanServiceLike
+    private readonly scanService: ScanServiceLike,
+    private readonly projectStorage: ProjectStateRepository = new ProjectStorage()
   ) {}
 
   async reconcile(): Promise<ReconcileSummary> {
     const summary: ReconcileSummary = { ...DEFAULT_SUMMARY };
+    const plan = this.buildPlan();
+    await this.applyPlan(plan, summary);
+    return summary;
+  }
 
+  private buildPlan(): {
+    discoveredSkills: Set<string>;
+    configuredSkills: SkillMeta[];
+    knownAgents: Agent[];
+    knownProjects: ProjectConfig[];
+  } {
     const knownAgents = this.storage.listAllDefinedAgents();
     const knownProjects = this.storage.listProjects();
     const configuredSkills = this.storage.listSkills();
     const discoveredSkills = this.discoverSkillFolders();
 
+    return {
+      discoveredSkills,
+      configuredSkills,
+      knownAgents,
+      knownProjects,
+    };
+  }
+
+  private async applyPlan(
+    plan: {
+      discoveredSkills: Set<string>;
+      configuredSkills: SkillMeta[];
+      knownAgents: Agent[];
+      knownProjects: ProjectConfig[];
+    },
+    summary: ReconcileSummary
+  ): Promise<void> {
+    const { discoveredSkills, configuredSkills, knownAgents, knownProjects } = plan;
     for (const skill of configuredSkills) {
       if (!discoveredSkills.has(skill.name)) {
         this.storage.deleteSkill(skill.name);
@@ -160,7 +188,6 @@ export class ReconcileService {
 
     const refreshedSkills = this.storage.listSkills();
     this.reconcileUserSyncRecords(refreshedSkills, knownAgents, summary);
-
     const desiredProjectRecords = await this.reconcileProjectSyncRecords(
       refreshedSkills,
       knownProjects,
@@ -170,8 +197,6 @@ export class ReconcileService {
       knownProjects,
       desiredProjectRecords
     );
-
-    return summary;
   }
 
   private reconcileUserSyncRecords(

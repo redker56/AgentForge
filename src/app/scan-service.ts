@@ -15,7 +15,7 @@ import path from 'path';
 import fs from 'fs-extra';
 
 import { files } from '../infra/files.js';
-import { Storage } from '../infra/storage.js';
+import type { RegistryRepository } from '../infra/registry-repository.js';
 import {
   getAgentProjectSkillsDir,
   getAgentProjectSkillsRelativePath,
@@ -66,7 +66,7 @@ export interface ProjectSkillStatus {
 }
 
 export class ScanService {
-  constructor(private readonly storage: Storage) {}
+  constructor(private readonly storage: RegistryRepository) {}
 
   /** Return built-in and custom agents that are relevant for project-level scanning. */
   private getProjectAwareAgents(): Agent[] {

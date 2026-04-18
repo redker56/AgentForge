@@ -26,6 +26,12 @@ interface PreviewItem {
   detail: string;
 }
 
+interface ProgressViewport {
+  visibleItems: AppStore['shellState']['updateProgressItems'];
+  hiddenAboveCount: number;
+  hiddenBelowCount: number;
+}
+
 const MAX_VISIBLE_ROWS = 8;
 const MAX_VISIBLE_PROGRESS = 6;
 const FORM_WIDTH = 76;
@@ -73,10 +79,49 @@ function truncateText(text: string, maxWidth = CONTENT_WIDTH): string {
   return `${text.slice(0, maxWidth - 3)}...`;
 }
 
+function findViewportAnchorIndex(items: AppStore['shellState']['updateProgressItems']): number {
+  const runningIndex = items.findIndex((item) => item.status === 'running');
+  if (runningIndex >= 0) {
+    return runningIndex;
+  }
+
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (items[index]?.status !== 'pending') {
+      return index;
+    }
+  }
+
+  return 0;
+}
+
+export function getProgressViewport(
+  items: AppStore['shellState']['updateProgressItems'],
+  maxVisible: number
+): ProgressViewport {
+  if (items.length <= maxVisible) {
+    return {
+      visibleItems: items,
+      hiddenAboveCount: 0,
+      hiddenBelowCount: 0,
+    };
+  }
+
+  const anchorIndex = findViewportAnchorIndex(items);
+  const maxStart = Math.max(items.length - maxVisible, 0);
+  const startIndex = Math.min(Math.max(anchorIndex - maxVisible + 1, 0), maxStart);
+  const endIndex = Math.min(startIndex + maxVisible, items.length);
+
+  return {
+    visibleItems: items.slice(startIndex, endIndex),
+    hiddenAboveCount: startIndex,
+    hiddenBelowCount: Math.max(items.length - endIndex, 0),
+  };
+}
+
 export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
-  const formState = useStore(store, (s) => s.formState);
+  const formState = useStore(store, (s) => s.shellState.formState);
   const skills = useStore(store, (s) => s.skills);
-  const updateProgressItems = useStore(store, (s) => s.updateProgressItems);
+  const updateProgressItems = useStore(store, (s) => s.shellState.updateProgressItems);
 
   const [phase, setPhase] = useState<UpdatePhase>('preview');
   const [results, setResults] = useState<UpdateResult[]>([]);
@@ -197,8 +242,19 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
   const fixedPreviewRows = renderFixedRows(previewRows, (index) => (
     <Text key={`empty-preview-${index}`} dimColor> </Text>
   ));
-  const visibleProgressItems = updateProgressItems.slice(0, MAX_VISIBLE_PROGRESS);
-  const hiddenProgressCount = Math.max(updateProgressItems.length - visibleProgressItems.length, 0);
+  const {
+    visibleItems: visibleProgressItems,
+    hiddenAboveCount,
+    hiddenBelowCount,
+  } = getProgressViewport(updateProgressItems, MAX_VISIBLE_PROGRESS);
+  const progressOverflowSummary =
+    hiddenAboveCount > 0 && hiddenBelowCount > 0
+      ? `... ${hiddenAboveCount} earlier | ${hiddenBelowCount} more task(s)`
+      : hiddenAboveCount > 0
+        ? `... ${hiddenAboveCount} earlier task(s)`
+        : hiddenBelowCount > 0
+          ? `... ${hiddenBelowCount} more task(s)`
+          : '';
   const updatedCount = results.filter((item) => item.outcome === 'updated').length;
   const skippedCount = results.filter((item) => item.outcome === 'skipped').length;
   const errorCount = results.filter((item) => item.outcome === 'error').length;
@@ -261,8 +317,7 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
           ) : (
             <Text dimColor>Preparing update tasks...</Text>
           )}
-          {hiddenProgressCount > 0 && <Text dimColor>... {hiddenProgressCount} more task(s)</Text>}
-          {hiddenProgressCount === 0 && <Text dimColor> </Text>}
+          {progressOverflowSummary ? <Text dimColor>{progressOverflowSummary}</Text> : <Text dimColor> </Text>}
           <Text> </Text>
           <Text dimColor>Please wait...</Text>
         </>

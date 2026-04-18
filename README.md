@@ -12,7 +12,7 @@ A CLI for managing and syncing skills across Claude Code, Codex, Gemini CLI, Ope
 
 - Node.js 20 or newer
 - `git` available in `PATH`
-- CI currently covers Ubuntu and Windows on Node 20 / 22
+- CI currently covers Ubuntu and Windows on Node 20 / 22 / 24
 
 ## Installation
 
@@ -394,6 +394,12 @@ Each skill is a directory that must contain a `SKILL.md` file:
 |       `-- SKILL.md
 `-- registry.json     # Registration info
 ```
+
+## Architecture Notes
+
+- `cli.ts` and `tui.ts` compose concrete infrastructure and inject it into the app layer instead of reading from global singletons.
+- The TUI talks to the app layer through `WorkbenchQueries` and `WorkbenchCommands`, then keeps interaction state inside feature-local Zustand slices.
+- Registry persistence is modeled through `RegistryRepository`, while per-project `.agentforge.json` state is modeled through `ProjectStateRepository`.
 
 ## Development
 

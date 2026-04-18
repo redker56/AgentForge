@@ -32,7 +32,7 @@ function truncateText(text: string, maxWidth = 54): string {
 }
 
 export function ImportForm({ store }: ImportFormProps): React.ReactElement {
-  const formState = useStore(store, s => s.formState);
+  const formState = useStore(store, s => s.shellState.formState);
   const projects = useStore(store, s => s.projects);
   const agents = useStore(store, s => s.agents);
 

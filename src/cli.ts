@@ -19,6 +19,7 @@ import { Command } from 'commander';
 import fs from 'fs-extra';
 
 import { FileOperationsService } from './app/file-operations.js';
+import { ProjectStorage } from './app/project-storage.js';
 import { ScanService } from './app/scan-service.js';
 import { SkillService } from './app/skill-service.js';
 import { AgentSyncService } from './app/sync/agent-sync-service.js';
@@ -68,12 +69,13 @@ export function showWelcome(): void {
 
 export function launchCLI(): void {
   // Initialize services
-  const storage = Storage.getInstance();
+  const storage = new Storage();
+  const projectStorage = new ProjectStorage();
   const skills = new SkillService(storage);
   const sync = new AgentSyncService(storage);
   const syncCheck = new SyncCheckService(storage, sync);
   const scan = new ScanService(storage);
-  const projectSync = new ProjectSyncService(storage);
+  const projectSync = new ProjectSyncService(storage, projectStorage);
   const fileOps = new FileOperationsService();
 
   // Command context

@@ -4,11 +4,12 @@
 
 import type { StateCreator } from 'zustand';
 
+import type { ImportCandidate, SyncPreview } from '../../app/workbench-types.js';
 import {
   ALL_SKILL_CATEGORY_FILTER,
+  getSkillCategoryCounts,
   type SkillCategoryFilter,
   type SyncMode,
-  getSkillCategoryCounts,
 } from '../../types.js';
 import type { ContextSkillFilter } from '../contextTypes.js';
 import {
@@ -18,11 +19,7 @@ import {
 } from '../utils/skillsView.js';
 
 export type TabId = 'skills' | 'agents' | 'projects' | 'sync' | 'import';
-
-/** Operation type for Sync tab form */
 export type SyncOperation = 'sync-agents' | 'sync-projects' | 'unsync';
-
-/** Step index for Sync tab form */
 export type SyncFormStep =
   | 'select-op'
   | 'select-skills'
@@ -34,8 +31,6 @@ export type SyncFormStep =
   | 'confirm'
   | 'executing'
   | 'results';
-
-/** Step index for Import tab form */
 export type ImportFormTabStep =
   | 'select-source-type'
   | 'select-source'
@@ -44,7 +39,6 @@ export type ImportFormTabStep =
   | 'executing'
   | 'results';
 
-/** Result entry for sync/update/import operations */
 export interface OperationResult {
   target: string;
   success: boolean;
@@ -97,12 +91,11 @@ export interface FormState {
 export interface ProgressItem {
   id: string;
   label: string;
-  progress: number; // 0-100
+  progress: number;
   status: 'pending' | 'running' | 'success' | 'error';
   error?: string;
 }
 
-// Sprint 3: Toast notification types
 export type ToastVariant = 'success' | 'error' | 'info';
 
 export interface Toast {
@@ -112,7 +105,6 @@ export interface Toast {
   expiresAt: number;
 }
 
-// Sprint 3: Undo snapshot type
 export interface UndoSnapshot {
   action: 'delete-skill' | 'remove-agent' | 'remove-project';
   snapshot: unknown;
@@ -120,90 +112,80 @@ export interface UndoSnapshot {
   remainingMs: number;
 }
 
-export interface UISlice {
-  // State
+export interface UiShellState {
   activeTab: TabId;
-  focusedSkillIndex: number;
-  selectedSkillNames: Set<string>;
   searchQuery: string;
-  activeSkillCategoryFilter: SkillCategoryFilter;
-  progressItems: ProgressItem[];
   detailOverlayVisible: boolean;
+  detailSkillName: string | null;
   widthBand: 'compact' | 'standard' | 'widescreen' | 'warning';
   formDirty: boolean;
-  breadcrumbSegments: string[];
-  detailSkillName: string | null;
-
-  // Agent tab state
-  focusedAgentIndex: number;
-  agentViewMode: 'master' | 'skills';
-  focusedAgentSkillIndex: number;
-  selectedAgentSkillRowIds: Set<string>;
-  activeAgentSkillFilter: ContextSkillFilter;
-
-  // Project tab state
-  focusedProjectIndex: number;
-  projectViewMode: 'master' | 'skills';
-  focusedProjectSkillIndex: number;
-  selectedProjectSkillRowIds: Set<string>;
-  activeProjectSkillFilter: ContextSkillFilter;
-
-  // Overlay state
   showSearch: boolean;
   showHelp: boolean;
-
-  // Overlay states (mutually exclusive with each other)
+  showCommandPalette: boolean;
   confirmState: ConfirmState | null;
   formState: FormState | null;
   conflictState: ConflictInfo | null;
   focusedConflictIndex: number;
-
-  // Sync tab form state
-  syncFormStep: SyncFormStep;
-  syncFormOperation: SyncOperation | null;
-  syncFormSelectedSkillNames: Set<string>;
-  syncFormUnsyncScope: 'agents' | 'projects' | null;
-  syncFormSelectedTargetIds: Set<string>;
-  syncFormProjectUnsyncMode: 'all' | 'specific' | null;
-  syncFormSelectedAgentTypes: Set<string>;
-  syncFormLoadingTargets: boolean;
-  syncFormMode: SyncMode;
-  syncFormResults: OperationResult[];
-  syncFormFocusedIndex: number;
-
-  // Import tab form state
-  importTabStep: ImportFormTabStep;
-  importTabSourceType: 'project' | 'agent' | null;
-  importTabSourceId: string | null;
-  importTabSelectedSkillNames: Set<string>;
-  importTabResults: OperationResult[];
-  importTabFocusedIndex: number;
-
-  // Update progress state (used from Skills tab shortcuts)
-  updateProgressItems: ProgressItem[];
-
-  // Completion modal state
   completionModalOpen: boolean | null;
-
-  // Sprint 2: Command palette
-  showCommandPalette: boolean;
-
-  // Sprint 2: Search result navigation (moved from SearchOverlay module-level)
   searchResultIndex: number;
-
-  // Sprint 2: Dirty form tab-switch confirmation
   tabSwitchPending: TabId | null;
   dirtyConfirmActive: boolean;
-
-  // Sprint 3: Undo buffer
   undoBuffer: UndoSnapshot | null;
   undoActive: boolean;
-
-  // Sprint 3: Toast notifications
   toastQueue: Toast[];
   activeToast: Toast | null;
+  updateProgressItems: ProgressItem[];
+}
 
-  // Actions
+export interface SkillsBrowserState {
+  focusedIndex: number;
+  selectedNames: Set<string>;
+  activeCategoryFilter: SkillCategoryFilter;
+}
+
+export interface ContextBrowserState {
+  focusedIndex: number;
+  viewMode: 'master' | 'skills';
+  focusedSkillIndex: number;
+  selectedSkillRowIds: Set<string>;
+  activeSkillFilter: ContextSkillFilter;
+}
+
+export interface SyncWorkflowState {
+  step: SyncFormStep;
+  operation: SyncOperation | null;
+  selectedSkillNames: Set<string>;
+  unsyncScope: 'agents' | 'projects' | null;
+  selectedTargetIds: Set<string>;
+  projectUnsyncMode: 'all' | 'specific' | null;
+  selectedAgentTypes: Set<string>;
+  loadingTargets: boolean;
+  mode: SyncMode;
+  results: OperationResult[];
+  focusedIndex: number;
+  preview: SyncPreview | null;
+  previewError: string | null;
+}
+
+export interface ImportWorkflowState {
+  step: ImportFormTabStep;
+  sourceType: 'project' | 'agent' | null;
+  sourceId: string | null;
+  sourceLabel: string | null;
+  selectedSkillNames: Set<string>;
+  results: OperationResult[];
+  focusedIndex: number;
+  discoveredSkills: ImportCandidate[];
+}
+
+export interface UISlice {
+  shellState: UiShellState;
+  skillsBrowserState: SkillsBrowserState;
+  agentsBrowserState: ContextBrowserState;
+  projectsBrowserState: ContextBrowserState;
+  syncWorkflowState: SyncWorkflowState;
+  importWorkflowState: ImportWorkflowState;
+
   setActiveTab: (tab: TabId) => void;
   setFocusedSkillIndex: (index: number) => void;
   toggleSkillSelection: (name: string) => void;
@@ -213,9 +195,8 @@ export interface UISlice {
   setActiveSkillCategoryFilter: (filter: SkillCategoryFilter) => void;
   cycleSkillCategoryFilter: (direction: -1 | 1) => void;
   moveFocusUp: () => void;
-  moveFocusDown: (listLength: number) => void;
+  moveFocusDown: () => void;
 
-  // Agent actions
   setFocusedAgentIndex: (index: number) => void;
   setAgentViewMode: (mode: 'master' | 'skills') => void;
   setFocusedAgentSkillIndex: (index: number) => void;
@@ -223,7 +204,6 @@ export interface UISlice {
   clearAgentSkillSelection: () => void;
   setActiveAgentSkillFilter: (filter: ContextSkillFilter) => void;
 
-  // Project actions
   setFocusedProjectIndex: (index: number) => void;
   setProjectViewMode: (mode: 'master' | 'skills') => void;
   setFocusedProjectSkillIndex: (index: number) => void;
@@ -231,17 +211,13 @@ export interface UISlice {
   clearProjectSkillSelection: () => void;
   setActiveProjectSkillFilter: (filter: ContextSkillFilter) => void;
 
-  // Overlay actions
   setShowSearch: (show: boolean) => void;
   setShowHelp: (show: boolean) => void;
-
-  // Overlay state actions
   setConfirmState: (state: ConfirmState | null) => void;
   setFormState: (state: FormState | null) => void;
   setConflictState: (state: ConflictInfo | null) => void;
   setFocusedConflictIndex: (index: number) => void;
 
-  // Sync form actions
   setSyncFormStep: (step: SyncFormStep) => void;
   setSyncFormOperation: (op: SyncOperation | null) => void;
   setSyncFormSelectedSkillNames: (names: Set<string>) => void;
@@ -256,57 +232,41 @@ export interface UISlice {
   setSyncFormMode: (mode: SyncMode) => void;
   setSyncFormResults: (results: OperationResult[]) => void;
   setSyncFormFocusedIndex: (index: number) => void;
+  setSyncWorkflowPreview: (preview: SyncPreview | null, error?: string | null) => void;
   resetSyncForm: () => void;
 
-  // Import tab form actions
   setImportTabStep: (step: ImportFormTabStep) => void;
   setImportTabSourceType: (type: 'project' | 'agent' | null) => void;
   setImportTabSourceId: (id: string | null) => void;
+  setImportTabSourceLabel: (label: string | null) => void;
   setImportTabSelectedSkillNames: (names: Set<string>) => void;
   toggleImportTabSkill: (name: string) => void;
   setImportTabResults: (results: OperationResult[]) => void;
   setImportTabFocusedIndex: (index: number) => void;
+  setImportDiscoveredSkills: (skills: ImportCandidate[]) => void;
   resetImportTab: () => void;
 
-  // Update progress actions
   setUpdateProgressItems: (items: ProgressItem[]) => void;
   updateProgressItem: (id: string, update: Partial<ProgressItem>) => void;
-
-  // Completion modal actions
   setCompletionModalOpen: (open: boolean | null) => void;
-
-  // Sprint 2: Command palette
   setShowCommandPalette: (show: boolean) => void;
-
-  // Sprint 2: Search result navigation
   setSearchResultIndex: (index: number) => void;
-
-  // Sprint 2: Dirty form tab-switch confirmation
   setTabSwitchPending: (tab: TabId | null) => void;
   setDirtyConfirmActive: (active: boolean) => void;
-
-  // Sprint 3: Undo actions
   pushUndo: (action: 'delete-skill' | 'remove-agent' | 'remove-project', snapshot: unknown) => void;
   executeUndo: () => void;
   clearUndo: () => void;
-
-  // Sprint 3: Toast actions
   pushToast: (message: string, variant: ToastVariant) => void;
   dismissActiveToast: () => void;
-
-  // Sprint 1: responsive detail overlay + width band
   setDetailOverlayVisible: (visible: boolean) => void;
   setDetailSkillName: (skillName: string | null) => void;
   setWidthBand: (band: 'compact' | 'standard' | 'widescreen' | 'warning') => void;
   setFormDirty: (dirty: boolean) => void;
 }
 
-// Forward reference to avoid circular import.
-// The actual store type is composed in index.ts.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type StoreState = UISlice & Record<string, any>;
 
-// Module-level timer references (live outside Zustand state)
 let undoTickTimer: ReturnType<typeof setInterval> | null = null;
 let toastTickTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -315,365 +275,568 @@ const UNDO_TICK_MS = 250;
 const TOAST_DURATION_MS = 2000;
 const TOAST_TICK_MS = 250;
 
+function createInitialSyncWorkflowState(): SyncWorkflowState {
+  return {
+    step: 'select-op',
+    operation: 'sync-agents',
+    selectedSkillNames: new Set(),
+    unsyncScope: null,
+    selectedTargetIds: new Set(),
+    projectUnsyncMode: null,
+    selectedAgentTypes: new Set(),
+    loadingTargets: false,
+    mode: 'copy',
+    results: [],
+    focusedIndex: 0,
+    preview: null,
+    previewError: null,
+  };
+}
+
+function createInitialImportWorkflowState(): ImportWorkflowState {
+  return {
+    step: 'select-source-type',
+    sourceType: 'project',
+    sourceId: null,
+    sourceLabel: null,
+    selectedSkillNames: new Set(),
+    results: [],
+    focusedIndex: 0,
+    discoveredSkills: [],
+  };
+}
+
 export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, get) => ({
-  activeTab: 'skills',
-  focusedSkillIndex: 0,
-  selectedSkillNames: new Set(),
-  searchQuery: '',
-  activeSkillCategoryFilter: ALL_SKILL_CATEGORY_FILTER,
-  progressItems: [],
-  detailSkillName: null,
-
-  // Agent tab state
-  focusedAgentIndex: 0,
-  agentViewMode: 'master',
-  focusedAgentSkillIndex: 0,
-  selectedAgentSkillRowIds: new Set(),
-  activeAgentSkillFilter: 'all',
-
-  // Project tab state
-  focusedProjectIndex: 0,
-  projectViewMode: 'master',
-  focusedProjectSkillIndex: 0,
-  selectedProjectSkillRowIds: new Set(),
-  activeProjectSkillFilter: 'all',
-
-  // Overlay state
-  showSearch: false,
-  showHelp: false,
-
-  // Overlay states
-  confirmState: null,
-  formState: null,
-  conflictState: null,
-  focusedConflictIndex: 0,
-
-  // Sync tab form state
-  syncFormStep: 'select-op',
-  syncFormOperation: 'sync-agents',
-  syncFormSelectedSkillNames: new Set(),
-  syncFormUnsyncScope: null,
-  syncFormSelectedTargetIds: new Set(),
-  syncFormProjectUnsyncMode: null,
-  syncFormSelectedAgentTypes: new Set(),
-  syncFormLoadingTargets: false,
-  syncFormMode: 'copy',
-  syncFormResults: [],
-  syncFormFocusedIndex: 0,
-
-  // Import tab form state
-  importTabStep: 'select-source-type',
-  importTabSourceType: 'project',
-  importTabSourceId: null,
-  importTabSelectedSkillNames: new Set(),
-  importTabResults: [],
-  importTabFocusedIndex: 0,
-
-  // Update progress state
-  updateProgressItems: [],
-
-  // Completion modal state
-  completionModalOpen: null,
-
-  // Sprint 2: Command palette
-  showCommandPalette: false,
-
-  // Sprint 2: Search result navigation
-  searchResultIndex: 0,
-
-  // Sprint 2: Dirty form tab-switch confirmation
-  tabSwitchPending: null,
-  dirtyConfirmActive: false,
-
-  // Sprint 1: responsive layout state
-  detailOverlayVisible: false,
-  widthBand: 'standard' as 'compact' | 'standard' | 'widescreen' | 'warning',
-  formDirty: false,
-  breadcrumbSegments: [],
-
-  // Sprint 3: Undo state
-  undoBuffer: null,
-  undoActive: false,
-
-  // Sprint 3: Toast state
-  toastQueue: [],
-  activeToast: null,
+  shellState: {
+    activeTab: 'skills',
+    searchQuery: '',
+    detailOverlayVisible: false,
+    detailSkillName: null,
+    widthBand: 'standard',
+    formDirty: false,
+    showSearch: false,
+    showHelp: false,
+    showCommandPalette: false,
+    confirmState: null,
+    formState: null,
+    conflictState: null,
+    focusedConflictIndex: 0,
+    completionModalOpen: null,
+    searchResultIndex: 0,
+    tabSwitchPending: null,
+    dirtyConfirmActive: false,
+    undoBuffer: null,
+    undoActive: false,
+    toastQueue: [],
+    activeToast: null,
+    updateProgressItems: [],
+  },
+  skillsBrowserState: {
+    focusedIndex: 0,
+    selectedNames: new Set(),
+    activeCategoryFilter: ALL_SKILL_CATEGORY_FILTER,
+  },
+  agentsBrowserState: {
+    focusedIndex: 0,
+    viewMode: 'master',
+    focusedSkillIndex: 0,
+    selectedSkillRowIds: new Set(),
+    activeSkillFilter: 'all',
+  },
+  projectsBrowserState: {
+    focusedIndex: 0,
+    viewMode: 'master',
+    focusedSkillIndex: 0,
+    selectedSkillRowIds: new Set(),
+    activeSkillFilter: 'all',
+  },
+  syncWorkflowState: createInitialSyncWorkflowState(),
+  importWorkflowState: createInitialImportWorkflowState(),
 
   setActiveTab: (tab) =>
-    set({
-      activeTab: tab,
-      focusedSkillIndex: 0,
-      selectedSkillNames: new Set(),
-      // Reset agent/project focus when switching tabs
-      focusedAgentIndex: 0,
-      agentViewMode: 'master',
-      focusedAgentSkillIndex: 0,
-      selectedAgentSkillRowIds: new Set(),
-      activeAgentSkillFilter: 'all',
-      focusedProjectIndex: 0,
-      projectViewMode: 'master',
-      focusedProjectSkillIndex: 0,
-      selectedProjectSkillRowIds: new Set(),
-      activeProjectSkillFilter: 'all',
-      // Clear overlay states on tab switch
-      confirmState: null,
-      formState: null,
-      conflictState: null,
-      detailOverlayVisible: false,
-      detailSkillName: null,
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        activeTab: tab,
+        confirmState: null,
+        formState: null,
+        conflictState: null,
+        detailOverlayVisible: false,
+        detailSkillName: null,
+      },
+      skillsBrowserState: {
+        ...state.skillsBrowserState,
+        focusedIndex: 0,
+        selectedNames: new Set(),
+      },
+      agentsBrowserState: {
+        ...state.agentsBrowserState,
+        focusedIndex: 0,
+        viewMode: 'master',
+        focusedSkillIndex: 0,
+        selectedSkillRowIds: new Set(),
+        activeSkillFilter: 'all',
+      },
+      projectsBrowserState: {
+        ...state.projectsBrowserState,
+        focusedIndex: 0,
+        viewMode: 'master',
+        focusedSkillIndex: 0,
+        selectedSkillRowIds: new Set(),
+        activeSkillFilter: 'all',
+      },
+    })),
+  setFocusedSkillIndex: (index) =>
+    set((state) => ({
+      skillsBrowserState: { ...state.skillsBrowserState, focusedIndex: index },
+    })),
+  toggleSkillSelection: (name) =>
+    set((state) => {
+      const next = new Set(state.skillsBrowserState.selectedNames);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return {
+        skillsBrowserState: {
+          ...state.skillsBrowserState,
+          selectedNames: next,
+        },
+      };
     }),
-  setFocusedSkillIndex: (index) => set({ focusedSkillIndex: index }),
-  toggleSkillSelection: (name): void => {
-    const next = new Set(get().selectedSkillNames);
-    if (next.has(name)) next.delete(name);
-    else next.add(name);
-    set({ selectedSkillNames: next });
-  },
-  clearSelection: () => set({ selectedSkillNames: new Set() }),
-  selectAllSkills: (allNames) => set({ selectedSkillNames: new Set(allNames) }),
-  setSearchQuery: (query) => set({ searchQuery: query }),
-  setActiveSkillCategoryFilter: (filter): void => {
-    const skills = get().skills;
-    set({
-      activeSkillCategoryFilter: filter,
-      focusedSkillIndex: getClampedFocusedSkillIndex(skills, filter, get().focusedSkillIndex),
-      selectedSkillNames: new Set(),
-    });
-  },
-  cycleSkillCategoryFilter: (direction): void => {
-    const skills = get().skills;
-    const categories = getSkillCategoryCounts(skills).map((entry) => entry.key);
-    const nextFilter = resolveNextSkillCategoryFilter(
-      categories,
-      get().activeSkillCategoryFilter,
-      direction
-    );
+  clearSelection: () =>
+    set((state) => ({
+      skillsBrowserState: {
+        ...state.skillsBrowserState,
+        selectedNames: new Set(),
+      },
+    })),
+  selectAllSkills: (allNames) =>
+    set((state) => ({
+      skillsBrowserState: {
+        ...state.skillsBrowserState,
+        selectedNames: new Set(allNames),
+      },
+    })),
+  setSearchQuery: (query) =>
+    set((state) => ({
+      shellState: { ...state.shellState, searchQuery: query },
+    })),
+  setActiveSkillCategoryFilter: (filter) =>
+    set((state) => ({
+      skillsBrowserState: {
+        ...state.skillsBrowserState,
+        activeCategoryFilter: filter,
+        focusedIndex: getClampedFocusedSkillIndex(
+          state.skills,
+          filter,
+          state.skillsBrowserState.focusedIndex
+        ),
+        selectedNames: new Set(),
+      },
+    })),
+  cycleSkillCategoryFilter: (direction) =>
+    set((state) => {
+      const categories = getSkillCategoryCounts(state.skills).map((entry) => entry.key);
+      const nextFilter = resolveNextSkillCategoryFilter(
+        categories,
+        state.skillsBrowserState.activeCategoryFilter,
+        direction
+      );
+      return {
+        skillsBrowserState: {
+          ...state.skillsBrowserState,
+          activeCategoryFilter: nextFilter,
+          focusedIndex: getClampedFocusedSkillIndex(
+            state.skills,
+            nextFilter,
+            state.skillsBrowserState.focusedIndex
+          ),
+          selectedNames: new Set(),
+        },
+      };
+    }),
+  moveFocusUp: () =>
+    set((state) => {
+      const visibleIndices = getVisibleSkillIndices(
+        state.skills,
+        state.skillsBrowserState.activeCategoryFilter
+      );
+      if (visibleIndices.length === 0) return {};
+      const currentVisibleIndex = visibleIndices.indexOf(
+        getClampedFocusedSkillIndex(
+          state.skills,
+          state.skillsBrowserState.activeCategoryFilter,
+          state.skillsBrowserState.focusedIndex
+        )
+      );
+      if (currentVisibleIndex <= 0) return {};
+      return {
+        skillsBrowserState: {
+          ...state.skillsBrowserState,
+          focusedIndex: visibleIndices[currentVisibleIndex - 1],
+        },
+      };
+    }),
+  moveFocusDown: () =>
+    set((state) => {
+      const visibleIndices = getVisibleSkillIndices(
+        state.skills,
+        state.skillsBrowserState.activeCategoryFilter
+      );
+      if (visibleIndices.length === 0) return {};
+      const currentVisibleIndex = visibleIndices.indexOf(
+        getClampedFocusedSkillIndex(
+          state.skills,
+          state.skillsBrowserState.activeCategoryFilter,
+          state.skillsBrowserState.focusedIndex
+        )
+      );
+      if (currentVisibleIndex >= visibleIndices.length - 1) return {};
+      return {
+        skillsBrowserState: {
+          ...state.skillsBrowserState,
+          focusedIndex: visibleIndices[currentVisibleIndex + 1],
+        },
+      };
+    }),
 
-    set({
-      activeSkillCategoryFilter: nextFilter,
-      focusedSkillIndex: getClampedFocusedSkillIndex(skills, nextFilter, get().focusedSkillIndex),
-      selectedSkillNames: new Set(),
-    });
-  },
-  moveFocusUp: (): void => {
-    const visibleIndices = getVisibleSkillIndices(get().skills, get().activeSkillCategoryFilter);
-    if (visibleIndices.length === 0) return;
-
-    const currentVisibleIndex = visibleIndices.indexOf(
-      getClampedFocusedSkillIndex(
-        get().skills,
-        get().activeSkillCategoryFilter,
-        get().focusedSkillIndex
-      )
-    );
-    if (currentVisibleIndex > 0) {
-      set({ focusedSkillIndex: visibleIndices[currentVisibleIndex - 1] });
-    }
-  },
-  moveFocusDown: (_listLength): void => {
-    const visibleIndices = getVisibleSkillIndices(get().skills, get().activeSkillCategoryFilter);
-    if (visibleIndices.length === 0) return;
-
-    const currentVisibleIndex = visibleIndices.indexOf(
-      getClampedFocusedSkillIndex(
-        get().skills,
-        get().activeSkillCategoryFilter,
-        get().focusedSkillIndex
-      )
-    );
-    if (currentVisibleIndex < visibleIndices.length - 1) {
-      set({ focusedSkillIndex: visibleIndices[currentVisibleIndex + 1] });
-    }
-  },
-
-  // Agent actions
-  setFocusedAgentIndex: (index) => set({ focusedAgentIndex: index }),
-  setAgentViewMode: (mode) => set({ agentViewMode: mode }),
-  setFocusedAgentSkillIndex: (index) => set({ focusedAgentSkillIndex: index }),
-  toggleAgentSkillSelection: (rowId): void => {
-    const next = new Set(get().selectedAgentSkillRowIds);
-    if (next.has(rowId)) next.delete(rowId);
-    else next.add(rowId);
-    set({ selectedAgentSkillRowIds: next });
-  },
-  clearAgentSkillSelection: () => set({ selectedAgentSkillRowIds: new Set() }),
+  setFocusedAgentIndex: (index) =>
+    set((state) => ({
+      agentsBrowserState: { ...state.agentsBrowserState, focusedIndex: index },
+    })),
+  setAgentViewMode: (mode) =>
+    set((state) => ({
+      agentsBrowserState: { ...state.agentsBrowserState, viewMode: mode },
+    })),
+  setFocusedAgentSkillIndex: (index) =>
+    set((state) => ({
+      agentsBrowserState: { ...state.agentsBrowserState, focusedSkillIndex: index },
+    })),
+  toggleAgentSkillSelection: (rowId) =>
+    set((state) => {
+      const next = new Set(state.agentsBrowserState.selectedSkillRowIds);
+      if (next.has(rowId)) next.delete(rowId);
+      else next.add(rowId);
+      return {
+        agentsBrowserState: {
+          ...state.agentsBrowserState,
+          selectedSkillRowIds: next,
+        },
+      };
+    }),
+  clearAgentSkillSelection: () =>
+    set((state) => ({
+      agentsBrowserState: {
+        ...state.agentsBrowserState,
+        selectedSkillRowIds: new Set(),
+      },
+    })),
   setActiveAgentSkillFilter: (filter) =>
-    set({
-      activeAgentSkillFilter: filter,
-      focusedAgentSkillIndex: 0,
-      selectedAgentSkillRowIds: new Set(),
-    }),
+    set((state) => ({
+      agentsBrowserState: {
+        ...state.agentsBrowserState,
+        activeSkillFilter: filter,
+        focusedSkillIndex: 0,
+        selectedSkillRowIds: new Set(),
+      },
+    })),
 
-  // Project actions
-  setFocusedProjectIndex: (index) => set({ focusedProjectIndex: index }),
-  setProjectViewMode: (mode) => set({ projectViewMode: mode }),
-  setFocusedProjectSkillIndex: (index) => set({ focusedProjectSkillIndex: index }),
-  toggleProjectSkillSelection: (rowId): void => {
-    const next = new Set(get().selectedProjectSkillRowIds);
-    if (next.has(rowId)) next.delete(rowId);
-    else next.add(rowId);
-    set({ selectedProjectSkillRowIds: next });
-  },
-  clearProjectSkillSelection: () => set({ selectedProjectSkillRowIds: new Set() }),
+  setFocusedProjectIndex: (index) =>
+    set((state) => ({
+      projectsBrowserState: { ...state.projectsBrowserState, focusedIndex: index },
+    })),
+  setProjectViewMode: (mode) =>
+    set((state) => ({
+      projectsBrowserState: { ...state.projectsBrowserState, viewMode: mode },
+    })),
+  setFocusedProjectSkillIndex: (index) =>
+    set((state) => ({
+      projectsBrowserState: { ...state.projectsBrowserState, focusedSkillIndex: index },
+    })),
+  toggleProjectSkillSelection: (rowId) =>
+    set((state) => {
+      const next = new Set(state.projectsBrowserState.selectedSkillRowIds);
+      if (next.has(rowId)) next.delete(rowId);
+      else next.add(rowId);
+      return {
+        projectsBrowserState: {
+          ...state.projectsBrowserState,
+          selectedSkillRowIds: next,
+        },
+      };
+    }),
+  clearProjectSkillSelection: () =>
+    set((state) => ({
+      projectsBrowserState: {
+        ...state.projectsBrowserState,
+        selectedSkillRowIds: new Set(),
+      },
+    })),
   setActiveProjectSkillFilter: (filter) =>
-    set({
-      activeProjectSkillFilter: filter,
-      focusedProjectSkillIndex: 0,
-      selectedProjectSkillRowIds: new Set(),
-    }),
+    set((state) => ({
+      projectsBrowserState: {
+        ...state.projectsBrowserState,
+        activeSkillFilter: filter,
+        focusedSkillIndex: 0,
+        selectedSkillRowIds: new Set(),
+      },
+    })),
 
-  // Overlay actions (mutually exclusive with each other)
   setShowSearch: (show) =>
-    set({
-      showSearch: show,
-      showHelp: false,
-      showCommandPalette: false,
-      searchQuery: show ? '' : get().searchQuery,
-      searchResultIndex: show ? 0 : get().searchResultIndex,
-    }),
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        showSearch: show,
+        showHelp: false,
+        showCommandPalette: false,
+        searchQuery: show ? '' : state.shellState.searchQuery,
+        searchResultIndex: show ? 0 : state.shellState.searchResultIndex,
+      },
+    })),
   setShowHelp: (show) =>
-    set({
-      showHelp: show,
-      showSearch: false,
-      showCommandPalette: false,
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        showHelp: show,
+        showSearch: false,
+        showCommandPalette: false,
+      },
+    })),
+  setConfirmState: (confirmState) =>
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        confirmState,
+        formState: null,
+        conflictState: null,
+      },
+    })),
+  setFormState: (formState) =>
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        formState,
+        confirmState: null,
+        conflictState: null,
+      },
+    })),
+  setConflictState: (conflictState) =>
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        conflictState,
+      },
+    })),
+  setFocusedConflictIndex: (index) =>
+    set((state) => ({
+      shellState: { ...state.shellState, focusedConflictIndex: index },
+    })),
+
+  setSyncFormStep: (step) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, step },
+    })),
+  setSyncFormOperation: (operation) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, operation },
+    })),
+  setSyncFormSelectedSkillNames: (selectedSkillNames) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, selectedSkillNames },
+    })),
+  toggleSyncFormSkill: (name) =>
+    set((state) => {
+      const next = new Set(state.syncWorkflowState.selectedSkillNames);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return {
+        syncWorkflowState: {
+          ...state.syncWorkflowState,
+          selectedSkillNames: next,
+        },
+      };
     }),
-
-  // Overlay state actions (mutually exclusive: setting one clears the others)
-  setConfirmState: (state) => set({ confirmState: state, formState: null, conflictState: null }),
-  setFormState: (state) => set({ formState: state, confirmState: null, conflictState: null }),
-  setConflictState: (state) => set({ conflictState: state }),
-  setFocusedConflictIndex: (index) => set({ focusedConflictIndex: index }),
-
-  // Sync form actions
-  setSyncFormStep: (step) => set({ syncFormStep: step }),
-  setSyncFormOperation: (op) => set({ syncFormOperation: op }),
-  setSyncFormSelectedSkillNames: (names) => set({ syncFormSelectedSkillNames: names }),
-  toggleSyncFormSkill: (name): void => {
-    const next = new Set(get().syncFormSelectedSkillNames);
-    if (next.has(name)) next.delete(name);
-    else next.add(name);
-    set({ syncFormSelectedSkillNames: next });
-  },
-  setSyncFormUnsyncScope: (scope) => set({ syncFormUnsyncScope: scope }),
-  setSyncFormSelectedTargetIds: (ids) => set({ syncFormSelectedTargetIds: ids }),
-  toggleSyncFormTarget: (id): void => {
-    const next = new Set(get().syncFormSelectedTargetIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    set({ syncFormSelectedTargetIds: next });
-  },
-  setSyncFormProjectUnsyncMode: (mode) => set({ syncFormProjectUnsyncMode: mode }),
-  setSyncFormSelectedAgentTypes: (types) => set({ syncFormSelectedAgentTypes: types }),
-  toggleSyncFormAgentType: (type): void => {
-    const next = new Set(get().syncFormSelectedAgentTypes);
-    if (next.has(type)) next.delete(type);
-    else next.add(type);
-    set({ syncFormSelectedAgentTypes: next });
-  },
-  setSyncFormLoadingTargets: (loading) => set({ syncFormLoadingTargets: loading }),
-  setSyncFormMode: (mode) => set({ syncFormMode: mode }),
-  setSyncFormResults: (results) => set({ syncFormResults: results }),
-  setSyncFormFocusedIndex: (index) => set({ syncFormFocusedIndex: index }),
-  resetSyncForm: () =>
-    set({
-      syncFormStep: 'select-op',
-      syncFormOperation: 'sync-agents',
-      syncFormSelectedSkillNames: new Set(),
-      syncFormUnsyncScope: null,
-      syncFormSelectedTargetIds: new Set(),
-      syncFormProjectUnsyncMode: null,
-      syncFormSelectedAgentTypes: new Set(),
-      syncFormLoadingTargets: false,
-      syncFormMode: 'copy' as SyncMode,
-      syncFormResults: [],
-      syncFormFocusedIndex: 0,
+  setSyncFormUnsyncScope: (unsyncScope) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, unsyncScope },
+    })),
+  setSyncFormSelectedTargetIds: (selectedTargetIds) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, selectedTargetIds },
+    })),
+  toggleSyncFormTarget: (id) =>
+    set((state) => {
+      const next = new Set(state.syncWorkflowState.selectedTargetIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return {
+        syncWorkflowState: {
+          ...state.syncWorkflowState,
+          selectedTargetIds: next,
+        },
+      };
     }),
-
-  // Import tab form actions
-  setImportTabStep: (step) => set({ importTabStep: step }),
-  setImportTabSourceType: (type) => set({ importTabSourceType: type }),
-  setImportTabSourceId: (id) => set({ importTabSourceId: id }),
-  setImportTabSelectedSkillNames: (names) => set({ importTabSelectedSkillNames: names }),
-  toggleImportTabSkill: (name): void => {
-    const next = new Set(get().importTabSelectedSkillNames);
-    if (next.has(name)) next.delete(name);
-    else next.add(name);
-    set({ importTabSelectedSkillNames: next });
-  },
-  setImportTabResults: (results) => set({ importTabResults: results }),
-  setImportTabFocusedIndex: (index) => set({ importTabFocusedIndex: index }),
-  resetImportTab: () =>
-    set({
-      importTabStep: 'select-source-type',
-      importTabSourceType: 'project',
-      importTabSourceId: null,
-      importTabSelectedSkillNames: new Set(),
-      importTabResults: [],
-      importTabFocusedIndex: 0,
+  setSyncFormProjectUnsyncMode: (projectUnsyncMode) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, projectUnsyncMode },
+    })),
+  setSyncFormSelectedAgentTypes: (selectedAgentTypes) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, selectedAgentTypes },
+    })),
+  toggleSyncFormAgentType: (type) =>
+    set((state) => {
+      const next = new Set(state.syncWorkflowState.selectedAgentTypes);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return {
+        syncWorkflowState: {
+          ...state.syncWorkflowState,
+          selectedAgentTypes: next,
+        },
+      };
     }),
+  setSyncFormLoadingTargets: (loadingTargets) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, loadingTargets },
+    })),
+  setSyncFormMode: (mode) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, mode },
+    })),
+  setSyncFormResults: (results) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, results },
+    })),
+  setSyncFormFocusedIndex: (focusedIndex) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, focusedIndex },
+    })),
+  setSyncWorkflowPreview: (preview, previewError = null) =>
+    set((state) => ({
+      syncWorkflowState: { ...state.syncWorkflowState, preview, previewError },
+    })),
+  resetSyncForm: () => set({ syncWorkflowState: createInitialSyncWorkflowState() }),
 
-  // Update progress actions
-  setUpdateProgressItems: (items) => set({ updateProgressItems: items }),
-  updateProgressItem: (id, update): void => {
-    set({
-      updateProgressItems: get().updateProgressItems.map((item) =>
-        item.id === id ? { ...item, ...update } : item
-      ),
-    });
-  },
-
-  setCompletionModalOpen: (open) => set({ completionModalOpen: open }),
-
-  // Sprint 2: Command palette -- clears all other overlays for mutual exclusivity
-  setShowCommandPalette: (show) =>
-    set({
-      showCommandPalette: show,
-      showSearch: false,
-      showHelp: false,
-      confirmState: null,
-      formState: null,
-      conflictState: null,
+  setImportTabStep: (step) =>
+    set((state) => ({
+      importWorkflowState: { ...state.importWorkflowState, step },
+    })),
+  setImportTabSourceType: (sourceType) =>
+    set((state) => ({
+      importWorkflowState: { ...state.importWorkflowState, sourceType },
+    })),
+  setImportTabSourceId: (sourceId) =>
+    set((state) => ({
+      importWorkflowState: { ...state.importWorkflowState, sourceId },
+    })),
+  setImportTabSourceLabel: (sourceLabel) =>
+    set((state) => ({
+      importWorkflowState: { ...state.importWorkflowState, sourceLabel },
+    })),
+  setImportTabSelectedSkillNames: (selectedSkillNames) =>
+    set((state) => ({
+      importWorkflowState: { ...state.importWorkflowState, selectedSkillNames },
+    })),
+  toggleImportTabSkill: (name) =>
+    set((state) => {
+      const next = new Set(state.importWorkflowState.selectedSkillNames);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return {
+        importWorkflowState: {
+          ...state.importWorkflowState,
+          selectedSkillNames: next,
+        },
+      };
     }),
+  setImportTabResults: (results) =>
+    set((state) => ({
+      importWorkflowState: { ...state.importWorkflowState, results },
+    })),
+  setImportTabFocusedIndex: (focusedIndex) =>
+    set((state) => ({
+      importWorkflowState: { ...state.importWorkflowState, focusedIndex },
+    })),
+  setImportDiscoveredSkills: (discoveredSkills) =>
+    set((state) => ({
+      importWorkflowState: { ...state.importWorkflowState, discoveredSkills },
+    })),
+  resetImportTab: () => set({ importWorkflowState: createInitialImportWorkflowState() }),
 
-  // Sprint 2: Search result navigation
-  setSearchResultIndex: (index) => set({ searchResultIndex: index }),
-
-  // Sprint 2: Dirty form tab-switch confirmation
-  setTabSwitchPending: (tab) => set({ tabSwitchPending: tab }),
-  setDirtyConfirmActive: (active) => set({ dirtyConfirmActive: active }),
-
-  setDetailOverlayVisible: (visible): void =>
-    set({
-      detailOverlayVisible: visible,
-      detailSkillName: visible ? get().detailSkillName : null,
-    }),
-  setDetailSkillName: (skillName): void => set({ detailSkillName: skillName }),
-
-  setWidthBand: (band): void => {
-    const updates: {
-      widthBand: 'compact' | 'standard' | 'widescreen' | 'warning';
-      detailOverlayVisible?: boolean;
-      detailSkillName?: string | null;
-    } = {
-      widthBand: band,
-    };
-    // Detail overlay cannot persist at compact or warning widths
-    if (band === 'compact' || band === 'warning') {
-      updates.detailOverlayVisible = false;
-      updates.detailSkillName = null;
-    }
-    // In widescreen, detail is always shown inline in split-pane; clear overlay
-    if (band === 'widescreen') {
-      updates.detailOverlayVisible = false;
-      updates.detailSkillName = null;
-    }
-    set(updates);
-  },
-
-  setFormDirty: (dirty) => set({ formDirty: dirty }),
+  setUpdateProgressItems: (updateProgressItems) =>
+    set((state) => ({
+      shellState: { ...state.shellState, updateProgressItems },
+    })),
+  updateProgressItem: (id, update) =>
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        updateProgressItems: state.shellState.updateProgressItems.map((item) =>
+          item.id === id ? { ...item, ...update } : item
+        ),
+      },
+    })),
+  setCompletionModalOpen: (completionModalOpen) =>
+    set((state) => ({
+      shellState: { ...state.shellState, completionModalOpen },
+    })),
+  setShowCommandPalette: (showCommandPalette) =>
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        showCommandPalette,
+        showSearch: false,
+        showHelp: false,
+        confirmState: null,
+        formState: null,
+        conflictState: null,
+      },
+    })),
+  setSearchResultIndex: (searchResultIndex) =>
+    set((state) => ({
+      shellState: { ...state.shellState, searchResultIndex },
+    })),
+  setTabSwitchPending: (tabSwitchPending) =>
+    set((state) => ({
+      shellState: { ...state.shellState, tabSwitchPending },
+    })),
+  setDirtyConfirmActive: (dirtyConfirmActive) =>
+    set((state) => ({
+      shellState: { ...state.shellState, dirtyConfirmActive },
+    })),
+  setDetailOverlayVisible: (detailOverlayVisible) =>
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        detailOverlayVisible,
+        detailSkillName: detailOverlayVisible ? state.shellState.detailSkillName : null,
+      },
+    })),
+  setDetailSkillName: (detailSkillName) =>
+    set((state) => ({
+      shellState: { ...state.shellState, detailSkillName },
+    })),
+  setWidthBand: (widthBand) =>
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        widthBand,
+        detailOverlayVisible:
+          widthBand === 'compact' || widthBand === 'warning' || widthBand === 'widescreen'
+            ? false
+            : state.shellState.detailOverlayVisible,
+        detailSkillName:
+          widthBand === 'compact' || widthBand === 'warning' || widthBand === 'widescreen'
+            ? null
+            : state.shellState.detailSkillName,
+      },
+    })),
+  setFormDirty: (formDirty) =>
+    set((state) => ({
+      shellState: { ...state.shellState, formDirty },
+    })),
 
   pushUndo: (action, snapshot): void => {
-    // Clear any existing undo timer
     if (undoTickTimer !== null) {
       clearInterval(undoTickTimer);
       undoTickTimer = null;
@@ -685,11 +848,16 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
       timestamp: Date.now(),
       remainingMs: UNDO_WINDOW_MS,
     };
-    set({ undoBuffer: buffer, undoActive: true });
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        undoBuffer: buffer,
+        undoActive: true,
+      },
+    }));
 
-    // Start 250ms tick to decrement remainingMs
     undoTickTimer = setInterval(() => {
-      const current = get().undoBuffer;
+      const current = get().shellState.undoBuffer;
       if (!current) {
         if (undoTickTimer !== null) {
           clearInterval(undoTickTimer);
@@ -697,35 +865,42 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
         }
         return;
       }
+
       const updated = current.remainingMs - UNDO_TICK_MS;
       if (updated <= 0) {
-        // Auto-expire
         if (undoTickTimer !== null) {
           clearInterval(undoTickTimer);
           undoTickTimer = null;
         }
-        set({ undoBuffer: null, undoActive: false });
+        set((state) => ({
+          shellState: {
+            ...state.shellState,
+            undoBuffer: null,
+            undoActive: false,
+          },
+        }));
         return;
       }
-      set({ undoBuffer: { ...current, remainingMs: updated } });
+
+      set((state) => ({
+        shellState: {
+          ...state.shellState,
+          undoBuffer: { ...current, remainingMs: updated },
+        },
+      }));
     }, UNDO_TICK_MS);
   },
-
   executeUndo: (): void => {
-    const buffer = get().undoBuffer;
+    const buffer = get().shellState.undoBuffer;
     if (!buffer) return;
 
-    // Stop the undo timer
     if (undoTickTimer !== null) {
       clearInterval(undoTickTimer);
       undoTickTimer = null;
     }
 
-    // The actual restore is delegated to action creators (restoreSkill, restoreAgent, restoreProject)
-    // which are bound via Object.assign. executeUndo dispatches to them.
     const state = get() as StoreState;
     const snapshot = buffer.snapshot as Record<string, unknown>;
-
     if (buffer.action === 'delete-skill' && typeof state.restoreSkill === 'function') {
       state.restoreSkill(snapshot);
     } else if (buffer.action === 'remove-agent' && typeof state.restoreAgent === 'function') {
@@ -734,25 +909,29 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
       state.restoreProject(snapshot);
     }
 
-    // Push success toast
-    const name =
-      (snapshot as Record<string, unknown>).name ||
-      (snapshot as Record<string, unknown>).id ||
-      'item';
+    const name = snapshot.name || snapshot.id || 'item';
     state.pushToast(`Restored '${String(name)}'`, 'success');
-
-    // Clear undo buffer
-    set({ undoBuffer: null, undoActive: false });
+    set((current) => ({
+      shellState: {
+        ...current.shellState,
+        undoBuffer: null,
+        undoActive: false,
+      },
+    }));
   },
-
   clearUndo: (): void => {
     if (undoTickTimer !== null) {
       clearInterval(undoTickTimer);
       undoTickTimer = null;
     }
-    set({ undoBuffer: null, undoActive: false });
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        undoBuffer: null,
+        undoActive: false,
+      },
+    }));
   },
-
   pushToast: (message, variant): void => {
     const toast: Toast = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
@@ -761,29 +940,43 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
       expiresAt: Date.now() + TOAST_DURATION_MS,
     };
 
-    const current = get();
+    const current = get().shellState;
     if (!current.activeToast) {
-      set({ activeToast: toast });
+      set((state) => ({
+        shellState: { ...state.shellState, activeToast: toast },
+      }));
     } else {
-      set({ toastQueue: [...current.toastQueue, toast] });
+      set((state) => ({
+        shellState: {
+          ...state.shellState,
+          toastQueue: [...state.shellState.toastQueue, toast],
+        },
+      }));
     }
 
-    // Ensure the toast auto-dismiss timer is running
     if (toastTickTimer === null) {
       toastTickTimer = setInterval(() => {
-        const s = get();
-        if (!s.activeToast) {
+        const shellState = get().shellState;
+        if (!shellState.activeToast) {
           if (toastTickTimer !== null) {
             clearInterval(toastTickTimer);
             toastTickTimer = null;
           }
           return;
         }
-        if (Date.now() >= s.activeToast.expiresAt) {
-          // Dismiss active, promote next
-          const next = s.toastQueue.length > 0 ? s.toastQueue.slice(1) : [];
-          const nextToast = s.toastQueue.length > 0 ? s.toastQueue[0] : null;
-          set({ activeToast: nextToast, toastQueue: next });
+
+        if (Date.now() >= shellState.activeToast.expiresAt) {
+          const nextToast = shellState.toastQueue.length > 0 ? shellState.toastQueue[0] : null;
+          const nextQueue =
+            shellState.toastQueue.length > 0 ? shellState.toastQueue.slice(1) : [];
+          set((state) => ({
+            shellState: {
+              ...state.shellState,
+              activeToast: nextToast,
+              toastQueue: nextQueue,
+            },
+          }));
+
           if (!nextToast && toastTickTimer !== null) {
             clearInterval(toastTickTimer);
             toastTickTimer = null;
@@ -792,12 +985,17 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
       }, TOAST_TICK_MS);
     }
   },
-
   dismissActiveToast: (): void => {
-    const current = get();
-    const next = current.toastQueue.length > 0 ? current.toastQueue.slice(1) : [];
-    const nextToast = current.toastQueue.length > 0 ? current.toastQueue[0] : null;
-    set({ activeToast: nextToast, toastQueue: next });
+    const shellState = get().shellState;
+    const nextToast = shellState.toastQueue.length > 0 ? shellState.toastQueue[0] : null;
+    const nextQueue = shellState.toastQueue.length > 0 ? shellState.toastQueue.slice(1) : [];
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        activeToast: nextToast,
+        toastQueue: nextQueue,
+      },
+    }));
     if (!nextToast && toastTickTimer !== null) {
       clearInterval(toastTickTimer);
       toastTickTimer = null;

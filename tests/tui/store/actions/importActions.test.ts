@@ -2,22 +2,30 @@
  * importActions.test.ts -- behavioral tests for import action creators
  */
 
+import path from 'path';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createImportActions } from '../../../../src/tui/store/actions/importActions.js';
-import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
 import { createAppStore } from '../../../../src/tui/store/index.js';
+import { withLegacyUiState } from '../../helpers/legacyUiState.js';
 
-import { createMockServiceContext, createMockAgent, createMockProject } from './mockContext.js';
+import {
+  createMockServiceContext,
+  createMockAgent,
+  createMockProject,
+  type MockWorkbenchContext,
+} from './mockContext.js';
 
 describe('createImportActions', () => {
-  let mockCtx: ServiceContext;
+  let mockCtx: MockWorkbenchContext;
   let store: ReturnType<typeof createAppStore>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockCtx = createMockServiceContext();
     store = createAppStore(mockCtx);
+    withLegacyUiState(store.getState() as unknown as Record<string, unknown>);
   });
 
   describe('scanProjectSkills', () => {
@@ -229,7 +237,7 @@ describe('createImportActions', () => {
 
       await actions.importFromProject('proj1', []);
 
-      expect(store.getState().formState).toBeNull();
+      expect(store.getState().shellState.formState).toBeNull();
     });
 
     it('calls detectConflicts when sameContent is true', async () => {
@@ -276,14 +284,20 @@ describe('createImportActions', () => {
 
       expect(mockCtx.skillService.importFromPath).toHaveBeenCalledTimes(2);
       expect(mockCtx.skillService.importFromPath).toHaveBeenCalledWith(
-        '/test/.claude/skill1',
+        path.join('/test/.claude', 'skill1'),
         'skill1',
-        { type: 'local', importedFrom: { agent: 'claude', path: '/test/.claude/skill1' } }
+        {
+          type: 'local',
+          importedFrom: { agent: 'claude', path: path.join('/test/.claude', 'skill1') },
+        }
       );
       expect(mockCtx.skillService.importFromPath).toHaveBeenCalledWith(
-        '/test/.claude/skill2',
+        path.join('/test/.claude', 'skill2'),
         'skill2',
-        { type: 'local', importedFrom: { agent: 'claude', path: '/test/.claude/skill2' } }
+        {
+          type: 'local',
+          importedFrom: { agent: 'claude', path: path.join('/test/.claude', 'skill2') },
+        }
       );
     });
 
@@ -301,7 +315,7 @@ describe('createImportActions', () => {
 
       await actions.importFromAgent('claude', ['skill1']);
 
-      expect(store.getState().formState).toBeNull();
+      expect(store.getState().shellState.formState).toBeNull();
     });
 
     it('triggers conflict detection for last imported skill', async () => {
@@ -329,11 +343,11 @@ describe('createImportActions', () => {
       vi.mocked(mockCtx.skillService.exists).mockReturnValue(false);
       vi.mocked(mockCtx.skillService.importFromPath).mockResolvedValue();
       vi.mocked(mockCtx.syncCheck.detectConflicts).mockReturnValue([]);
-      vi.mocked(mockCtx.skillService.list).mockReturnValue([]);
+      vi.mocked(mockCtx.storage.listSkills).mockReturnValue([]);
 
       await actions.importFromAgent('claude', ['skill1']);
 
-      expect(mockCtx.skillService.list).toHaveBeenCalled();
+      expect(mockCtx.storage.listSkills).toHaveBeenCalled();
     });
   });
 });

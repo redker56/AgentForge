@@ -94,7 +94,7 @@ function validate(formType: string, data: Record<string, string>): Record<string
 }
 
 export function AddForm({ store }: AddFormProps): React.ReactElement {
-  const formState = useStore(store, s => s.formState);
+  const formState = useStore(store, s => s.shellState.formState);
   const [phase, setPhase] = useState<FormPhase>('input');
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -123,7 +123,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
     if (phase === 'discover') {
       const state = store.getState();
       const discovered: Array<{ name: string; subPath: string }> = JSON.parse(
-        state.formState?.data.discoveredSkills || '[]'
+        state.shellState.formState?.data.discoveredSkills || '[]'
       );
 
       if (key.upArrow) {
@@ -196,7 +196,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
     if (formType === 'addSkill') {
       state.addSkillFromUrl(fieldValues.url || '', fieldValues.name || undefined).then(() => {
         const currentState = store.getState();
-        if (currentState.formState?.data.phase !== 'discover') {
+        if (currentState.shellState.formState?.data.phase !== 'discover') {
           setPhase('result');
         }
       }).catch((e: unknown) => {
@@ -231,10 +231,10 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
   const handleDiscoverSubmit = useCallback(() => {
     const state = store.getState();
     const discovered: Array<{ name: string; subPath: string }> = JSON.parse(
-      state.formState?.data.discoveredSkills || '[]'
+      state.shellState.formState?.data.discoveredSkills || '[]'
     );
-    const tempRepoPath = state.formState?.data.tempRepoPath || '';
-    const url = state.formState?.data.url || '';
+    const tempRepoPath = state.shellState.formState?.data.tempRepoPath || '';
+    const url = state.shellState.formState?.data.url || '';
 
     const selected = discovered.filter((_: unknown, i: number) => selectedDiscover.has(i));
     if (selected.length === 0) {
@@ -378,7 +378,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
       {phase === 'discover' && ((): React.ReactElement => {
         const state = store.getState();
         const discovered: Array<{ name: string; subPath: string }> = JSON.parse(
-          state.formState?.data.discoveredSkills || '[]'
+          state.shellState.formState?.data.discoveredSkills || '[]'
         );
         return (
           <>

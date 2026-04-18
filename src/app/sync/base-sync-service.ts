@@ -14,7 +14,7 @@
  */
 
 import { files } from '../../infra/files.js';
-import { Storage } from '../../infra/storage.js';
+import type { RegistryRepository } from '../../infra/registry-repository.js';
 import type { SyncMode } from '../../types.js';
 
 export interface SyncResult {
@@ -34,7 +34,7 @@ export interface SyncCheckResult {
 }
 
 export abstract class BaseSyncService<TTarget, TRecord> {
-  constructor(protected readonly storage: Storage) {}
+  constructor(protected readonly storage: RegistryRepository) {}
 
   // ========== Abstract methods ==========
 

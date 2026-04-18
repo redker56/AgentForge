@@ -22,7 +22,7 @@ function truncateText(text: string, maxWidth = 52): string {
 }
 
 export function ConfirmModal({ store }: ConfirmModalProps): React.ReactElement {
-  const confirmState = useStore(store, s => s.confirmState);
+  const confirmState = useStore(store, s => s.shellState.confirmState);
 
   if (!confirmState) return <></>;
 

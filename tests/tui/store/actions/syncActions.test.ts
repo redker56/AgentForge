@@ -2,6 +2,8 @@
  * syncActions.test.ts -- behavioral tests for sync action creators
  */
 
+import path from 'path';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -9,25 +11,45 @@ import {
   doImportFromProject,
   doImportFromAgent,
 } from '../../../../src/tui/store/actions/syncActions.js';
-import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
 import { createAppStore } from '../../../../src/tui/store/index.js';
+import { withLegacyUiState } from '../../helpers/legacyUiState.js';
 
 import {
   createMockServiceContext,
   createMockSkill,
   createMockAgent,
   createMockProject,
+  createMockSyncResult,
+  type MockWorkbenchContext,
 } from './mockContext.js';
 
 describe('createSyncActions', () => {
-  let mockCtx: ServiceContext;
+  let mockCtx: MockWorkbenchContext;
   let store: ReturnType<typeof createAppStore>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockCtx = createMockServiceContext();
     store = createAppStore(mockCtx);
+    withLegacyUiState(store.getState() as unknown as Record<string, unknown>);
   });
+
+  async function refreshSkills(skills: Array<ReturnType<typeof createMockSkill>>): Promise<void> {
+    vi.mocked(mockCtx.storage.listSkills).mockReturnValue(skills);
+    await store.getState().refreshSkills();
+  }
+
+  async function loadSkillDetails(
+    skills: Array<ReturnType<typeof createMockSkill>>
+  ): Promise<void> {
+    const skillMap = new Map(skills.map((skill) => [skill.name, skill]));
+    vi.mocked(mockCtx.storage.getSkill).mockImplementation((skillName: string) =>
+      skillMap.get(skillName)
+    );
+    for (const skill of skills) {
+      await store.getState().loadSkillDetail(skill.name);
+    }
+  }
 
   describe('syncSkillsToAgents', () => {
     it('calls syncService.sync for each skill-agent pair with correct mode', async () => {
@@ -35,7 +57,9 @@ describe('createSyncActions', () => {
       const mockAgent = createMockAgent({ id: 'claude', name: 'Claude' });
 
       vi.mocked(mockCtx.storage.getAgent).mockReturnValue(mockAgent);
-      vi.mocked(mockCtx.syncService.sync).mockResolvedValue([]);
+      vi.mocked(mockCtx.syncService.sync).mockResolvedValue([
+        createMockSyncResult('claude', true),
+      ]);
 
       await actions.syncSkillsToAgents(['skill1'], ['claude'], 'copy');
 
@@ -57,9 +81,9 @@ describe('createSyncActions', () => {
 
       // After action starts, step should be executing
       const stateDuring = store.getState();
-      expect(stateDuring.syncFormStep).toBe('executing');
-      expect(stateDuring.updateProgressItems).toHaveLength(2);
-      expect(stateDuring.updateProgressItems[0].id).toBe('sync-skill1-claude');
+      expect(stateDuring.syncWorkflowState.step).toBe('executing');
+      expect(stateDuring.shellState.updateProgressItems).toHaveLength(2);
+      expect(stateDuring.shellState.updateProgressItems[0].id).toBe('sync-skill1-claude');
 
       await promise;
     });
@@ -69,14 +93,16 @@ describe('createSyncActions', () => {
       const mockAgent = createMockAgent({ id: 'claude', name: 'Claude' });
 
       vi.mocked(mockCtx.storage.getAgent).mockReturnValue(mockAgent);
-      vi.mocked(mockCtx.syncService.sync).mockResolvedValue([]);
+      vi.mocked(mockCtx.syncService.sync).mockResolvedValue([
+        createMockSyncResult('claude', true),
+      ]);
 
       await actions.syncSkillsToAgents(['skill1'], ['claude'], 'copy');
 
       const state = store.getState();
-      expect(state.activeToast).not.toBeNull();
-      expect(state.activeToast?.message).toContain('synced');
-      expect(state.activeToast?.variant).toBe('success');
+      expect(state.shellState.activeToast).not.toBeNull();
+      expect(state.shellState.activeToast?.message).toContain('synced');
+      expect(state.shellState.activeToast?.variant).toBe('success');
     });
 
     it('pushes error toast when some syncs fail', async () => {
@@ -89,8 +115,8 @@ describe('createSyncActions', () => {
       await actions.syncSkillsToAgents(['skill1'], ['claude'], 'copy');
 
       const state = store.getState();
-      expect(state.activeToast?.message).toContain('failed');
-      expect(state.activeToast?.variant).toBe('error');
+      expect(state.shellState.activeToast?.message).toContain('failed');
+      expect(state.shellState.activeToast?.variant).toBe('error');
     });
 
     it('sets syncFormStep to results after completion', async () => {
@@ -102,7 +128,7 @@ describe('createSyncActions', () => {
 
       await actions.syncSkillsToAgents(['skill1'], ['claude'], 'copy');
 
-      expect(store.getState().syncFormStep).toBe('results');
+      expect(store.getState().syncWorkflowState.step).toBe('results');
     });
   });
 
@@ -135,7 +161,7 @@ describe('createSyncActions', () => {
       );
 
       const stateDuring = store.getState();
-      expect(stateDuring.updateProgressItems).toHaveLength(2);
+      expect(stateDuring.shellState.updateProgressItems).toHaveLength(2);
 
       await promise;
     });
@@ -147,7 +173,7 @@ describe('createSyncActions', () => {
 
       await actions.syncSkillsToProjects(['skill1'], ['proj1'], ['claude'], 'copy');
 
-      expect(store.getState().activeToast?.message).toContain('synced');
+      expect(store.getState().shellState.activeToast?.message).toContain('synced');
     });
 
     it('pushes error toast when some project syncs fail', async () => {
@@ -159,51 +185,30 @@ describe('createSyncActions', () => {
 
       await actions.syncSkillsToProjects(['skill1'], ['proj1'], ['claude'], 'copy');
 
-      expect(store.getState().activeToast?.message).toContain('failed');
-      expect(store.getState().activeToast?.variant).toBe('error');
+      expect(store.getState().shellState.activeToast?.message).toContain('failed');
+      expect(store.getState().shellState.activeToast?.variant).toBe('error');
     });
   });
 
   describe('unsyncFromAgents', () => {
     it('calls syncService.unsync for each skill-agent pair', async () => {
       const actions = createSyncActions(store, mockCtx);
-      vi.mocked(mockCtx.storage.getSkill)
-        .mockReturnValueOnce(
-          createMockSkill({
-            name: 'skill1',
-            syncedTo: [
-              { agentId: 'claude', mode: 'copy' },
-              { agentId: 'codex', mode: 'copy' },
-            ],
-          })
-        )
-        .mockReturnValueOnce(
-          createMockSkill({
-            name: 'skill2',
-            syncedTo: [
-              { agentId: 'claude', mode: 'copy' },
-              { agentId: 'codex', mode: 'copy' },
-            ],
-          })
-        )
-        .mockReturnValueOnce(
-          createMockSkill({
-            name: 'skill1',
-            syncedTo: [
-              { agentId: 'claude', mode: 'copy' },
-              { agentId: 'codex', mode: 'copy' },
-            ],
-          })
-        )
-        .mockReturnValueOnce(
-          createMockSkill({
-            name: 'skill2',
-            syncedTo: [
-              { agentId: 'claude', mode: 'copy' },
-              { agentId: 'codex', mode: 'copy' },
-            ],
-          })
-        );
+      await loadSkillDetails([
+        createMockSkill({
+          name: 'skill1',
+          syncedTo: [
+            { agentId: 'claude', mode: 'copy' },
+            { agentId: 'codex', mode: 'copy' },
+          ],
+        }),
+        createMockSkill({
+          name: 'skill2',
+          syncedTo: [
+            { agentId: 'claude', mode: 'copy' },
+            { agentId: 'codex', mode: 'copy' },
+          ],
+        }),
+      ]);
 
       vi.mocked(mockCtx.syncService.unsync).mockResolvedValue();
 
@@ -220,35 +225,35 @@ describe('createSyncActions', () => {
 
     it('pushes success toast when unsync succeeds', async () => {
       const actions = createSyncActions(store, mockCtx);
-      vi.mocked(mockCtx.storage.getSkill).mockReturnValue(
+      await loadSkillDetails([
         createMockSkill({
           name: 'skill1',
           syncedTo: [{ agentId: 'claude', mode: 'copy' }],
-        })
-      );
+        }),
+      ]);
 
       vi.mocked(mockCtx.syncService.unsync).mockResolvedValue();
 
       await actions.unsyncFromAgents(['skill1'], ['claude']);
 
-      expect(store.getState().activeToast?.message).toContain('unsynced');
-      expect(store.getState().activeToast?.variant).toBe('success');
+      expect(store.getState().shellState.activeToast?.message).toContain('unsynced');
+      expect(store.getState().shellState.activeToast?.variant).toBe('success');
     });
 
     it('pushes error toast when unsync fails', async () => {
       const actions = createSyncActions(store, mockCtx);
-      vi.mocked(mockCtx.storage.getSkill).mockReturnValue(
+      await loadSkillDetails([
         createMockSkill({
           name: 'skill1',
           syncedTo: [{ agentId: 'claude', mode: 'copy' }],
-        })
-      );
+        }),
+      ]);
 
       vi.mocked(mockCtx.syncService.unsync).mockRejectedValue(new Error('Unsync failed'));
 
       await actions.unsyncFromAgents(['skill1'], ['claude']);
 
-      expect(store.getState().activeToast?.variant).toBe('error');
+      expect(store.getState().shellState.activeToast?.variant).toBe('error');
     });
   });
 
@@ -303,7 +308,7 @@ describe('createSyncActions', () => {
 
       await actions.unsyncFromProjects(['skill1'], ['proj1'], { mode: 'all' });
 
-      expect(store.getState().activeToast?.message).toContain('unsynced');
+      expect(store.getState().shellState.activeToast?.message).toContain('unsynced');
     });
   });
 
@@ -316,6 +321,7 @@ describe('createSyncActions', () => {
       });
 
       vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
+      await refreshSkills([mockSkill]);
       vi.mocked(mockCtx.skillService.update).mockResolvedValue(true);
       vi.mocked(mockCtx.syncService.resync).mockResolvedValue();
       vi.mocked(mockCtx.projectSyncService.resync).mockResolvedValue();
@@ -333,6 +339,7 @@ describe('createSyncActions', () => {
       const mockSkill = createMockSkill({ name: 'skill1', source: { type: 'local' } });
 
       vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
+      await refreshSkills([mockSkill]);
 
       const results = await actions.updateSkills(['skill1']);
 
@@ -357,6 +364,7 @@ describe('createSyncActions', () => {
       });
 
       vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
+      await refreshSkills([mockSkill]);
       vi.mocked(mockCtx.skillService.update).mockResolvedValue(false);
 
       const results = await actions.updateSkills(['skill1']);
@@ -379,14 +387,50 @@ describe('createSyncActions', () => {
       });
 
       vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
+      await refreshSkills([mockSkill]);
       vi.mocked(mockCtx.skillService.update).mockResolvedValue(true);
       vi.mocked(mockCtx.syncService.resync).mockResolvedValue();
       vi.mocked(mockCtx.projectSyncService.resync).mockResolvedValue();
 
       await actions.updateSkills(['skill1']);
 
-      expect(store.getState().activeToast?.message).toContain('updated');
-      expect(store.getState().activeToast?.variant).toBe('success');
+      expect(store.getState().shellState.activeToast?.message).toContain('updated');
+      expect(store.getState().shellState.activeToast?.variant).toBe('success');
+    });
+
+    it('marks the current skill as running before the update command resolves', async () => {
+      const actions = createSyncActions(store, mockCtx);
+      const mockSkill = createMockSkill({
+        name: 'skill1',
+        source: { type: 'git', url: 'https://example.com/repo' },
+      });
+
+      vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
+      await refreshSkills([mockSkill]);
+
+      let resolveUpdate: ((value: Array<{ skillName: string; sourceType: 'git'; outcome: 'updated' }>) => void) | undefined;
+      vi.mocked(mockCtx.commands.updateSkills).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveUpdate = resolve;
+          })
+      );
+
+      const promise = actions.updateSkills(['skill1']);
+
+      expect(store.getState().shellState.updateProgressItems).toEqual([
+        expect.objectContaining({
+          id: 'update-skill1',
+          label: 'Updating skill1',
+          status: 'running',
+          progress: 30,
+        }),
+      ]);
+
+      resolveUpdate?.([{ skillName: 'skill1', sourceType: 'git', outcome: 'updated' }]);
+      await promise;
+
+      expect(store.getState().shellState.activeToast?.message).toContain('updated');
     });
 
     it('pushes error toast on update failure', async () => {
@@ -397,12 +441,13 @@ describe('createSyncActions', () => {
       });
 
       vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
+      await refreshSkills([mockSkill]);
       vi.mocked(mockCtx.skillService.update).mockRejectedValue(new Error('Update failed'));
 
       const results = await actions.updateSkills(['skill1']);
 
-      expect(store.getState().activeToast?.message).toContain('failed');
-      expect(store.getState().activeToast?.variant).toBe('error');
+      expect(store.getState().shellState.activeToast?.message).toContain('failed');
+      expect(store.getState().shellState.activeToast?.variant).toBe('error');
       expect(results[0]).toEqual({
         skillName: 'skill1',
         sourceType: 'git',
@@ -431,7 +476,7 @@ describe('createSyncActions', () => {
 });
 
 describe('doImportFromProject', () => {
-  let mockCtx: ServiceContext;
+  let mockCtx: MockWorkbenchContext;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -555,7 +600,7 @@ describe('doImportFromProject', () => {
 });
 
 describe('doImportFromAgent', () => {
-  let mockCtx: ServiceContext;
+  let mockCtx: MockWorkbenchContext;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -574,9 +619,12 @@ describe('doImportFromAgent', () => {
     expect(results).toHaveLength(1);
     expect(results[0]).toEqual({ target: 'skill1', success: true, outcome: 'success' });
     expect(mockCtx.skillService.importFromPath).toHaveBeenCalledWith(
-      '/test/.claude/skill1',
+      path.join('/test/.claude', 'skill1'),
       'skill1',
-      { type: 'local', importedFrom: { agent: 'claude', path: '/test/.claude/skill1' } }
+      {
+        type: 'local',
+        importedFrom: { agent: 'claude', path: path.join('/test/.claude', 'skill1') },
+      }
     );
   });
 

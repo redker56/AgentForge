@@ -13,20 +13,12 @@ import path from 'path';
 
 import fs from 'fs-extra';
 
-import type { SyncMode, AgentId } from '../types.js';
-
-// Note: This type is for project local config file, different from ProjectSyncRecord in types.ts
-// ProjectSyncRecord in types.ts is for registry.json
-export interface ProjectLocalSyncRecord {
-  name: string;
-  syncedAt: string;
-  mode: SyncMode;
-  agentType: AgentId;
-}
-
-export interface ProjectLocalConfig {
-  syncedSkills: ProjectLocalSyncRecord[];
-}
+import type {
+  ProjectLocalConfig,
+  ProjectLocalSyncRecord,
+  ProjectStateRepository,
+} from '../infra/project-state-repository.js';
+import type { AgentId } from '../types.js';
 
 const DEFAULT_CONFIG: ProjectLocalConfig = {
   syncedSkills: [],
@@ -38,7 +30,7 @@ const CONFIG_FILE = '.agentforge.json';
  * Read, write, and update the project-local `.agentforge.json` config.
  * All methods are synchronous because the file is small and operations are fast.
  */
-export class ProjectStorage {
+export class ProjectStorage implements ProjectStateRepository {
   private getConfigPath(projectPath: string): string {
     return path.join(projectPath, CONFIG_FILE);
   }
@@ -64,32 +56,40 @@ export class ProjectStorage {
     fs.writeJsonSync(configPath, config, { spaces: 2 });
   }
 
+  update(projectPath: string, updater: (config: ProjectLocalConfig) => ProjectLocalConfig): void {
+    const current = this.read(projectPath);
+    this.write(projectPath, updater(current));
+  }
+
   addSyncRecord(projectPath: string, record: ProjectLocalSyncRecord): void {
-    const config = this.read(projectPath);
+    this.update(projectPath, (config) => {
+      const next = {
+        ...config,
+        syncedSkills: [...config.syncedSkills],
+      };
+      const existingIndex = next.syncedSkills.findIndex(
+        (s) => s.name === record.name && s.agentType === record.agentType
+      );
 
-    const existingIndex = config.syncedSkills.findIndex(
-      (s) => s.name === record.name && s.agentType === record.agentType
-    );
+      if (existingIndex >= 0) {
+        next.syncedSkills[existingIndex] = record;
+      } else {
+        next.syncedSkills.push(record);
+      }
 
-    if (existingIndex >= 0) {
-      config.syncedSkills[existingIndex] = record;
-    } else {
-      config.syncedSkills.push(record);
-    }
-
-    this.write(projectPath, config);
+      return next;
+    });
   }
 
   removeSyncRecord(projectPath: string, skillName: string, agentType?: AgentId): void {
-    const config = this.read(projectPath);
-
-    config.syncedSkills = config.syncedSkills.filter((s) => {
-      if (s.name !== skillName) return true;
-      if (agentType && s.agentType !== agentType) return true;
-      return false;
-    });
-
-    this.write(projectPath, config);
+    this.update(projectPath, (config) => ({
+      ...config,
+      syncedSkills: config.syncedSkills.filter((s) => {
+        if (s.name !== skillName) return true;
+        if (agentType && s.agentType !== agentType) return true;
+        return false;
+      }),
+    }));
   }
 
   getSyncRecord(

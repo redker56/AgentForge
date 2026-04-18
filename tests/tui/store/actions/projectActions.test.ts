@@ -5,19 +5,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createProjectActions } from '../../../../src/tui/store/actions/projectActions.js';
-import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
 import { createAppStore } from '../../../../src/tui/store/index.js';
+import { withLegacyUiState } from '../../helpers/legacyUiState.js';
 
-import { createMockServiceContext, createMockProject, createMockSkill } from './mockContext.js';
+import {
+  createMockServiceContext,
+  createMockProject,
+  createMockSkill,
+  type MockWorkbenchContext,
+} from './mockContext.js';
 
 describe('createProjectActions', () => {
-  let mockCtx: ServiceContext;
+  let mockCtx: MockWorkbenchContext;
   let store: ReturnType<typeof createAppStore>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockCtx = createMockServiceContext();
     store = createAppStore(mockCtx);
+    withLegacyUiState(store.getState() as unknown as Record<string, unknown>);
   });
 
   describe('addProject', () => {

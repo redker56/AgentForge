@@ -35,7 +35,7 @@ const SYMBOL_TABS: Array<{ id: TabId; label: string }> = [
 ];
 
 export function TabBar({ store, band, columns }: TabBarProps): React.ReactElement {
-  const activeTab = useStore(store, (s) => s.activeTab);
+  const activeTab = useStore(store, (s) => s.shellState.activeTab);
 
   const useSymbols = band === 'compact' || columns < 60;
   const tabs = useSymbols ? SYMBOL_TABS : FULL_TABS;

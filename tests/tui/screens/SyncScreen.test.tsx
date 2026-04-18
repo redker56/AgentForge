@@ -7,6 +7,8 @@ import { render, cleanup } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
+import { withLegacyUiState } from '../helpers/legacyUiState.js';
+
 describe('SyncScreen', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -76,6 +78,7 @@ describe('SyncScreen', () => {
       unsyncFromProjects: vi.fn(),
       ...overrides,
     };
+    withLegacyUiState(state);
     return {
       getState: () => state,
       subscribe: vi.fn(() => () => {}),

@@ -71,13 +71,13 @@ function HighlightedText({
 
 export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement {
   const { stdout } = useStdout();
-  const searchQuery = useStore(store, (s) => s.searchQuery);
+  const searchQuery = useStore(store, (s) => s.shellState.searchQuery);
   const skills = useStore(store, (s) => s.skills);
-  const activeSkillCategoryFilter = useStore(store, (s) => s.activeSkillCategoryFilter);
+  const activeSkillCategoryFilter = useStore(store, (s) => s.skillsBrowserState.activeCategoryFilter);
   const agents = useStore(store, (s) => s.agents);
   const projects = useStore(store, (s) => s.projects);
-  const searchResultIndex = useStore(store, (s) => s.searchResultIndex);
-  const activeTab = useStore(store, (s) => s.activeTab);
+  const searchResultIndex = useStore(store, (s) => s.shellState.searchResultIndex);
+  const activeTab = useStore(store, (s) => s.shellState.activeTab);
   const overlayWidth = Math.max((stdout?.columns ?? 100) - 4, 24);
   const resultWidth = Math.max(overlayWidth - 2, 20);
   const displayQuery = truncateText(searchQuery || '', Math.max(overlayWidth - 12, 8));
@@ -135,7 +135,7 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
     }
 
     if (key.return) {
-      const query = state.searchQuery;
+      const query = state.shellState.searchQuery;
       if (!query.trim()) {
         state.setShowSearch(false);
         return;
@@ -143,14 +143,14 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
 
       const currentResults = computeSearchResults(
         query,
-        state.activeTab === 'skills'
-          ? getVisibleSkills(state.skills, state.activeSkillCategoryFilter)
+        state.shellState.activeTab === 'skills'
+          ? getVisibleSkills(state.skills, state.skillsBrowserState.activeCategoryFilter)
           : state.skills,
         state.agents,
         state.projects,
-        state.activeTab
+        state.shellState.activeTab
       );
-      const idx = Math.min(state.searchResultIndex, Math.max(currentResults.length - 1, 0));
+      const idx = Math.min(state.shellState.searchResultIndex, Math.max(currentResults.length - 1, 0));
 
       if (currentResults[idx]) {
         const result = currentResults[idx];
@@ -173,7 +173,7 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
     }
 
     if (key.upArrow) {
-      const currentIdx = store.getState().searchResultIndex;
+      const currentIdx = store.getState().shellState.searchResultIndex;
       if (currentIdx > 0) {
         state.setSearchResultIndex(currentIdx - 1);
       }
@@ -181,15 +181,15 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
     }
     if (key.downArrow) {
       const currentResults = computeSearchResults(
-        state.searchQuery,
-        state.activeTab === 'skills'
-          ? getVisibleSkills(state.skills, state.activeSkillCategoryFilter)
+        state.shellState.searchQuery,
+        state.shellState.activeTab === 'skills'
+          ? getVisibleSkills(state.skills, state.skillsBrowserState.activeCategoryFilter)
           : state.skills,
         state.agents,
         state.projects,
-        state.activeTab
+        state.shellState.activeTab
       );
-      const currentIdx = store.getState().searchResultIndex;
+      const currentIdx = store.getState().shellState.searchResultIndex;
       if (currentIdx < currentResults.length - 1) {
         state.setSearchResultIndex(currentIdx + 1);
       }
@@ -198,16 +198,16 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
 
     if (key.backspace || key.delete) {
       state.setSearchResultIndex(0);
-      state.setSearchQuery(state.searchQuery.slice(0, -1));
+      state.setSearchQuery(state.shellState.searchQuery.slice(0, -1));
       return;
     }
 
     if (input && input.length === 1 && !key.ctrl && !key.meta) {
       state.setSearchResultIndex(0);
-      state.setSearchQuery(state.searchQuery + input);
+      state.setSearchQuery(state.shellState.searchQuery + input);
     }
   }, {
-    isActive: store.getState().showSearch,
+    isActive: store.getState().shellState.showSearch,
   });
 
   return (

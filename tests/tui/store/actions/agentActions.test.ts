@@ -5,20 +5,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createAgentActions } from '../../../../src/tui/store/actions/agentActions.js';
-import type { ServiceContext } from '../../../../src/tui/store/dataSlice.js';
 import { createAppStore } from '../../../../src/tui/store/index.js';
 import { BUILTIN_AGENTS } from '../../../../src/types.js';
+import { withLegacyUiState } from '../../helpers/legacyUiState.js';
 
-import { createMockServiceContext, createMockAgent, createMockSkill } from './mockContext.js';
+import {
+  createMockServiceContext,
+  createMockAgent,
+  createMockSkill,
+  type MockWorkbenchContext,
+} from './mockContext.js';
 
 describe('createAgentActions', () => {
-  let mockCtx: ServiceContext;
+  let mockCtx: MockWorkbenchContext;
   let store: ReturnType<typeof createAppStore>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockCtx = createMockServiceContext();
     store = createAppStore(mockCtx);
+    withLegacyUiState(store.getState() as unknown as Record<string, unknown>);
   });
 
   describe('addAgent', () => {

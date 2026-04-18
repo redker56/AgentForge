@@ -27,7 +27,7 @@ function truncateText(text: string, maxWidth: number): string {
 
 export function AgentTable({ store, columns }: AgentTableProps): React.ReactElement {
   const agents = useStore(store, (s) => s.agents);
-  const focusedAgentIndex = useStore(store, (s) => s.focusedAgentIndex);
+  const focusedAgentIndex = useStore(store, (s) => s.agentsBrowserState.focusedIndex);
   const agentSummaries = useStore(store, (s) => s.agentSummaries);
 
   const { visibleItems, scrollTop, hiddenAbove, hiddenBelow } = useNavigation({

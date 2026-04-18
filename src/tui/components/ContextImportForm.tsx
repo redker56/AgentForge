@@ -22,7 +22,7 @@ function truncateText(text: string, maxWidth = 64): string {
 }
 
 export function ContextImportForm({ store }: ContextImportFormProps): React.ReactElement {
-  const formState = useStore(store, (s) => s.formState);
+  const formState = useStore(store, (s) => s.shellState.formState);
   const [phase, setPhase] = useState<Phase>('preview');
   const [results, setResults] = useState<OperationResult[]>([]);
 

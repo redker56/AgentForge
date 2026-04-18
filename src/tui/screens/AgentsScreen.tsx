@@ -22,16 +22,16 @@ interface AgentsScreenProps {
 }
 
 export function AgentsScreen({ store, band, columns }: AgentsScreenProps): React.ReactElement | null {
-  const focusedAgentIndex = useStore(store, (s) => s.focusedAgentIndex);
+  const focusedAgentIndex = useStore(store, (s) => s.agentsBrowserState.focusedIndex);
   const agents = useStore(store, (s) => s.agents);
   const agentDetails = useStore(store, (s) => s.agentDetails);
-  const agentViewMode = useStore(store, (s) => s.agentViewMode) ?? 'master';
-  const focusedAgentSkillIndex = useStore(store, (s) => s.focusedAgentSkillIndex) ?? 0;
+  const agentViewMode = useStore(store, (s) => s.agentsBrowserState.viewMode) ?? 'master';
+  const focusedAgentSkillIndex = useStore(store, (s) => s.agentsBrowserState.focusedSkillIndex) ?? 0;
   const selectedAgentSkillRowIds =
-    useStore(store, (s) => s.selectedAgentSkillRowIds) ?? new Set<string>();
-  const activeAgentSkillFilter = useStore(store, (s) => s.activeAgentSkillFilter) ?? 'all';
-  const detailOverlayVisible = useStore(store, (s) => s.detailOverlayVisible);
-  const detailSkillName = useStore(store, (s) => s.detailSkillName);
+    useStore(store, (s) => s.agentsBrowserState.selectedSkillRowIds) ?? new Set<string>();
+  const activeAgentSkillFilter = useStore(store, (s) => s.agentsBrowserState.activeSkillFilter) ?? 'all';
+  const detailOverlayVisible = useStore(store, (s) => s.shellState.detailOverlayVisible);
+  const detailSkillName = useStore(store, (s) => s.shellState.detailSkillName);
 
   const focusedAgent = agents[focusedAgentIndex];
   const detail = focusedAgent ? agentDetails[focusedAgent.id] : undefined;

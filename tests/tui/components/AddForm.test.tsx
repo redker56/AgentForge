@@ -6,6 +6,8 @@ import { render } from 'ink-testing-library';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { withLegacyUiState } from '../helpers/legacyUiState.js';
+
 const capturedBlurProps: Array<Record<string, unknown>> = [];
 
 vi.mock('../../../src/tui/components/BlurValidatedInput.js', async () => {
@@ -36,6 +38,7 @@ describe('AddForm', () => {
       formState: { formType: 'addSkill' as const, data: {} },
       setFormState: vi.fn(),
     };
+    withLegacyUiState(state);
     const mockStore = {
       getState: () => state,
       subscribe: vi.fn(() => () => {}),
@@ -52,6 +55,7 @@ describe('AddForm', () => {
       setFormState: vi.fn(),
       addSkillFromUrl: vi.fn().mockResolvedValue(undefined),
     };
+    withLegacyUiState(state);
     const mockStore = {
       getState: () => state,
       subscribe: vi.fn(() => () => {}),

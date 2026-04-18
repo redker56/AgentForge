@@ -56,27 +56,27 @@ function openUpdateForm(
 }
 
 function getSelectedContextSkillNames(state: AppStore): string[] {
-  if (state.activeTab === 'agents' && state.agentViewMode === 'skills') {
-    const focusedAgent = state.agents[state.focusedAgentIndex];
+  if (state.shellState.activeTab === 'agents' && state.agentsBrowserState.viewMode === 'skills') {
+    const focusedAgent = state.agents[state.agentsBrowserState.focusedIndex];
     const sections = focusedAgent ? state.agentDetails[focusedAgent.id]?.sections ?? [] : [];
-    const visibleRows = getVisibleContextSkillRows(sections, state.activeAgentSkillFilter);
+    const visibleRows = getVisibleContextSkillRows(sections, state.agentsBrowserState.activeSkillFilter);
     const rows =
-      state.selectedAgentSkillRowIds.size > 0
-        ? visibleRows.filter((row) => state.selectedAgentSkillRowIds.has(row.rowId))
-        : [visibleRows[Math.min(state.focusedAgentSkillIndex, visibleRows.length - 1)]].filter(Boolean);
+      state.agentsBrowserState.selectedSkillRowIds.size > 0
+        ? visibleRows.filter((row) => state.agentsBrowserState.selectedSkillRowIds.has(row.rowId))
+        : [visibleRows[Math.min(state.agentsBrowserState.focusedSkillIndex, visibleRows.length - 1)]].filter(Boolean);
     return Array.from(
       new Set(rows.map((row) => row?.registrySkillName).filter((name): name is string => Boolean(name)))
     );
   }
 
-  if (state.activeTab === 'projects' && state.projectViewMode === 'skills') {
-    const focusedProject = state.projects[state.focusedProjectIndex];
+  if (state.shellState.activeTab === 'projects' && state.projectsBrowserState.viewMode === 'skills') {
+    const focusedProject = state.projects[state.projectsBrowserState.focusedIndex];
     const sections = focusedProject ? state.projectDetails[focusedProject.id]?.sections ?? [] : [];
-    const visibleRows = getVisibleContextSkillRows(sections, state.activeProjectSkillFilter);
+    const visibleRows = getVisibleContextSkillRows(sections, state.projectsBrowserState.activeSkillFilter);
     const rows =
-      state.selectedProjectSkillRowIds.size > 0
-        ? visibleRows.filter((row) => state.selectedProjectSkillRowIds.has(row.rowId))
-        : [visibleRows[Math.min(state.focusedProjectSkillIndex, visibleRows.length - 1)]].filter(Boolean);
+      state.projectsBrowserState.selectedSkillRowIds.size > 0
+        ? visibleRows.filter((row) => state.projectsBrowserState.selectedSkillRowIds.has(row.rowId))
+        : [visibleRows[Math.min(state.projectsBrowserState.focusedSkillIndex, visibleRows.length - 1)]].filter(Boolean);
     return Array.from(
       new Set(rows.map((row) => row?.registrySkillName).filter((name): name is string => Boolean(name)))
     );
@@ -86,22 +86,22 @@ function getSelectedContextSkillNames(state: AppStore): string[] {
 }
 
 function getSelectedContextRows(state: AppStore): ContextSkillRow[] {
-  if (state.activeTab === 'agents' && state.agentViewMode === 'skills') {
-    const focusedAgent = state.agents[state.focusedAgentIndex];
+  if (state.shellState.activeTab === 'agents' && state.agentsBrowserState.viewMode === 'skills') {
+    const focusedAgent = state.agents[state.agentsBrowserState.focusedIndex];
     const sections = focusedAgent ? state.agentDetails[focusedAgent.id]?.sections ?? [] : [];
-    const visibleRows = getVisibleContextSkillRows(sections, state.activeAgentSkillFilter);
-    return state.selectedAgentSkillRowIds.size > 0
-      ? visibleRows.filter((row) => state.selectedAgentSkillRowIds.has(row.rowId))
-      : [visibleRows[Math.min(state.focusedAgentSkillIndex, visibleRows.length - 1)]].filter(Boolean);
+    const visibleRows = getVisibleContextSkillRows(sections, state.agentsBrowserState.activeSkillFilter);
+    return state.agentsBrowserState.selectedSkillRowIds.size > 0
+      ? visibleRows.filter((row) => state.agentsBrowserState.selectedSkillRowIds.has(row.rowId))
+      : [visibleRows[Math.min(state.agentsBrowserState.focusedSkillIndex, visibleRows.length - 1)]].filter(Boolean);
   }
 
-  if (state.activeTab === 'projects' && state.projectViewMode === 'skills') {
-    const focusedProject = state.projects[state.focusedProjectIndex];
+  if (state.shellState.activeTab === 'projects' && state.projectsBrowserState.viewMode === 'skills') {
+    const focusedProject = state.projects[state.projectsBrowserState.focusedIndex];
     const sections = focusedProject ? state.projectDetails[focusedProject.id]?.sections ?? [] : [];
-    const visibleRows = getVisibleContextSkillRows(sections, state.activeProjectSkillFilter);
-    return state.selectedProjectSkillRowIds.size > 0
-      ? visibleRows.filter((row) => state.selectedProjectSkillRowIds.has(row.rowId))
-      : [visibleRows[Math.min(state.focusedProjectSkillIndex, visibleRows.length - 1)]].filter(Boolean);
+    const visibleRows = getVisibleContextSkillRows(sections, state.projectsBrowserState.activeSkillFilter);
+    return state.projectsBrowserState.selectedSkillRowIds.size > 0
+      ? visibleRows.filter((row) => state.projectsBrowserState.selectedSkillRowIds.has(row.rowId))
+      : [visibleRows[Math.min(state.projectsBrowserState.focusedSkillIndex, visibleRows.length - 1)]].filter(Boolean);
   }
 
   return [];
@@ -111,8 +111,8 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
   const state = store.getState();
   const focusedVisibleSkill = getFocusedVisibleSkill(
     state.skills,
-    state.activeSkillCategoryFilter,
-    state.focusedSkillIndex
+    state.skillsBrowserState.activeCategoryFilter,
+    state.skillsBrowserState.focusedIndex
   );
 
   switch (commandId) {
@@ -146,7 +146,7 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
       break;
     }
     case 'remove-agent': {
-      const agent = state.agents[state.focusedAgentIndex];
+      const agent = state.agents[state.agentsBrowserState.focusedIndex];
       if (agent) {
         state.setConfirmState({
           title: `Remove Agent "${agent.name}"`,
@@ -161,7 +161,7 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
       break;
     }
     case 'remove-project': {
-      const project = state.projects[state.focusedProjectIndex];
+      const project = state.projects[state.projectsBrowserState.focusedIndex];
       if (project) {
         state.setConfirmState({
           title: `Remove Project "${project.id}"`,
@@ -176,8 +176,8 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
       break;
     }
     case 'sync-agents': {
-      const names = state.selectedSkillNames.size > 0
-        ? [...state.selectedSkillNames]
+      const names = state.skillsBrowserState.selectedNames.size > 0
+        ? [...state.skillsBrowserState.selectedNames]
         : [focusedVisibleSkill?.name].filter(Boolean) as string[];
       if (names.length > 0) {
         state.setSyncFormSelectedSkillNames(new Set(names));
@@ -191,8 +191,8 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
       break;
     }
     case 'sync-projects': {
-      const names = state.selectedSkillNames.size > 0
-        ? [...state.selectedSkillNames]
+      const names = state.skillsBrowserState.selectedNames.size > 0
+        ? [...state.skillsBrowserState.selectedNames]
         : [focusedVisibleSkill?.name].filter(Boolean) as string[];
       if (names.length > 0) {
         state.setSyncFormSelectedSkillNames(new Set(names));
@@ -210,14 +210,14 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
       const contextNames = getSelectedContextSkillNames(state);
       const names = contextNames.length > 0
         ? contextNames
-        : state.selectedSkillNames.size > 0
-          ? [...state.selectedSkillNames]
+        : state.skillsBrowserState.selectedNames.size > 0
+          ? [...state.skillsBrowserState.selectedNames]
           : [focusedVisibleSkill?.name].filter(Boolean) as string[];
       if (names.length > 0) {
         state.setSyncFormSelectedSkillNames(new Set(names));
         state.setSyncFormOperation('unsync');
-        if (state.activeTab === 'agents' && state.agentViewMode === 'skills') {
-          const agent = state.agents[state.focusedAgentIndex];
+        if (state.shellState.activeTab === 'agents' && state.agentsBrowserState.viewMode === 'skills') {
+          const agent = state.agents[state.agentsBrowserState.focusedIndex];
           if (agent) {
             state.setSyncFormUnsyncScope('agents');
             state.setSyncFormProjectUnsyncMode(null);
@@ -225,7 +225,7 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
             state.setSyncFormSelectedAgentTypes(new Set());
             state.setSyncFormStep('confirm');
           }
-        } else if (state.activeTab === 'projects' && state.projectViewMode === 'skills') {
+        } else if (state.shellState.activeTab === 'projects' && state.projectsBrowserState.viewMode === 'skills') {
           const targetPairs = contextRows
             .filter((row) => row.projectId && row.agentId && row.registrySkillName)
             .map((row) => `${row.projectId}:${row.agentId}`);
@@ -252,8 +252,8 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
       const contextNames = getSelectedContextSkillNames(state);
       const names = contextNames.length > 0
         ? contextNames
-        : state.selectedSkillNames.size > 0
-          ? [...state.selectedSkillNames]
+        : state.skillsBrowserState.selectedNames.size > 0
+          ? [...state.skillsBrowserState.selectedNames]
           : [focusedVisibleSkill?.name].filter(Boolean) as string[];
       openUpdateForm(state, names, 'updateSelected');
       state.setShowCommandPalette(false);
@@ -271,8 +271,8 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
       const contextNames = getSelectedContextSkillNames(state);
       const names = contextNames.length > 0
         ? contextNames
-        : state.selectedSkillNames.size > 0
-          ? [...state.selectedSkillNames]
+        : state.skillsBrowserState.selectedNames.size > 0
+          ? [...state.skillsBrowserState.selectedNames]
           : [focusedVisibleSkill?.name].filter(Boolean) as string[];
       if (names.length > 0) {
         state.setFormState({
@@ -296,7 +296,7 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
         });
       } else {
         state.setFormState({
-          formType: state.activeTab === 'agents' ? 'importAgent' : 'importProject',
+          formType: state.shellState.activeTab === 'agents' ? 'importAgent' : 'importProject',
           data: {},
         });
       }
@@ -357,7 +357,7 @@ export function CommandPalette({ store }: CommandPaletteProps): React.ReactEleme
       setFocusedIndex(0);
     }
   }, {
-    isActive: store.getState().showCommandPalette,
+    isActive: store.getState().shellState.showCommandPalette,
   });
 
   return (

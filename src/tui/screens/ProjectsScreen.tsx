@@ -26,16 +26,16 @@ export function ProjectsScreen({
   band,
   columns,
 }: ProjectsScreenProps): React.ReactElement | null {
-  const focusedProjectIndex = useStore(store, (s) => s.focusedProjectIndex);
+  const focusedProjectIndex = useStore(store, (s) => s.projectsBrowserState.focusedIndex);
   const projects = useStore(store, (s) => s.projects);
   const projectDetails = useStore(store, (s) => s.projectDetails);
-  const projectViewMode = useStore(store, (s) => s.projectViewMode) ?? 'master';
-  const focusedProjectSkillIndex = useStore(store, (s) => s.focusedProjectSkillIndex) ?? 0;
+  const projectViewMode = useStore(store, (s) => s.projectsBrowserState.viewMode) ?? 'master';
+  const focusedProjectSkillIndex = useStore(store, (s) => s.projectsBrowserState.focusedSkillIndex) ?? 0;
   const selectedProjectSkillRowIds =
-    useStore(store, (s) => s.selectedProjectSkillRowIds) ?? new Set<string>();
-  const activeProjectSkillFilter = useStore(store, (s) => s.activeProjectSkillFilter) ?? 'all';
-  const detailOverlayVisible = useStore(store, (s) => s.detailOverlayVisible);
-  const detailSkillName = useStore(store, (s) => s.detailSkillName);
+    useStore(store, (s) => s.projectsBrowserState.selectedSkillRowIds) ?? new Set<string>();
+  const activeProjectSkillFilter = useStore(store, (s) => s.projectsBrowserState.activeSkillFilter) ?? 'all';
+  const detailOverlayVisible = useStore(store, (s) => s.shellState.detailOverlayVisible);
+  const detailSkillName = useStore(store, (s) => s.shellState.detailSkillName);
 
   const focusedProject = projects[focusedProjectIndex];
   const detail = focusedProject ? projectDetails[focusedProject.id] : undefined;

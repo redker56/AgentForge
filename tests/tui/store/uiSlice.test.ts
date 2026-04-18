@@ -1,33 +1,36 @@
 /**
- * uiSlice unit tests -- verifies state transitions and actions
+ * uiSlice unit tests -- verifies state transitions against the nested UI state model.
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createUISlice } from '../../../src/tui/store/uiSlice.js';
 import type { StoreState } from '../../../src/tui/store/uiSlice.js';
 
-// We need to mock get() for some actions. Zustand slices use set/get.
-function createMockSetGet(): {
-  set: ReturnType<typeof vi.fn>;
-  get: ReturnType<typeof vi.fn>;
-  api: any;
-} {
-  let state: Partial<StoreState> = {
-    toastQueue: [],
-    activeToast: null,
-    undoBuffer: null,
-    undoActive: false,
-  };
-  const setFn = vi.fn((update: Partial<StoreState> | ((s: StoreState) => Partial<StoreState>)) => {
-    if (typeof update === 'function') {
-      state = { ...state, ...update(state as StoreState) };
-    } else {
-      state = { ...state, ...update };
-    }
+function createHarness(overrides: Partial<StoreState> = {}) {
+  let state = {
+    skills: [],
+    restoreSkill: vi.fn(),
+    restoreAgent: vi.fn(),
+    restoreProject: vi.fn(),
+    ...overrides,
+  } as StoreState;
+
+  const set = vi.fn((update: Partial<StoreState> | ((current: StoreState) => Partial<StoreState>)) => {
+    const patch = typeof update === 'function' ? update(state) : update;
+    state = { ...state, ...patch };
   });
-  const getFn = vi.fn(() => state as StoreState);
-  return { set: setFn, get: getFn, api: undefined };
+  const get = vi.fn(() => state);
+
+  state = {
+    ...state,
+    ...createUISlice(set, get, undefined as never),
+  } as StoreState;
+
+  return {
+    getState: () => state,
+    set,
+  };
 }
 
 describe('createUISlice', () => {
@@ -35,434 +38,227 @@ describe('createUISlice', () => {
     vi.clearAllMocks();
   });
 
-  it('initializes with default state values', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
+  it('initializes nested shell, browser, and workflow state', () => {
+    const { getState } = createHarness();
+    const state = getState();
 
-    expect(slice.activeTab).toBe('skills');
-    expect(slice.focusedSkillIndex).toBe(0);
-    expect(slice.selectedSkillNames).toEqual(new Set());
-    expect(slice.searchQuery).toBe('');
-    expect(slice.progressItems).toEqual([]);
-    expect(slice.focusedAgentIndex).toBe(0);
-    expect(slice.agentViewMode).toBe('master');
-    expect(slice.focusedAgentSkillIndex).toBe(0);
-    expect(slice.selectedAgentSkillRowIds).toEqual(new Set());
-    expect(slice.activeAgentSkillFilter).toBe('all');
-    expect(slice.focusedProjectIndex).toBe(0);
-    expect(slice.projectViewMode).toBe('master');
-    expect(slice.focusedProjectSkillIndex).toBe(0);
-    expect(slice.selectedProjectSkillRowIds).toEqual(new Set());
-    expect(slice.activeProjectSkillFilter).toBe('all');
-    expect(slice.showSearch).toBe(false);
-    expect(slice.showHelp).toBe(false);
-    expect(slice.confirmState).toBeNull();
-    expect(slice.formState).toBeNull();
-    expect(slice.conflictState).toBeNull();
-    expect(slice.focusedConflictIndex).toBe(0);
-    expect(slice.syncFormStep).toBe('select-op');
-    expect(slice.syncFormOperation).toBe('sync-agents');
-    expect(slice.syncFormSelectedSkillNames).toEqual(new Set());
-    expect(slice.syncFormUnsyncScope).toBeNull();
-    expect(slice.syncFormSelectedTargetIds).toEqual(new Set());
-    expect(slice.syncFormProjectUnsyncMode).toBeNull();
-    expect(slice.syncFormSelectedAgentTypes).toEqual(new Set());
-    expect(slice.syncFormLoadingTargets).toBe(false);
-    expect(slice.syncFormMode).toBe('copy');
-    expect(slice.syncFormResults).toEqual([]);
-    expect(slice.syncFormFocusedIndex).toBe(0);
-    expect(slice.importTabStep).toBe('select-source-type');
-    expect(slice.importTabSourceType).toBe('project');
-    expect(slice.importTabSourceId).toBeNull();
-    expect(slice.importTabSelectedSkillNames).toEqual(new Set());
-    expect(slice.importTabResults).toEqual([]);
-    expect(slice.importTabFocusedIndex).toBe(0);
-    expect(slice.updateProgressItems).toEqual([]);
-    expect(slice.completionModalOpen).toBeNull();
-    // Sprint 2 fields
-    expect(slice.showCommandPalette).toBe(false);
-    expect(slice.searchResultIndex).toBe(0);
-    expect(slice.tabSwitchPending).toBeNull();
-    expect(slice.dirtyConfirmActive).toBe(false);
-    expect(slice.detailSkillName).toBeNull();
+    expect(state.shellState.activeTab).toBe('skills');
+    expect(state.shellState.searchQuery).toBe('');
+    expect(state.shellState.showSearch).toBe(false);
+    expect(state.shellState.showHelp).toBe(false);
+    expect(state.shellState.showCommandPalette).toBe(false);
+    expect(state.shellState.confirmState).toBeNull();
+    expect(state.shellState.formState).toBeNull();
+    expect(state.shellState.conflictState).toBeNull();
+    expect(state.shellState.activeToast).toBeNull();
+    expect(state.shellState.toastQueue).toEqual([]);
+    expect(state.skillsBrowserState.focusedIndex).toBe(0);
+    expect(state.skillsBrowserState.selectedNames).toEqual(new Set());
+    expect(state.agentsBrowserState.viewMode).toBe('master');
+    expect(state.projectsBrowserState.viewMode).toBe('master');
+    expect(state.syncWorkflowState.step).toBe('select-op');
+    expect(state.syncWorkflowState.operation).toBe('sync-agents');
+    expect(state.importWorkflowState.step).toBe('select-source-type');
+    expect(state.importWorkflowState.sourceType).toBe('project');
   });
 
-  it('setActiveTab resets form states and focuses', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
+  it('setActiveTab resets cross-tab selection and transient overlays', () => {
+    const { getState } = createHarness();
+    const state = getState();
 
-    // Simulate having a formState and conflictState set
-    (slice.setActiveTab as any)('agents');
+    state.setFormState({ formType: 'addSkill', data: {} });
+    state.setConfirmState({ title: 'Confirm', message: 'msg', onConfirm: () => undefined });
+    state.setConflictState({
+      skillName: 'demo',
+      conflicts: [],
+      onComplete: () => undefined,
+    });
+    state.toggleSkillSelection('skill-a');
+    state.toggleAgentSkillSelection('agent-row');
+    state.toggleProjectSkillSelection('project-row');
 
-    expect(set).toHaveBeenCalledWith(
-      expect.objectContaining({
-        activeTab: 'agents',
-        focusedSkillIndex: 0,
-        selectedSkillNames: new Set(),
-        focusedAgentIndex: 0,
-        agentViewMode: 'master',
-        focusedAgentSkillIndex: 0,
-        selectedAgentSkillRowIds: new Set(),
-        activeAgentSkillFilter: 'all',
-        focusedProjectIndex: 0,
-        projectViewMode: 'master',
-        focusedProjectSkillIndex: 0,
-        selectedProjectSkillRowIds: new Set(),
-        activeProjectSkillFilter: 'all',
-        confirmState: null,
-        formState: null,
-        conflictState: null,
-        detailOverlayVisible: false,
-        detailSkillName: null,
-      })
+    getState().setActiveTab('agents');
+    const next = getState();
+
+    expect(next.shellState.activeTab).toBe('agents');
+    expect(next.shellState.confirmState).toBeNull();
+    expect(next.shellState.formState).toBeNull();
+    expect(next.shellState.conflictState).toBeNull();
+    expect(next.skillsBrowserState.selectedNames).toEqual(new Set());
+    expect(next.agentsBrowserState.viewMode).toBe('master');
+    expect(next.agentsBrowserState.selectedSkillRowIds).toEqual(new Set());
+    expect(next.projectsBrowserState.viewMode).toBe('master');
+    expect(next.projectsBrowserState.selectedSkillRowIds).toEqual(new Set());
+  });
+
+  it('updates search and overlay state through shell setters', () => {
+    const { getState } = createHarness();
+
+    getState().setSearchQuery('term');
+    expect(getState().shellState.searchQuery).toBe('term');
+
+    getState().setShowSearch(true);
+    expect(getState().shellState.showSearch).toBe(true);
+    expect(getState().shellState.showHelp).toBe(false);
+    expect(getState().shellState.showCommandPalette).toBe(false);
+    expect(getState().shellState.searchQuery).toBe('');
+    expect(getState().shellState.searchResultIndex).toBe(0);
+
+    getState().setShowHelp(true);
+    expect(getState().shellState.showHelp).toBe(true);
+    expect(getState().shellState.showSearch).toBe(false);
+
+    getState().setShowCommandPalette(true);
+    expect(getState().shellState.showCommandPalette).toBe(true);
+    expect(getState().shellState.showSearch).toBe(false);
+    expect(getState().shellState.showHelp).toBe(false);
+    expect(getState().shellState.formState).toBeNull();
+    expect(getState().shellState.confirmState).toBeNull();
+    expect(getState().shellState.conflictState).toBeNull();
+  });
+
+  it('tracks browser selection state independently per surface', () => {
+    const { getState } = createHarness();
+
+    getState().toggleSkillSelection('skill-a');
+    expect(getState().skillsBrowserState.selectedNames).toEqual(new Set(['skill-a']));
+    getState().toggleSkillSelection('skill-a');
+    expect(getState().skillsBrowserState.selectedNames).toEqual(new Set());
+
+    getState().toggleAgentSkillSelection('agent-row');
+    expect(getState().agentsBrowserState.selectedSkillRowIds).toEqual(new Set(['agent-row']));
+
+    getState().toggleProjectSkillSelection('project-row');
+    expect(getState().projectsBrowserState.selectedSkillRowIds).toEqual(
+      new Set(['project-row'])
     );
   });
 
-  it('toggleSkillSelection adds and removes skills', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
+  it('resets sync workflow state to its initial shape', () => {
+    const { getState } = createHarness();
+    const state = getState();
 
-    slice.toggleSkillSelection('my-skill');
-    expect(set).toHaveBeenCalled();
+    state.setSyncFormStep('confirm');
+    state.setSyncFormOperation('unsync');
+    state.setSyncFormSelectedSkillNames(new Set(['skill-a']));
+    state.setSyncFormSelectedTargetIds(new Set(['claude']));
+    state.setSyncWorkflowPreview({ targets: [], agentTypes: [] }, 'preview error');
 
-    const lastCall = set.mock.calls[set.mock.calls.length - 1][0];
-    expect(lastCall).toEqual({ selectedSkillNames: new Set(['my-skill']) });
-
-    // Simulate get() now having that skill selected, then toggle again
-    expect(slice.toggleSkillSelection).toBeTruthy();
-  });
-
-  it('setSearchQuery updates the query', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    slice.setSearchQuery('test-query');
-
-    expect(set).toHaveBeenCalledWith({ searchQuery: 'test-query' });
-  });
-
-  it('setShowSearch clears showHelp and showCommandPalette', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    slice.setShowSearch(true);
-
-    expect(set).toHaveBeenCalledWith({
-      showSearch: true,
-      showHelp: false,
-      showCommandPalette: false,
-      searchQuery: '',
-      searchResultIndex: 0,
+    getState().resetSyncForm();
+    expect(getState().syncWorkflowState).toEqual({
+      step: 'select-op',
+      operation: 'sync-agents',
+      selectedSkillNames: new Set(),
+      unsyncScope: null,
+      selectedTargetIds: new Set(),
+      projectUnsyncMode: null,
+      selectedAgentTypes: new Set(),
+      loadingTargets: false,
+      mode: 'copy',
+      results: [],
+      focusedIndex: 0,
+      preview: null,
+      previewError: null,
     });
   });
 
-  it('setShowHelp clears showSearch and showCommandPalette', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
+  it('resets import workflow state to its initial shape', () => {
+    const { getState } = createHarness();
+    const state = getState();
 
-    slice.setShowHelp(true);
+    state.setImportTabStep('confirm');
+    state.setImportTabSourceType('agent');
+    state.setImportTabSourceId('claude');
+    state.setImportTabSourceLabel('Claude');
+    state.setImportTabSelectedSkillNames(new Set(['skill-a']));
+    state.setImportDiscoveredSkills([
+      { name: 'skill-a', path: '/tmp/skill-a', alreadyExists: false, hasSkillMd: true },
+    ]);
 
-    expect(set).toHaveBeenCalledWith({
-      showHelp: true,
-      showSearch: false,
-      showCommandPalette: false,
+    getState().resetImportTab();
+    expect(getState().importWorkflowState).toEqual({
+      step: 'select-source-type',
+      sourceType: 'project',
+      sourceId: null,
+      sourceLabel: null,
+      selectedSkillNames: new Set(),
+      results: [],
+      focusedIndex: 0,
+      discoveredSkills: [],
     });
   });
 
-  it('resetSyncForm clears all sync form state', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
+  it('stores detail overlay and modal state inside shellState', () => {
+    const { getState } = createHarness();
 
-    slice.resetSyncForm();
+    getState().setCompletionModalOpen(true);
+    getState().setTabSwitchPending('projects');
+    getState().setDirtyConfirmActive(true);
+    getState().setFormDirty(true);
+    getState().setDetailSkillName('skill-a');
+    getState().setDetailOverlayVisible(true);
 
-    expect(set).toHaveBeenCalledWith({
-      syncFormStep: 'select-op',
-      syncFormOperation: 'sync-agents',
-      syncFormSelectedSkillNames: new Set(),
-      syncFormUnsyncScope: null,
-      syncFormSelectedTargetIds: new Set(),
-      syncFormProjectUnsyncMode: null,
-      syncFormSelectedAgentTypes: new Set(),
-      syncFormLoadingTargets: false,
-      syncFormMode: 'copy',
-      syncFormResults: [],
-      syncFormFocusedIndex: 0,
-    });
+    expect(getState().shellState.completionModalOpen).toBe(true);
+    expect(getState().shellState.tabSwitchPending).toBe('projects');
+    expect(getState().shellState.dirtyConfirmActive).toBe(true);
+    expect(getState().shellState.formDirty).toBe(true);
+    expect(getState().shellState.detailSkillName).toBe('skill-a');
+    expect(getState().shellState.detailOverlayVisible).toBe(true);
+
+    getState().setDetailOverlayVisible(false);
+    expect(getState().shellState.detailOverlayVisible).toBe(false);
+    expect(getState().shellState.detailSkillName).toBeNull();
   });
 
-  it('resetImportTab clears all import tab state', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
+  it('replaces and updates progress items in shellState', () => {
+    const { getState } = createHarness();
 
-    slice.resetImportTab();
+    getState().setUpdateProgressItems([
+      { id: 'p1', label: 'Item 1', progress: 0, status: 'pending' },
+    ]);
+    getState().updateProgressItem('p1', { progress: 75, status: 'running' });
 
-    expect(set).toHaveBeenCalledWith({
-      importTabStep: 'select-source-type',
-      importTabSourceType: 'project',
-      importTabSourceId: null,
-      importTabSelectedSkillNames: new Set(),
-      importTabResults: [],
-      importTabFocusedIndex: 0,
-    });
+    expect(getState().shellState.updateProgressItems).toEqual([
+      { id: 'p1', label: 'Item 1', progress: 75, status: 'running' },
+    ]);
   });
 
-  it('setCompletionModalOpen toggles the completion modal', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    slice.setCompletionModalOpen(true);
-    expect(set).toHaveBeenCalledWith({ completionModalOpen: true });
-
-    slice.setCompletionModalOpen(false);
-    expect(set).toHaveBeenCalledWith({ completionModalOpen: false });
-
-    slice.setCompletionModalOpen(null);
-    expect(set).toHaveBeenCalledWith({ completionModalOpen: null });
-  });
-
-  it('setConfirmState clears formState and conflictState', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-    const confirmState = { title: 'Test', message: 'msg', onConfirm: () => {} };
-
-    slice.setConfirmState(confirmState);
-
-    expect(set).toHaveBeenCalledWith({
-      confirmState,
-      formState: null,
-      conflictState: null,
-    });
-  });
-
-  it('setFormState clears confirmState and conflictState', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-    const formState = { formType: 'addSkill' as const, data: {} };
-
-    slice.setFormState(formState);
-
-    expect(set).toHaveBeenCalledWith({
-      formState,
-      confirmState: null,
-      conflictState: null,
-    });
-  });
-
-  it('setUpdateProgressItems replaces the progress list', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-    const items = [{ id: 'p1', label: 'Item 1', progress: 0, status: 'pending' as const }];
-
-    slice.setUpdateProgressItems(items);
-
-    expect(set).toHaveBeenCalledWith({ updateProgressItems: items });
-  });
-
-  it('updateProgressItem action exists and takes correct parameters', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    expect(typeof slice.updateProgressItem).toBe('function');
-    expect(slice.updateProgressItem.length).toBe(2);
-  });
-
-  // Sprint 2 tests
-
-  it('setShowCommandPalette clears all other overlays for mutual exclusivity', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    slice.setShowCommandPalette(true);
-
-    expect(set).toHaveBeenCalledWith({
-      showCommandPalette: true,
-      showSearch: false,
-      showHelp: false,
-      confirmState: null,
-      formState: null,
-      conflictState: null,
-    });
-  });
-
-  it('setSearchResultIndex updates the search result index', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    slice.setSearchResultIndex(3);
-
-    expect(set).toHaveBeenCalledWith({ searchResultIndex: 3 });
-  });
-
-  it('setTabSwitchPending sets the pending tab', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    slice.setTabSwitchPending('agents');
-
-    expect(set).toHaveBeenCalledWith({ tabSwitchPending: 'agents' });
-  });
-
-  it('setTabSwitchPending clears with null', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    slice.setTabSwitchPending(null);
-
-    expect(set).toHaveBeenCalledWith({ tabSwitchPending: null });
-  });
-
-  it('setDirtyConfirmActive toggles dirty confirm state', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    slice.setDirtyConfirmActive(true);
-    expect(set).toHaveBeenCalledWith({ dirtyConfirmActive: true });
-
-    slice.setDirtyConfirmActive(false);
-    expect(set).toHaveBeenCalledWith({ dirtyConfirmActive: false });
-  });
-
-  it('setFormDirty toggles form dirty flag', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    slice.setFormDirty(true);
-    expect(set).toHaveBeenCalledWith({ formDirty: true });
-
-    slice.setFormDirty(false);
-    expect(set).toHaveBeenCalledWith({ formDirty: false });
-  });
-
-  // Sprint 3: Undo tests
-
-  it('initializes undo state to null/false', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    expect(slice.undoBuffer).toBeNull();
-    expect(slice.undoActive).toBe(false);
-  });
-
-  it('initializes toast state to empty/null', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    expect(slice.toastQueue).toEqual([]);
-    expect(slice.activeToast).toBeNull();
-  });
-
-  it('pushUndo sets undoBuffer and activates undo', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
+  it('creates and clears undo state', () => {
+    const { getState } = createHarness();
 
     vi.useFakeTimers();
     try {
-      slice.pushUndo('delete-skill', {
-        name: 'test-skill',
-        source: { type: 'local' },
-        createdAt: '2025-01-01',
-        syncedTo: [],
-      });
+      getState().pushUndo('delete-skill', { name: 'test-skill' });
+      expect(getState().shellState.undoActive).toBe(true);
+      expect(getState().shellState.undoBuffer?.action).toBe('delete-skill');
+      expect(getState().shellState.undoBuffer?.snapshot).toEqual({ name: 'test-skill' });
 
-      expect(set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          undoActive: true,
-        })
-      );
-
-      const lastCall = set.mock.calls[set.mock.calls.length - 1][0];
-      expect(lastCall.undoBuffer).not.toBeNull();
-      expect(lastCall.undoBuffer.action).toBe('delete-skill');
-      expect(lastCall.undoBuffer.remainingMs).toBe(8000);
-      expect(lastCall.undoBuffer.snapshot.name).toBe('test-skill');
+      getState().clearUndo();
+      expect(getState().shellState.undoActive).toBe(false);
+      expect(getState().shellState.undoBuffer).toBeNull();
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('pushUndo replaces existing undo entry', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
+  it('pushToast activates the first toast and queues later ones', () => {
+    const { getState } = createHarness();
 
     vi.useFakeTimers();
     try {
-      slice.pushUndo('delete-skill', { name: 'skill1' });
-      slice.pushUndo('remove-agent', { id: 'agent1', name: 'agent1' });
+      getState().pushToast('First', 'success');
+      expect(getState().shellState.activeToast?.message).toBe('First');
+      expect(getState().shellState.activeToast?.variant).toBe('success');
+      expect(getState().shellState.toastQueue).toEqual([]);
 
-      const lastCall = set.mock.calls[set.mock.calls.length - 1][0];
-      expect(lastCall.undoBuffer.action).toBe('remove-agent');
-    } finally {
-      vi.useRealTimers();
-    }
-  });
+      getState().pushToast('Second', 'info');
+      expect(getState().shellState.activeToast?.message).toBe('First');
+      expect(getState().shellState.toastQueue).toHaveLength(1);
+      expect(getState().shellState.toastQueue[0]?.message).toBe('Second');
 
-  it('clearUndo resets buffer and deactivates', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    vi.useFakeTimers();
-    try {
-      slice.pushUndo('delete-skill', { name: 'test-skill' });
-      slice.clearUndo();
-
-      expect(set).toHaveBeenCalledWith({ undoBuffer: null, undoActive: false });
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('pushToast creates toast with 2000ms expiry', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    vi.useFakeTimers();
-    try {
-      slice.pushToast('Test message', 'success');
-
-      const toastCalls = set.mock.calls.filter(
-        (c) => c[0].activeToast !== undefined && c[0].activeToast !== null
-      );
-      expect(toastCalls.length).toBeGreaterThan(0);
-
-      const toast = toastCalls[0][0].activeToast;
-      expect(toast.message).toBe('Test message');
-      expect(toast.variant).toBe('success');
-      expect(toast.expiresAt).toBe(Date.now() + 2000);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('pushToast queues toasts when activeToast exists', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    vi.useFakeTimers();
-    try {
-      slice.pushToast('First', 'success');
-      slice.pushToast('Second', 'info');
-
-      const queueCalls = set.mock.calls.filter((c) => c[0].toastQueue !== undefined);
-      expect(queueCalls.length).toBeGreaterThan(0);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('dismissActiveToast promotes next toast from queue', () => {
-    const { set, get } = createMockSetGet();
-    const slice = createUISlice(set, get, undefined as any);
-
-    vi.useFakeTimers();
-    try {
-      slice.pushToast('First', 'success');
-      slice.pushToast('Second', 'info');
-      slice.dismissActiveToast();
-
-      const lastCall = set.mock.calls[set.mock.calls.length - 1][0];
-      if (lastCall.activeToast) {
-        expect(lastCall.activeToast.message).toBe('Second');
-      }
+      getState().dismissActiveToast();
+      expect(getState().shellState.activeToast?.message).toBe('Second');
+      expect(getState().shellState.toastQueue).toEqual([]);
     } finally {
       vi.useRealTimers();
     }

@@ -36,10 +36,10 @@ function formatSummaryDate(value?: string): string {
 }
 
 export function SkillsScreen({ store, band, columns }: SkillsScreenProps): React.ReactElement | null {
-  const focusedIndex = useStore(store, (s) => s.focusedSkillIndex);
+  const focusedIndex = useStore(store, (s) => s.skillsBrowserState.focusedIndex);
   const skills = useStore(store, (s) => s.skills);
-  const activeSkillCategoryFilter = useStore(store, (s) => s.activeSkillCategoryFilter);
-  const detailOverlayVisible = useStore(store, (s) => s.detailOverlayVisible);
+  const activeSkillCategoryFilter = useStore(store, (s) => s.skillsBrowserState.activeCategoryFilter);
+  const detailOverlayVisible = useStore(store, (s) => s.shellState.detailOverlayVisible);
 
   useEffect(() => {
     const focusedSkill = getFocusedVisibleSkill(skills, activeSkillCategoryFilter, focusedIndex);

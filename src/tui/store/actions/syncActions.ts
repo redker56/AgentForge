@@ -1,16 +1,13 @@
 /**
- * Sync action creators -- sync, unsync, and update operations
- *
- * Also exposes isolated import helpers for use by ImportFormTab
- * (Known Deviation 1: helpers call services directly, no formState).
+ * Sync action creators -- sync, unsync, and update operations.
  */
 
-import type { StoreApi } from 'zustand';
+import type { StateCreator, StoreApi } from 'zustand';
 
 import type { SyncMode } from '../../../types.js';
-import type { ServiceContext } from '../dataSlice.js';
 import type { AppStore } from '../index.js';
 import type { OperationResult, ProgressItem, UpdateResult } from '../uiSlice.js';
+import type { WorkbenchContext } from '../workbenchContext.js';
 
 export interface ProjectUnsyncOptions {
   mode?: 'all' | 'specific';
@@ -111,37 +108,35 @@ function pushUpdateToast(store: StoreApi<AppStore>, results: UpdateResult[]): vo
   }
 }
 
-function getProjectUnsyncAvailability(
-  ctx: ServiceContext,
+async function getProjectUnsyncAvailability(
+  ctx: WorkbenchContext,
   skillName: string
 ): Promise<Map<string, Set<string>>> {
-  return ctx.scanService.getSkillProjectDistributionWithStatus(skillName).then((distribution) => {
-    const availability = new Map<string, Set<string>>();
-    const recorded = ctx.storage.getSkill(skillName)?.syncedProjects || [];
+  const detail = await ctx.queries.loadSkillDetail(skillName);
+  const availability = new Map<string, Set<string>>();
 
-    for (const record of recorded) {
-      if (!availability.has(record.projectId)) {
-        availability.set(record.projectId, new Set());
-      }
-      availability.get(record.projectId)?.add(record.agentType);
+  for (const record of detail?.syncedProjects ?? []) {
+    if (!availability.has(record.projectId)) {
+      availability.set(record.projectId, new Set());
     }
+    availability.get(record.projectId)?.add(record.agentType);
+  }
 
-    for (const project of distribution) {
-      if (!availability.has(project.projectId)) {
-        availability.set(project.projectId, new Set());
-      }
-      const types = availability.get(project.projectId);
-      for (const agent of project.agents) {
-        types?.add(agent.id);
-      }
+  for (const project of detail?.projectDistribution ?? []) {
+    if (!availability.has(project.projectId)) {
+      availability.set(project.projectId, new Set());
     }
+    const types = availability.get(project.projectId);
+    for (const agent of project.agents) {
+      types?.add(agent.id);
+    }
+  }
 
-    return availability;
-  });
+  return availability;
 }
 
-function getSkillSourceType(skillName: string, ctx: ServiceContext): UpdateResult['sourceType'] {
-  const skill = ctx.storage.getSkill(skillName);
+function getSkillSourceType(skillName: string, store: StoreApi<AppStore>): UpdateResult['sourceType'] {
+  const skill = store.getState().skills.find((entry) => entry.name === skillName);
   if (!skill) return 'unknown';
   if (skill.source.type === 'git') return 'git';
   if (skill.source.type === 'project') return 'project';
@@ -160,100 +155,38 @@ function parseProjectTargetPairs(
     .filter((target) => Boolean(target.projectId) && Boolean(target.agentType));
 }
 
-// ============================================================
-// Isolated import helpers (Known Deviation 1)
-// ============================================================
-
 export async function doImportFromProject(
-  ctx: ServiceContext,
+  ctx: WorkbenchContext,
   projectId: string,
   skillNames: string[]
 ): Promise<OperationResult[]> {
-  const project = ctx.storage.getProject(projectId);
-  if (!project) {
-    return [{ target: projectId, success: false, error: 'Project not found', outcome: 'error' }];
-  }
-  const discovered = ctx.scanService.scanProject(project.path);
-  const results: OperationResult[] = [];
-  for (const skillName of skillNames) {
-    const found = discovered.find((s) => s.name === skillName);
-    if (!found) {
-      results.push({
-        target: skillName,
-        success: false,
-        error: 'Not found in project',
-        outcome: 'error',
-      });
-      continue;
-    }
-    if (ctx.skillService.exists(skillName)) {
-      results.push({
-        target: skillName,
-        success: false,
-        error: 'Already exists',
-        outcome: 'error',
-      });
-      continue;
-    }
-    try {
-      await ctx.skillService.importFromPath(found.path, skillName, { type: 'project', projectId });
-      results.push({ target: skillName, success: true, outcome: 'success' });
-    } catch (e: unknown) {
-      results.push({
-        target: skillName,
-        success: false,
-        error: e instanceof Error ? e.message : String(e),
-        outcome: 'error',
-      });
-    }
-  }
-  return results;
+  const results = await ctx.commands.importFromProject(projectId, skillNames);
+  return results.map((result) => ({
+    target: result.target,
+    success: result.success,
+    error: result.error,
+    outcome: result.outcome,
+  }));
 }
 
 export async function doImportFromAgent(
-  ctx: ServiceContext,
+  ctx: WorkbenchContext,
   agentId: string,
   skillNames: string[]
 ): Promise<OperationResult[]> {
-  const agent = ctx.storage.getAgent(agentId);
-  if (!agent) {
-    return [{ target: agentId, success: false, error: 'Agent not found', outcome: 'error' }];
-  }
-  const results: OperationResult[] = [];
-  for (const skillName of skillNames) {
-    if (ctx.skillService.exists(skillName)) {
-      results.push({
-        target: skillName,
-        success: false,
-        error: 'Already exists',
-        outcome: 'error',
-      });
-      continue;
-    }
-    try {
-      const srcPath = `${agent.basePath}/${skillName}`;
-      await ctx.skillService.importFromPath(srcPath, skillName, {
-        type: 'local',
-        importedFrom: { agent: agentId, path: srcPath },
-      });
-      results.push({ target: skillName, success: true, outcome: 'success' });
-    } catch (e: unknown) {
-      results.push({
-        target: skillName,
-        success: false,
-        error: e instanceof Error ? e.message : String(e),
-        outcome: 'error',
-      });
-    }
-  }
-  return results;
+  const results = await ctx.commands.importFromAgent(agentId, skillNames);
+  return results.map((result) => ({
+    target: result.target,
+    success: result.success,
+    error: result.error,
+    outcome: result.outcome,
+  }));
 }
 
-// ============================================================
-// SyncActions factory
-// ============================================================
-
-export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext): SyncActions {
+function createSyncActionsImpl(
+  store: StoreApi<AppStore>,
+  ctx: WorkbenchContext
+): SyncActions {
   return {
     syncSkillsToAgents: async (skillNames, agentIds, mode): Promise<void> => {
       const state = store.getState();
@@ -274,13 +207,14 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
       const results: OperationResult[] = [];
       for (const skillName of uniqueSkills) {
         for (const agentId of uniqueAgents) {
-          const agent = ctx.storage.getAgent(agentId);
-          const label = `${skillName} -> ${agent ? agent.name : agentId}`;
+          const agent = state.agents.find((entry) => entry.id === agentId);
+          const label = `${skillName} -> ${agent?.name ?? agentId}`;
           const itemId = `sync-${skillName}-${agentId}`;
           state.updateProgressItem(itemId, { status: 'running', progress: 30 });
           try {
-            await ctx.syncService.sync(skillName, agent ? [agent] : [], mode);
-            results.push(makeResult(label, 'success'));
+            const syncResults = await ctx.commands.syncSkillsToAgents([skillName], [agentId], mode);
+            const syncResult = syncResults[0];
+            results.push(makeResult(label, syncResult?.success ? 'success' : 'error', syncResult?.error));
             state.updateProgressItem(itemId, { status: 'success', progress: 100 });
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
@@ -319,13 +253,20 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
           const itemId = `sync-${skillName}-${projectId}`;
           state.updateProgressItem(itemId, { status: 'running', progress: 30 });
           try {
-            await ctx.projectSyncService.syncToProject(
-              skillName,
-              projectId,
+            const syncResults = await ctx.commands.syncSkillsToProjects(
+              [skillName],
+              [projectId],
               unique(agentTypes),
               mode
             );
-            results.push(makeResult(`${skillName} -> ${projectId}`, 'success'));
+            const syncResult = syncResults[0];
+            results.push(
+              makeResult(
+                `${skillName} -> ${projectId}`,
+                syncResult?.success ? 'success' : 'error',
+                syncResult?.error
+              )
+            );
             state.updateProgressItem(itemId, { status: 'success', progress: 100 });
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
@@ -350,7 +291,7 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
 
       const planned = uniqueSkills.flatMap((skillName) => {
         const syncedAgents = new Set(
-          (ctx.storage.getSkill(skillName)?.syncedTo || []).map((r) => r.agentId)
+          (state.skillDetails[skillName]?.syncedTo ?? []).map((record) => record.agentId)
         );
         return uniqueAgents
           .filter((agentId) => syncedAgents.has(agentId))
@@ -368,7 +309,7 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
       const results: OperationResult[] = [];
       for (const skillName of uniqueSkills) {
         const syncedAgents = new Set(
-          (ctx.storage.getSkill(skillName)?.syncedTo || []).map((r) => r.agentId)
+          (state.skillDetails[skillName]?.syncedTo ?? []).map((record) => record.agentId)
         );
         for (const agentId of uniqueAgents) {
           const label = `${skillName} -> ${agentId}`;
@@ -380,7 +321,7 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
           const itemId = `unsync-${skillName}-${agentId}`;
           state.updateProgressItem(itemId, { status: 'running', progress: 30 });
           try {
-            await ctx.syncService.unsync(skillName, [agentId]);
+            await ctx.commands.unsyncSkillsFromAgents([skillName], [agentId]);
             results.push(makeResult(label, 'success'));
             state.updateProgressItem(itemId, { status: 'success', progress: 100 });
           } catch (e: unknown) {
@@ -478,9 +419,11 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
             const itemId = `unsync-${skillName}-${target.projectId}-${target.agentType}`;
             state.updateProgressItem(itemId, { status: 'running', progress: 30 });
             try {
-              await ctx.projectSyncService.unsync(skillName, [
-                `${target.projectId}:${target.agentType}`,
-              ]);
+              await ctx.commands.unsyncSkillsFromProjects(
+                [skillName],
+                [`${target.projectId}:${target.agentType}`],
+                { mode: 'specific', agentTypes: [target.agentType] }
+              );
               results.push(makeResult(label, 'success'));
               state.updateProgressItem(itemId, { status: 'success', progress: 100 });
             } catch (e: unknown) {
@@ -505,7 +448,7 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
             const itemId = `unsync-${skillName}-${projectId}`;
             state.updateProgressItem(itemId, { status: 'running', progress: 30 });
             try {
-              await ctx.projectSyncService.unsyncFromProject(skillName, projectId);
+              await ctx.commands.unsyncSkillsFromProjects([skillName], [projectId], { mode: 'all' });
               results.push(makeResult(labelBase, 'success'));
               state.updateProgressItem(itemId, { status: 'success', progress: 100 });
             } catch (e: unknown) {
@@ -531,7 +474,10 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
             const itemId = `unsync-${skillName}-${projectId}-${agentType}`;
             state.updateProgressItem(itemId, { status: 'running', progress: 30 });
             try {
-              await ctx.projectSyncService.unsync(skillName, [`${projectId}:${agentType}`]);
+              await ctx.commands.unsyncSkillsFromProjects([skillName], [projectId], {
+                mode: 'specific',
+                agentTypes: [agentType],
+              });
               results.push(makeResult(label, 'success'));
               state.updateProgressItem(itemId, { status: 'success', progress: 100 });
             } catch (e: unknown) {
@@ -555,15 +501,15 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
       if (uniqueSkills.length === 0) return [];
 
       const state = store.getState();
-      const results: UpdateResult[] = [];
+      const resultBySkillName = new Map<string, UpdateResult>();
       const gitBackedSkills: string[] = [];
 
       for (const skillName of uniqueSkills) {
-        const skill = ctx.storage.getSkill(skillName);
-        const sourceType = getSkillSourceType(skillName, ctx);
+        const skill = state.skills.find((entry) => entry.name === skillName);
+        const sourceType = getSkillSourceType(skillName, store);
 
         if (!skill) {
-          results.push({
+          resultBySkillName.set(skillName, {
             skillName,
             sourceType,
             outcome: 'error',
@@ -573,7 +519,7 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
         }
 
         if (skill.source.type !== 'git') {
-          results.push({
+          resultBySkillName.set(skillName, {
             skillName,
             sourceType,
             outcome: 'skipped',
@@ -587,8 +533,12 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
 
       if (gitBackedSkills.length === 0) {
         state.setUpdateProgressItems([]);
-        pushUpdateToast(store, results);
-        return results;
+        const noGitResults = uniqueSkills.flatMap((skillName) => {
+          const result = resultBySkillName.get(skillName);
+          return result ? [result] : [];
+        });
+        pushUpdateToast(store, noGitResults);
+        return noGitResults;
       }
 
       const progressItems: ProgressItem[] = gitBackedSkills.map((skillName) => ({
@@ -600,60 +550,44 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
       state.setUpdateProgressItems(progressItems);
 
       for (const skillName of gitBackedSkills) {
-        state.updateProgressItem(`update-${skillName}`, { status: 'running', progress: 30 });
+        const itemId = `update-${skillName}`;
+        state.updateProgressItem(itemId, {
+          status: 'running',
+          progress: 30,
+        });
+
+        let updateResult: UpdateResult;
         try {
-          const updated = await ctx.skillService.update(skillName);
-          if (!updated) {
-            results.push({
-              skillName,
-              sourceType: 'git',
-              outcome: 'skipped',
-              detail: 'Repository could not be updated',
-            });
-            state.updateProgressItem(`update-${skillName}`, {
-              status: 'success',
-              progress: 100,
-              label: `${skillName} skipped`,
-            });
-            continue;
-          }
-
-          try {
-            await ctx.syncService.resync(skillName);
-          } catch {
-            // Keep update success even if background resync fails.
-          }
-          try {
-            await ctx.projectSyncService.resync(skillName);
-          } catch {
-            // Keep update success even if background resync fails.
-          }
-
-          results.push({
+          const [result] = await ctx.commands.updateSkills([skillName]);
+          updateResult = result ?? {
             skillName,
-            sourceType: 'git',
-            outcome: 'updated',
-          });
-          state.updateProgressItem(`update-${skillName}`, {
-            status: 'success',
-            progress: 100,
-            label: `${skillName} updated`,
-          });
-        } catch (e: unknown) {
-          const msg = e instanceof Error ? e.message : String(e);
-          results.push({
-            skillName,
-            sourceType: 'git',
+            sourceType: getSkillSourceType(skillName, store),
             outcome: 'error',
-            detail: msg,
-          });
-          state.updateProgressItem(`update-${skillName}`, {
-            status: 'error',
-            progress: 100,
-            error: msg,
-          });
+            detail: 'No update result returned',
+          };
+        } catch (error: unknown) {
+          updateResult = {
+            skillName,
+            sourceType: getSkillSourceType(skillName, store),
+            outcome: 'error',
+            detail: error instanceof Error ? error.message : String(error),
+          };
         }
+
+        resultBySkillName.set(skillName, updateResult);
+        state.updateProgressItem(itemId, {
+          status: updateResult.outcome === 'error' ? 'error' : 'success',
+          progress: 100,
+          ...(updateResult.outcome === 'updated' ? { label: `${skillName} updated` } : {}),
+          ...(updateResult.outcome === 'skipped' ? { label: `${skillName} skipped` } : {}),
+          ...(updateResult.detail ? { error: updateResult.detail } : {}),
+        });
       }
+
+      const results = uniqueSkills.flatMap((skillName) => {
+        const result = resultBySkillName.get(skillName);
+        return result ? [result] : [];
+      });
 
       await state.refreshSkills();
       queueProgressClear(store);
@@ -661,4 +595,14 @@ export function createSyncActions(store: StoreApi<AppStore>, ctx: ServiceContext
       return results;
     },
   };
+}
+
+export function createSyncActions(store: StoreApi<AppStore>, ctx: WorkbenchContext): SyncActions {
+  return createSyncActionsImpl(store, ctx);
+}
+
+export function createSyncActionsSlice(
+  ctx: WorkbenchContext
+): StateCreator<AppStore, [], [], SyncActions> {
+  return (_set, _get, store) => createSyncActionsImpl(store as StoreApi<AppStore>, ctx);
 }

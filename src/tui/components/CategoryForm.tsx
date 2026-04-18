@@ -76,7 +76,7 @@ function truncateText(text: string, maxWidth = CONTENT_WIDTH): string {
 }
 
 export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
-  const formState = useStore(store, (s) => s.formState);
+  const formState = useStore(store, (s) => s.shellState.formState);
   const skills = useStore(store, (s) => s.skills);
 
   const isVisible = formState?.formType === 'categorizeSkills';

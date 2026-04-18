@@ -158,18 +158,18 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
   const skillsCount = useStore(store, (s) => s.skills.length);
   const agentsCount = useStore(store, (s) => s.agents.length);
   const projectsCount = useStore(store, (s) => s.projects.length);
-  const activeTab = useStore(store, (s) => s.activeTab);
-  const selectedSkillNames = useStore(store, (s) => s.selectedSkillNames) ?? new Set<string>();
+  const activeTab = useStore(store, (s) => s.shellState.activeTab);
+  const selectedSkillNames = useStore(store, (s) => s.skillsBrowserState.selectedNames) ?? new Set<string>();
   const selectedAgentSkillRowIds =
-    useStore(store, (s) => s.selectedAgentSkillRowIds) ?? new Set<string>();
+    useStore(store, (s) => s.agentsBrowserState.selectedSkillRowIds) ?? new Set<string>();
   const selectedProjectSkillRowIds =
-    useStore(store, (s) => s.selectedProjectSkillRowIds) ?? new Set<string>();
-  const agentViewMode = useStore(store, (s) => s.agentViewMode) ?? 'master';
-  const projectViewMode = useStore(store, (s) => s.projectViewMode) ?? 'master';
-  const detailOverlayVisible = useStore(store, (s) => s.detailOverlayVisible);
-  const undoActive = useStore(store, (s) => s.undoActive);
-  const undoBuffer = useStore(store, (s) => s.undoBuffer);
-  const activeToast = useStore(store, (s) => s.activeToast);
+    useStore(store, (s) => s.projectsBrowserState.selectedSkillRowIds) ?? new Set<string>();
+  const agentViewMode = useStore(store, (s) => s.agentsBrowserState.viewMode) ?? 'master';
+  const projectViewMode = useStore(store, (s) => s.projectsBrowserState.viewMode) ?? 'master';
+  const detailOverlayVisible = useStore(store, (s) => s.shellState.detailOverlayVisible);
+  const undoActive = useStore(store, (s) => s.shellState.undoActive);
+  const undoBuffer = useStore(store, (s) => s.shellState.undoBuffer);
+  const activeToast = useStore(store, (s) => s.shellState.activeToast);
   const selectedCount =
     activeTab === 'skills'
       ? selectedSkillNames.size

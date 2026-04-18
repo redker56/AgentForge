@@ -18,6 +18,8 @@ import path from 'path';
 import fs from 'fs-extra';
 
 import { files } from '../../infra/files.js';
+import type { ProjectStateRepository } from '../../infra/project-state-repository.js';
+import type { RegistryRepository } from '../../infra/registry-repository.js';
 import {
   getAgentProjectSkillsDir,
   type ProjectConfig,
@@ -31,7 +33,12 @@ import { ProjectStorage } from '../project-storage.js';
 import { BaseSyncService, SyncResult } from './base-sync-service.js';
 
 export class ProjectSyncService extends BaseSyncService<ProjectSyncTarget, ProjectSyncRecord> {
-  private readonly projectStorage = new ProjectStorage();
+  constructor(
+    storage: RegistryRepository,
+    private readonly projectStorage: ProjectStateRepository = new ProjectStorage()
+  ) {
+    super(storage);
+  }
 
   getAvailableTargets(): ProjectSyncTarget[] {
     const projects = this.storage.listProjects();

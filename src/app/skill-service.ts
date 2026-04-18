@@ -18,7 +18,7 @@ import fs from 'fs-extra';
 
 import { files } from '../infra/files.js';
 import { git } from '../infra/git.js';
-import { Storage } from '../infra/storage.js';
+import type { RegistryRepository } from '../infra/registry-repository.js';
 import {
   normalizeSkillCategories,
   type Skill,
@@ -29,7 +29,7 @@ import {
 export type SkillCategoryUpdateMode = 'set' | 'add' | 'remove' | 'clear';
 
 export class SkillService {
-  constructor(private readonly storage: Storage) {}
+  constructor(private readonly storage: RegistryRepository) {}
 
   private buildNextCategories(
     currentCategories: string[],

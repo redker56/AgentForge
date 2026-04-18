@@ -1,8 +1,5 @@
 /**
  * Import tab full screen. Hosts ImportFormTab and provides a title header.
- *
- * Receives ServiceContext to pass through to ImportFormTab for isolated
- * helper invocation (Known Deviation 1).
  */
 
 import { Box, Text } from 'ink';
@@ -12,17 +9,15 @@ import type { StoreApi } from 'zustand';
 
 import { ImportFormTab } from '../components/ImportFormTab.js';
 import { ProgressBarStack } from '../components/ProgressBar.js';
-import type { ServiceContext } from '../store/dataSlice.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
 
 interface ImportScreenProps {
   store: StoreApi<AppStore>;
-  ctx: ServiceContext;
 }
 
-export function ImportScreen({ store, ctx }: ImportScreenProps): React.ReactElement {
-  const updateProgressItems = useStore(store, (s) => s.updateProgressItems);
+export function ImportScreen({ store }: ImportScreenProps): React.ReactElement {
+  const updateProgressItems = useStore(store, (s) => s.shellState.updateProgressItems);
 
   return (
     <Box flexDirection="column" height="100%">
@@ -30,7 +25,7 @@ export function ImportScreen({ store, ctx }: ImportScreenProps): React.ReactElem
         <Text bold color={inkColors.accent}>Import Skills</Text>
       </Box>
       <Box flexGrow={1}>
-        <ImportFormTab store={store} ctx={ctx} />
+        <ImportFormTab store={store} />
       </Box>
       {updateProgressItems.length > 0 && (
         <Box paddingX={1}>

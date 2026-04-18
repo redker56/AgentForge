@@ -21,11 +21,11 @@ export const git = {
     if (fs.existsSync(dest)) {
       throw new Error(`Directory already exists: ${dest}`);
     }
-    await execa('git', ['clone', url, dest], { stdio: 'inherit' });
+    await execa('git', ['clone', url, dest]);
   },
 
   async pull(repoPath: string): Promise<void> {
-    await execa('git', ['pull'], { cwd: repoPath, stdio: 'inherit' });
+    await execa('git', ['pull'], { cwd: repoPath });
   },
 
   isRepo(dir: string): boolean {
