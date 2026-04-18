@@ -11,7 +11,11 @@ import type { StoreApi } from 'zustand';
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
 import type { AppStore, TabId } from '../store/index.js';
 import { inkColors, symbols } from '../theme.js';
-import { rankAndTruncateHints, type HintSpec } from '../utils/hintPriority.js';
+import {
+  dedupeHints,
+  rankAndTruncateHints,
+  type HintSpec,
+} from '../utils/hintPriority.js';
 
 interface StatusBarProps {
   store: StoreApi<AppStore>;
@@ -204,10 +208,10 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
   }
 
   if (detailOverlayVisible) {
-    contextHints = [
+    contextHints = dedupeHints([
       { key: 'Esc', label: 'Back', priority: 0, category: 'utility' as const },
       ...contextHints,
-    ];
+    ]);
   }
 
   let leftSection: React.ReactNode;
@@ -268,7 +272,12 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
     );
   }
 
-  const availableWidth = Math.max(columns - estimateWidth(leftSectionText) - 10, 0);
+  const contentWidth = Math.max(columns - 2, 0);
+  const minimumGap = 1;
+  const availableWidth = Math.max(
+    contentWidth - estimateWidth(leftSectionText) - minimumGap,
+    0
+  );
   const { segments } = rankAndTruncateHints(contextHints, band, availableWidth);
 
   return (
@@ -281,8 +290,10 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
       borderColor={inkColors.border}
       paddingX={1}
     >
-      {leftSection}
-      <Box flexGrow={1} justifyContent="flex-end">
+      <Box flexShrink={0}>
+        {leftSection}
+      </Box>
+      <Box flexGrow={1} justifyContent="flex-end" paddingLeft={segments.length > 0 ? 1 : 0}>
         {segments.map((seg, i) => (
           <React.Fragment key={seg.key}>
             {i > 0 && <Text color={inkColors.muted}> </Text>}

@@ -34,6 +34,18 @@ export const GLOBAL_CONTEXT_HINTS: HintSpec[] = [
   { key: 'q', label: 'Quit', priority: 1, category: 'utility' },
 ];
 
+export function dedupeHints(hints: HintSpec[]): HintSpec[] {
+  const seen = new Set<string>();
+  return hints.filter((hint) => {
+    const key = `${hint.key}::${hint.label}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
 function defaultSegmentColor(hint: HintSpec): string {
   if (hint.category === 'destructive') return 'yellow';
   if (hint.category === 'creation') return 'cyan';
@@ -49,7 +61,7 @@ export function rankAndTruncateHints(
   availableWidth: number
 ): HintResult {
   // Sort context hints by priority (lower = more important)
-  const sortedContext = [...contextHints].sort((a, b) => a.priority - b.priority);
+  const sortedContext = dedupeHints(contextHints).sort((a, b) => a.priority - b.priority);
 
   // Determine allowed context hints and global hints by band
   let contextLimit: number;

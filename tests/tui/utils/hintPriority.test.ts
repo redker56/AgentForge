@@ -5,7 +5,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { rankAndTruncateHints, type HintSpec } from '../../../src/tui/utils/hintPriority.js';
+import {
+  dedupeHints,
+  rankAndTruncateHints,
+  type HintSpec,
+} from '../../../src/tui/utils/hintPriority.js';
 
 const sampleContextHints: HintSpec[] = [
   { key: 'a', label: 'Add', priority: 3, category: 'creation' },
@@ -15,6 +19,17 @@ const sampleContextHints: HintSpec[] = [
 ];
 
 describe('rankAndTruncateHints', () => {
+  it('deduplicates identical hints before ranking', () => {
+    const result = dedupeHints([
+      { key: 'Esc', label: 'Back', priority: 0, category: 'utility' },
+      { key: 'Esc', label: 'Back', priority: 10, category: 'utility' },
+      { key: 'q', label: 'Quit', priority: 1, category: 'utility' },
+    ]);
+
+    expect(result).toHaveLength(2);
+    expect(result.filter((hint) => hint.key === 'Esc')).toHaveLength(1);
+  });
+
   it('compact band returns 1 context hint + q:Quit', () => {
     const result = rankAndTruncateHints(sampleContextHints, 'compact', 80);
     const keys = result.segments.map((s) => s.key);

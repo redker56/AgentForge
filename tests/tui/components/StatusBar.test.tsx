@@ -2,8 +2,33 @@
  * StatusBar component test
  */
 
+import { render } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it } from 'vitest';
+
+function createMockStore(overrides: Record<string, unknown> = {}) {
+  const state = {
+    skills: [{ name: 's1' }],
+    agents: [{ id: 'claude', name: 'Claude Code' }],
+    projects: [{ id: 'voice', name: 'Voice' }],
+    activeTab: 'skills' as const,
+    selectedSkillNames: new Set<string>(),
+    selectedAgentSkillRowIds: new Set<string>(),
+    selectedProjectSkillRowIds: new Set<string>(),
+    agentViewMode: 'master' as const,
+    projectViewMode: 'master' as const,
+    detailOverlayVisible: false,
+    undoActive: false,
+    undoBuffer: null,
+    activeToast: null,
+    ...overrides,
+  };
+
+  return {
+    getState: () => state,
+    subscribe: () => () => {},
+  };
+}
 
 describe('StatusBar', () => {
   it('exports StatusBar component', async () => {
@@ -190,5 +215,24 @@ describe('StatusBar', () => {
       columns: 120,
     });
     expect(element.type).toBe(StatusBar);
+  });
+
+  it('keeps a visible gap between counts and the first hint', async () => {
+    const { StatusBar } = await import('../../../src/tui/components/StatusBar.js');
+    const store = createMockStore({
+      detailOverlayVisible: true,
+      band: 'compact',
+      projects: Array.from({ length: 4 }, (_, index) => ({ id: `p${index}`, name: `Project ${index}` })),
+      skills: Array.from({ length: 20 }, (_, index) => ({ name: `skill-${index}` })),
+      agents: [{ id: 'claude', name: 'Claude Code' }, { id: 'codex', name: 'Codex' }],
+    });
+
+    const { lastFrame } = render(
+      <StatusBar store={store as never} band="compact" columns={220} />
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).not.toContain('projectsEsc:Back');
+    expect(frame).toMatch(/projects +Esc/);
   });
 });
