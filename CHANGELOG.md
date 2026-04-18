@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning as closely as practical during `0.x`.
 
+## [0.2.0] - 2026-04-18
+
+### Added
+
+- an Ink-based TUI for browsing and managing skills, agents, projects, sync workflows, and imports from a single interactive interface
+- local skill categories with CLI and TUI flows for assigning, filtering, and browsing categorized or uncategorized skills
+- structured TUI update workflows for selected skills and all Git-backed skills, including preview, execution, and result states
+- project-level unsync flows in the TUI with project and agent-type targeting instead of agent-only removal
+- contextual skill workbenches in the Agents and Projects tabs with `All`, `Imported`, and `Unimported` views plus direct import, unsync, update, and categorize actions
+- reconcile support that refreshes persisted AgentForge skill metadata from the managed library on startup and reload
+- `updatedAt` skill metadata with CLI and TUI display so the last successful update time is visible
+
+### Changed
+
+- redesigned the TUI around a cohesive Anthropic-inspired visual language with clearer hierarchy, stronger focus states, and more discoverable action hints
+- clarified and expanded TUI affordances for update, unsync, categorize, search, and contextual skill actions in the help overlay, status bar, and screen summaries
+- tightened architecture boundaries, linting, and test coverage across the CLI and TUI layers
+- raised the supported runtime to Node.js 20 and aligned CI and release automation with the actual dependency requirements
+
+### Fixed
+
+- preserve skill names correctly when installing from GitHub tree URLs and other subpath-based Git sources
+- restore agent sync mode selection in the TUI instead of silently defaulting to copy-only behavior
+- make Add Skill submit correctly from the TUI form when pressing `Enter`
+- prevent layout jump, multiline overflow, and repeated top-of-screen redraws in skill, sync, import, update, category, and confirmation views
+- stabilize status bar hint truncation and de-duplicate back-navigation hints so narrow terminals remain readable
+- make git-based skill updates work for installed skills that do not keep local `.git` metadata by re-fetching and replacing from the source repository
+
 ## [0.1.1] - 2026-03-30
 
 ### Fixed

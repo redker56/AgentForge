@@ -85,7 +85,7 @@ export function launchCLI(): void {
   program
     .name('af')
     .description('Manage and sync skills across AI agents and project workspaces')
-    .version('0.1.1')
+    .version('0.2.0')
     .addHelpText(
       'after',
       '\nNext steps:\n' +
