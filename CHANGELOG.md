@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning as closely as practical during `0.x`.
 
+## [0.2.1] - 2026-04-19
+
+### Added
+
+- a formal workbench app facade with `WorkbenchQueries` and `WorkbenchCommands` so the TUI consumes stable view models and actions instead of reaching into service internals
+- repository interfaces for persisted state (`RegistryRepository` and `ProjectStateRepository`) to replace direct singleton-style storage coupling
+- feature-local TUI state and input routing modules for shell, browser, overlay, and workflow interactions, plus focused regression coverage for workflow transitions and input dispatch
+
+### Changed
+
+- reorganized the TUI around explicit shell, browser, and workflow responsibilities, reducing `useInput.ts` to a router instead of a monolithic interaction state machine
+- moved skill, agent, and project workbench row assembly plus import/update/sync orchestration into the app/store layers so presentation components stay state-driven
+- refreshed the contributor-facing docs and CI/release workflow wiring to match the new workbench architecture and packaging flow
+
+### Fixed
+
+- show live per-skill progress during Git-backed updates, keep later tasks in view while the update list advances, and stop raw git clone/pull output from breaking the TUI surface
+- fix Agent and Project skill detail overlays when scrolling long CJK or CRLF-based `SKILL.md` previews so borders and text layout stay stable
+- route Import screen actions through the store/workbench path instead of bypassing it with raw service context calls
+
 ## [0.2.0] - 2026-04-18
 
 ### Added
