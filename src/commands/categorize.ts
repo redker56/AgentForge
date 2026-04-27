@@ -8,6 +8,8 @@ import type { Command } from 'commander';
 
 import type { SkillCategoryUpdateMode } from '../app/skill-service.js';
 
+import { exitCommand } from './errors.js';
+
 import type { CommandContext } from './index.js';
 
 interface CategorizeOptions {
@@ -114,14 +116,14 @@ export function register(program: Command, ctx: CommandContext): void {
           console.error(chalk.red(`Invalid target: ${target}`));
           console.log(chalk.dim('Available targets: skills'));
           console.log(chalk.dim('Example: af categorize skills my-skill docs reading'));
-          process.exit(1);
+          exitCommand(1);
         }
 
         const { names, categories } = resolveTargetsAndCategories(items, options);
         categorizeSkills(ctx, names, categories, options);
       } catch (error: unknown) {
         console.error(chalk.red(error instanceof Error ? error.message : String(error)));
-        process.exit(1);
+        exitCommand(1);
       }
     });
 }

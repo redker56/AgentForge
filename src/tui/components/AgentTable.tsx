@@ -10,6 +10,7 @@ import type { StoreApi } from 'zustand';
 import { useNavigation } from '../hooks/useNavigation.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, renderFocusPrefix, emptyStateText } from '../theme.js';
+import { padDisplayText, truncateDisplayText } from '../utils/displayWidth.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
 
@@ -19,10 +20,7 @@ interface AgentTableProps {
 }
 
 function truncateText(text: string, maxWidth: number): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 export function AgentTable({ store, columns }: AgentTableProps): React.ReactElement {
@@ -47,16 +45,21 @@ export function AgentTable({ store, columns }: AgentTableProps): React.ReactElem
         Agents <Text color={inkColors.muted}>({agents.length})</Text>
       </Text>
       <Text color={inkColors.muted}>
-        {'ID'.padEnd(idWidth)}
-        {'Name'.padEnd(nameWidth)}
-        {'Path'.padEnd(pathWidth)}
-        {'Skls'.padEnd(5)}
+        {padDisplayText('ID', idWidth)}
+        {padDisplayText('Name', nameWidth)}
+        {padDisplayText('Path', pathWidth)}
+        {padDisplayText('Skls', 5)}
         Proj
       </Text>
       <Text color={inkColors.muted}>{'\u2500'.repeat(Math.max(availableWidth, 10))}</Text>
 
       {hiddenAbove > 0 && visibleItems.length > 0 && (
-        <ScrollIndicator hiddenAbove={hiddenAbove} hiddenBelow={0} columns={columns} position="above" />
+        <ScrollIndicator
+          hiddenAbove={hiddenAbove}
+          hiddenBelow={0}
+          columns={columns}
+          position="above"
+        />
       )}
 
       {visibleItems.map((agent, index) => {
@@ -65,10 +68,10 @@ export function AgentTable({ store, columns }: AgentTableProps): React.ReactElem
         const prefix = renderFocusPrefix(isFocused);
         const summary = agentSummaries[agent.id];
         const rowText =
-          `${agent.id.padEnd(idWidth)}` +
-          `${truncateText(agent.name, nameWidth).padEnd(nameWidth)}` +
-          `${truncateText(agent.basePath, pathWidth).padEnd(pathWidth)}` +
-          `${String(summary?.userLevelSkillCount ?? 0).padEnd(5)}` +
+          `${padDisplayText(agent.id, idWidth)}` +
+          `${padDisplayText(truncateText(agent.name, nameWidth), nameWidth)}` +
+          `${padDisplayText(truncateText(agent.basePath, pathWidth), pathWidth)}` +
+          `${padDisplayText(String(summary?.userLevelSkillCount ?? 0), 5)}` +
           `${String(summary?.projectLevelSkillCount ?? 0)}`;
 
         return (
@@ -89,7 +92,12 @@ export function AgentTable({ store, columns }: AgentTableProps): React.ReactElem
       {agents.length === 0 && <Text color={inkColors.muted}>{emptyStateText.agents}</Text>}
 
       {hiddenBelow > 0 && visibleItems.length > 0 && (
-        <ScrollIndicator hiddenAbove={0} hiddenBelow={hiddenBelow} columns={columns} position="below" />
+        <ScrollIndicator
+          hiddenAbove={0}
+          hiddenBelow={hiddenBelow}
+          columns={columns}
+          position="below"
+        />
       )}
     </Box>
   );

@@ -1,8 +1,7 @@
 /**
- * Storage Layer Tests
+ * JSON registry repository tests
  *
- * Note: Since Storage uses singleton pattern and depends on os.homedir,
- * these tests operate directly in temp directory, need to set env var to override home
+ * Tests use temporary repository roots so persistence stays isolated.
  */
 
 import os from 'os';
@@ -11,10 +10,12 @@ import path from 'path';
 import fs from 'fs-extra';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
+import { JsonRegistryRepository } from '../../src/infra/storage.js';
+
 // Set test environment variable
 const TEST_HOME = path.join(os.tmpdir(), 'agentforge-storage-test');
 
-describe('Storage', () => {
+describe('JsonRegistryRepository', () => {
   let originalHome: string | undefined;
 
   beforeEach(async () => {
@@ -61,6 +62,29 @@ describe('Storage', () => {
 
       expect(await fs.pathExists(skillDir)).toBe(true);
       expect(await fs.readFile(path.join(skillDir, 'skill.md'), 'utf-8')).toBe('# My Skill');
+    });
+
+    it('supports an injected AgentForge root directory', () => {
+      const forgeDir = path.join(TEST_HOME, '.custom-agentforge');
+      const storage = new JsonRegistryRepository(forgeDir);
+
+      storage.saveSkill('demo-skill', { type: 'local' });
+
+      expect(storage.getSkillsDir()).toBe(path.join(forgeDir, 'skills'));
+      expect(storage.getSkillPath('demo-skill')).toBe(path.join(forgeDir, 'skills', 'demo-skill'));
+      expect(fs.pathExistsSync(path.join(forgeDir, 'registry.json'))).toBe(true);
+    });
+
+    it('leaves no temporary registry files after writes', () => {
+      const forgeDir = path.join(TEST_HOME, '.atomic-agentforge');
+      const storage = new JsonRegistryRepository(forgeDir);
+
+      storage.saveSkill('demo-skill', { type: 'local' });
+
+      const tempFiles = fs
+        .readdirSync(forgeDir)
+        .filter((name) => name.startsWith('registry.json.tmp-'));
+      expect(tempFiles).toEqual([]);
     });
   });
 });

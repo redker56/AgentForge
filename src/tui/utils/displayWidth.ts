@@ -16,6 +16,13 @@ export function truncateDisplayText(text: string, maxWidth: number): string {
   return `${truncateWithoutEllipsis(text, availableWidth)}${ellipsis}`;
 }
 
+export function padDisplayText(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) return '';
+
+  const truncated = truncateDisplayText(text, maxWidth);
+  return `${truncated}${' '.repeat(Math.max(maxWidth - getDisplayWidth(truncated), 0))}`;
+}
+
 function truncateWithoutEllipsis(text: string, maxWidth: number): string {
   if (maxWidth <= 0) return '';
 

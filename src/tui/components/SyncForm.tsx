@@ -15,6 +15,7 @@ import type { SyncMode } from '../../types.js';
 import type { AppStore } from '../store/index.js';
 import type { OperationResult, SyncOperation } from '../store/uiSlice.js';
 import { inkColors, renderFocusPrefix, selectionMarkers, spacing } from '../theme.js';
+import { truncateDisplayText } from '../utils/displayWidth.js';
 
 import { ProgressBar } from './ProgressBar.js';
 import { StepIndicator } from './StepIndicator.js';
@@ -37,10 +38,7 @@ const STEP_INDICATOR_WIDTH = 22;
 const MIN_CONTENT_WIDTH = 24;
 
 function truncateText(text: string, maxWidth: number): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 function truncateSelectableLabel(label: string, contentWidth: number): string {
@@ -135,10 +133,7 @@ function buildUnsyncProjectAgentTypes(
 ): AgentTypeItem[] {
   const exactTargets = parseExactProjectTargets(selectedProjectIds);
   if (exactTargets.length > 0) {
-    return uniqueAgentTypes(
-      new Set(exactTargets.map((target) => target.agentType)),
-      agents
-    );
+    return uniqueAgentTypes(new Set(exactTargets.map((target) => target.agentType)), agents);
   }
 
   const typeIds = new Set<string>();
@@ -204,17 +199,61 @@ function getSyncSteps(
 ): string[] {
   switch (operation) {
     case 'sync-agents':
-      return ['Select Operation', 'Select Skills', 'Select Targets', 'Select Mode', 'Confirm', 'Executing', 'Results'];
+      return [
+        'Select Operation',
+        'Select Skills',
+        'Select Targets',
+        'Select Mode',
+        'Confirm',
+        'Executing',
+        'Results',
+      ];
     case 'sync-projects':
-      return ['Select Operation', 'Select Skills', 'Select Targets', 'Select Agent Types', 'Select Mode', 'Confirm', 'Executing', 'Results'];
+      return [
+        'Select Operation',
+        'Select Skills',
+        'Select Targets',
+        'Select Agent Types',
+        'Select Mode',
+        'Confirm',
+        'Executing',
+        'Results',
+      ];
     case 'unsync':
       if (unsyncScope === 'projects' && projectMode === 'specific') {
-        return ['Select Operation', 'Select Skills', 'Select Scope', 'Select Targets', 'Select Unsync Mode', 'Select Agent Types', 'Confirm', 'Executing', 'Results'];
+        return [
+          'Select Operation',
+          'Select Skills',
+          'Select Scope',
+          'Select Targets',
+          'Select Unsync Mode',
+          'Select Agent Types',
+          'Confirm',
+          'Executing',
+          'Results',
+        ];
       }
       if (unsyncScope === 'projects') {
-        return ['Select Operation', 'Select Skills', 'Select Scope', 'Select Targets', 'Select Unsync Mode', 'Confirm', 'Executing', 'Results'];
+        return [
+          'Select Operation',
+          'Select Skills',
+          'Select Scope',
+          'Select Targets',
+          'Select Unsync Mode',
+          'Confirm',
+          'Executing',
+          'Results',
+        ];
       }
-      return ['Select Operation', 'Select Skills', 'Select Scope', 'Select Targets', 'Confirm', 'Executing', 'Results'];
+      return [
+        'Select Operation',
+        'Select Skills',
+        'Select Scope',
+        'Select Targets',
+        'Confirm',
+        'Executing',
+        'Results',
+      ];
     default:
       return ['Select Operation'];
   }
@@ -270,7 +309,9 @@ async function executeSync(storeApi: StoreApi<AppStore>): Promise<void> {
   const targetIds = [...state.syncWorkflowState.selectedTargetIds];
 
   if (state.syncWorkflowState.operation === 'sync-agents') {
-    await storeApi.getState().syncSkillsToAgents(skillNames, targetIds, state.syncWorkflowState.mode as SyncMode);
+    await storeApi
+      .getState()
+      .syncSkillsToAgents(skillNames, targetIds, state.syncWorkflowState.mode as SyncMode);
     return;
   }
 
@@ -281,16 +322,27 @@ async function executeSync(storeApi: StoreApi<AppStore>): Promise<void> {
         : state.agents.map((agent) => agent.id);
     await storeApi
       .getState()
-      .syncSkillsToProjects(skillNames, targetIds, agentTypes, state.syncWorkflowState.mode as SyncMode);
+      .syncSkillsToProjects(
+        skillNames,
+        targetIds,
+        agentTypes,
+        state.syncWorkflowState.mode as SyncMode
+      );
     return;
   }
 
-  if (state.syncWorkflowState.operation === 'unsync' && state.syncWorkflowState.unsyncScope === 'agents') {
+  if (
+    state.syncWorkflowState.operation === 'unsync' &&
+    state.syncWorkflowState.unsyncScope === 'agents'
+  ) {
     await storeApi.getState().unsyncFromAgents(skillNames, targetIds);
     return;
   }
 
-  if (state.syncWorkflowState.operation === 'unsync' && state.syncWorkflowState.unsyncScope === 'projects') {
+  if (
+    state.syncWorkflowState.operation === 'unsync' &&
+    state.syncWorkflowState.unsyncScope === 'projects'
+  ) {
     await storeApi.getState().unsyncFromProjects(skillNames, targetIds, {
       mode: state.syncWorkflowState.projectUnsyncMode || 'all',
       agentTypes:
@@ -332,9 +384,15 @@ function handleSyncBack(storeApi: StoreApi<AppStore>): void {
       }
       break;
     case 'confirm':
-      if (state.syncWorkflowState.operation === 'sync-projects' || state.syncWorkflowState.operation === 'sync-agents') {
+      if (
+        state.syncWorkflowState.operation === 'sync-projects' ||
+        state.syncWorkflowState.operation === 'sync-agents'
+      ) {
         state.setSyncFormStep('select-mode');
-      } else if (state.syncWorkflowState.operation === 'unsync' && state.syncWorkflowState.unsyncScope === 'projects') {
+      } else if (
+        state.syncWorkflowState.operation === 'unsync' &&
+        state.syncWorkflowState.unsyncScope === 'projects'
+      ) {
         if (state.syncWorkflowState.projectUnsyncMode === 'specific') {
           state.setSyncFormStep('select-agent-types');
         } else {
@@ -394,7 +452,7 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
   const syncCurrentIndex = syncSteps.indexOf(stepToLabel(syncFormStep));
   const columns = stdout?.columns ?? 120;
   const contentWidth = Math.max(
-    columns - STEP_INDICATOR_WIDTH - (spacing.paddingX * 4) - 6,
+    columns - STEP_INDICATOR_WIDTH - spacing.paddingX * 4 - 6,
     MIN_CONTENT_WIDTH
   );
 
@@ -402,7 +460,10 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
     (input, key) => {
       const state = store.getState();
 
-      if (state.syncWorkflowState.step === 'results' || state.syncWorkflowState.step === 'executing') {
+      if (
+        state.syncWorkflowState.step === 'results' ||
+        state.syncWorkflowState.step === 'executing'
+      ) {
         if (key.return || key.escape) {
           state.resetSyncForm();
         }
@@ -418,7 +479,9 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
           const options: SyncOperation[] = ['sync-agents', 'sync-projects', 'unsync'];
           const current = state.syncWorkflowState.operation || 'sync-agents';
           const currentIndex = options.indexOf(current);
-          const nextIndex = key.upArrow ? Math.max(0, currentIndex - 1) : Math.min(options.length - 1, currentIndex + 1);
+          const nextIndex = key.upArrow
+            ? Math.max(0, currentIndex - 1)
+            : Math.min(options.length - 1, currentIndex + 1);
           const nextOperation = options[nextIndex];
           state.setSyncFormOperation(nextOperation);
           if (nextOperation !== 'unsync') {
@@ -442,7 +505,9 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
           state.setSyncFormFocusedIndex(Math.max(0, state.syncWorkflowState.focusedIndex - 1));
         }
         if (key.downArrow) {
-          state.setSyncFormFocusedIndex(Math.min(state.skills.length - 1, state.syncWorkflowState.focusedIndex + 1));
+          state.setSyncFormFocusedIndex(
+            Math.min(state.skills.length - 1, state.syncWorkflowState.focusedIndex + 1)
+          );
         }
         if (input === ' ') {
           const focused = state.skills[state.syncWorkflowState.focusedIndex];
@@ -502,7 +567,9 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
           state.setSyncFormFocusedIndex(Math.max(0, state.syncWorkflowState.focusedIndex - 1));
         }
         if (key.downArrow) {
-          state.setSyncFormFocusedIndex(Math.min(targetList.length - 1, state.syncWorkflowState.focusedIndex + 1));
+          state.setSyncFormFocusedIndex(
+            Math.min(targetList.length - 1, state.syncWorkflowState.focusedIndex + 1)
+          );
         }
         if (input === ' ') {
           const focused = targetList[state.syncWorkflowState.focusedIndex];
@@ -537,7 +604,10 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
             return;
           }
 
-          if (state.syncWorkflowState.operation === 'unsync' && state.syncWorkflowState.unsyncScope === 'projects') {
+          if (
+            state.syncWorkflowState.operation === 'unsync' &&
+            state.syncWorkflowState.unsyncScope === 'projects'
+          ) {
             state.setSyncFormProjectUnsyncMode('all');
             state.setSyncFormStep('select-unsync-project-mode');
             state.setSyncFormFocusedIndex(0);
@@ -591,14 +661,17 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
           state.setSyncFormFocusedIndex(Math.max(0, state.syncWorkflowState.focusedIndex - 1));
         }
         if (key.downArrow) {
-          state.setSyncFormFocusedIndex(Math.min(availableTypes.length - 1, state.syncWorkflowState.focusedIndex + 1));
+          state.setSyncFormFocusedIndex(
+            Math.min(availableTypes.length - 1, state.syncWorkflowState.focusedIndex + 1)
+          );
         }
         if (input === ' ') {
           const focused = availableTypes[state.syncWorkflowState.focusedIndex];
           if (focused) state.toggleSyncFormAgentType(focused.id);
         }
         if (key.return) {
-          if (state.syncWorkflowState.selectedAgentTypes.size === 0 && availableTypes.length > 0) return;
+          if (state.syncWorkflowState.selectedAgentTypes.size === 0 && availableTypes.length > 0)
+            return;
           if (state.syncWorkflowState.operation === 'unsync') {
             state.setSyncFormStep('confirm');
           } else {
@@ -611,7 +684,9 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
       if (state.syncWorkflowState.step === 'select-mode') {
         if (key.escape) {
           state.setSyncFormStep(
-            state.syncWorkflowState.operation === 'sync-projects' ? 'select-agent-types' : 'select-targets'
+            state.syncWorkflowState.operation === 'sync-projects'
+              ? 'select-agent-types'
+              : 'select-targets'
           );
           return;
         }
@@ -657,7 +732,9 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
         width={STEP_INDICATOR_WIDTH}
       />
       <Box flexDirection="column" flexGrow={1} paddingX={spacing.paddingX}>
-        {syncFormStep === 'select-op' && <SelectOp operation={syncFormOperation} contentWidth={contentWidth} />}
+        {syncFormStep === 'select-op' && (
+          <SelectOp operation={syncFormOperation} contentWidth={contentWidth} />
+        )}
         {syncFormStep === 'select-skills' && (
           <SelectSkills
             skills={skills}
@@ -689,7 +766,11 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
         )}
         {syncFormStep === 'select-agent-types' && (
           <SelectAgentTypes
-            items={syncFormOperation === 'unsync' ? unsyncProjectAgentTypes : uniqueAgentTypes(new Set(agents.map((agent) => agent.id)), agents)}
+            items={
+              syncFormOperation === 'unsync'
+                ? unsyncProjectAgentTypes
+                : uniqueAgentTypes(new Set(agents.map((agent) => agent.id)), agents)
+            }
             selected={syncFormSelectedAgentTypes}
             focusedIndex={syncFormFocusedIndex}
             title={
@@ -700,7 +781,9 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
             contentWidth={contentWidth}
           />
         )}
-        {syncFormStep === 'select-mode' && <SelectMode mode={syncFormMode} contentWidth={contentWidth} />}
+        {syncFormStep === 'select-mode' && (
+          <SelectMode mode={syncFormMode} contentWidth={contentWidth} />
+        )}
         {syncFormStep === 'confirm' && (
           <ConfirmStep
             operation={syncFormOperation}
@@ -746,15 +829,19 @@ function SelectOp({
 
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>Sync Skills</Text>
+      <Text bold color={inkColors.accent}>
+        Sync Skills
+      </Text>
       <Text> </Text>
       <Text>Choose operation:</Text>
       {options.map((option, index) => (
         <Text key={option.value}>
           {renderFocusPrefix(index === operationIndex)}
-          {index === operationIndex
-            ? <Text bold>( {truncateText(option.label, Math.max(contentWidth - 8, 8))} )</Text>
-            : <Text> {truncateText(option.label, Math.max(contentWidth - 6, 8))} </Text>}
+          {index === operationIndex ? (
+            <Text bold>( {truncateText(option.label, Math.max(contentWidth - 8, 8))} )</Text>
+          ) : (
+            <Text> {truncateText(option.label, Math.max(contentWidth - 6, 8))} </Text>
+          )}
         </Text>
       ))}
       <Text> </Text>
@@ -776,7 +863,9 @@ function SelectSkills({
 }): React.ReactElement {
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>Select skills</Text>
+      <Text bold color={inkColors.accent}>
+        Select skills
+      </Text>
       <Text> </Text>
       {skills.map((skill, index) => {
         const isSelected = selected.has(skill.name);
@@ -792,10 +881,14 @@ function SelectSkills({
         );
       })}
       {skills.length === 0 && (
-        <Text dimColor>{truncateText('No skills installed. Use the Skills tab to add skills.', contentWidth)}</Text>
+        <Text dimColor>
+          {truncateText('No skills installed. Use the Skills tab to add skills.', contentWidth)}
+        </Text>
       )}
       <Text> </Text>
-      <Text dimColor>{truncateText('Up/Down to navigate, Space to toggle, Enter to continue', contentWidth)}</Text>
+      <Text dimColor>
+        {truncateText('Up/Down to navigate, Space to toggle, Enter to continue', contentWidth)}
+      </Text>
     </Box>
   );
 }
@@ -810,14 +903,18 @@ function SelectUnsyncScope({
   const options = ['Agents', 'Projects'];
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>Select unsync scope</Text>
+      <Text bold color={inkColors.accent}>
+        Select unsync scope
+      </Text>
       <Text> </Text>
       {options.map((option, index) => (
         <Text key={option}>
           {renderFocusPrefix(index === focusedIndex)}
-          {index === focusedIndex
-            ? <Text bold>( {truncateText(option, Math.max(contentWidth - 8, 8))} )</Text>
-            : <Text> {truncateText(option, Math.max(contentWidth - 6, 8))} </Text>}
+          {index === focusedIndex ? (
+            <Text bold>( {truncateText(option, Math.max(contentWidth - 8, 8))} )</Text>
+          ) : (
+            <Text> {truncateText(option, Math.max(contentWidth - 6, 8))} </Text>
+          )}
         </Text>
       ))}
       <Text> </Text>
@@ -854,7 +951,9 @@ function SelectTargets({
 
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>{title}</Text>
+      <Text bold color={inkColors.accent}>
+        {title}
+      </Text>
       <Text> </Text>
       {loading ? (
         <Text dimColor>Loading sync relationships...</Text>
@@ -874,12 +973,17 @@ function SelectTargets({
         })
       )}
       {!loading && targets.length === 0 && (
-        <Text dimColor>{truncateText('No matching targets found for the selected skills.', contentWidth)}</Text>
+        <Text dimColor>
+          {truncateText('No matching targets found for the selected skills.', contentWidth)}
+        </Text>
       )}
       <Text> </Text>
       <Text dimColor>{truncateText(`${selected.size} target(s) selected`, contentWidth)}</Text>
       <Text dimColor>
-        {truncateText(loading ? 'Please wait...' : 'Up/Down to navigate, Space to toggle, Enter to continue', contentWidth)}
+        {truncateText(
+          loading ? 'Please wait...' : 'Up/Down to navigate, Space to toggle, Enter to continue',
+          contentWidth
+        )}
       </Text>
     </Box>
   );
@@ -903,14 +1007,18 @@ function SelectUnsyncProjectMode({
 
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>Choose how to unsync from projects</Text>
+      <Text bold color={inkColors.accent}>
+        Choose how to unsync from projects
+      </Text>
       <Text> </Text>
       {options.map((option, index) => (
         <Text key={option.id}>
           {renderFocusPrefix(index === activeIndex)}
-          {index === activeIndex
-            ? <Text bold>( {truncateText(option.label, Math.max(contentWidth - 8, 8))} )</Text>
-            : <Text> {truncateText(option.label, Math.max(contentWidth - 6, 8))} </Text>}
+          {index === activeIndex ? (
+            <Text bold>( {truncateText(option.label, Math.max(contentWidth - 8, 8))} )</Text>
+          ) : (
+            <Text> {truncateText(option.label, Math.max(contentWidth - 6, 8))} </Text>
+          )}
         </Text>
       ))}
       <Text> </Text>
@@ -934,7 +1042,9 @@ function SelectAgentTypes({
 }): React.ReactElement {
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>{truncateText(title, contentWidth)}</Text>
+      <Text bold color={inkColors.accent}>
+        {truncateText(title, contentWidth)}
+      </Text>
       <Text> </Text>
       {items.map((item, index) => {
         const isSelected = selected.has(item.id);
@@ -950,10 +1060,14 @@ function SelectAgentTypes({
         );
       })}
       {items.length === 0 && (
-        <Text dimColor>{truncateText('No agent types are available for the selected projects.', contentWidth)}</Text>
+        <Text dimColor>
+          {truncateText('No agent types are available for the selected projects.', contentWidth)}
+        </Text>
       )}
       <Text> </Text>
-      <Text dimColor>{truncateText('Up/Down to navigate, Space to toggle, Enter to continue', contentWidth)}</Text>
+      <Text dimColor>
+        {truncateText('Up/Down to navigate, Space to toggle, Enter to continue', contentWidth)}
+      </Text>
     </Box>
   );
 }
@@ -967,10 +1081,24 @@ function SelectMode({
 }): React.ReactElement {
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>Sync mode</Text>
+      <Text bold color={inkColors.accent}>
+        Sync mode
+      </Text>
       <Text> </Text>
-      <Text>{renderFocusPrefix(mode === 'copy')}{truncateText('Copy - Independent copy, stable and reliable', Math.max(contentWidth - 2, 8))}</Text>
-      <Text>{renderFocusPrefix(mode === 'symlink')}{truncateText('Symlink - Link to source, updates automatically', Math.max(contentWidth - 2, 8))}</Text>
+      <Text>
+        {renderFocusPrefix(mode === 'copy')}
+        {truncateText(
+          'Copy - Independent copy, stable and reliable',
+          Math.max(contentWidth - 2, 8)
+        )}
+      </Text>
+      <Text>
+        {renderFocusPrefix(mode === 'symlink')}
+        {truncateText(
+          'Symlink - Link to source, updates automatically',
+          Math.max(contentWidth - 2, 8)
+        )}
+      </Text>
       <Text> </Text>
       <Text dimColor>{truncateText('Up/Down to choose, Enter to continue', contentWidth)}</Text>
     </Box>
@@ -1015,10 +1143,25 @@ function ConfirmStep({
       <Text> </Text>
       <Text>{truncateText(description, contentWidth)}</Text>
       <Text> </Text>
-      <Text dimColor>{truncateText(`Skills: ${truncateSummaryList([...skillNames], contentWidth)}`, contentWidth)}</Text>
-      <Text dimColor>{truncateText(`Targets: ${truncateSummaryList([...targetIds], contentWidth)}`, contentWidth)}</Text>
+      <Text dimColor>
+        {truncateText(
+          `Skills: ${truncateSummaryList([...skillNames], contentWidth)}`,
+          contentWidth
+        )}
+      </Text>
+      <Text dimColor>
+        {truncateText(
+          `Targets: ${truncateSummaryList([...targetIds], contentWidth)}`,
+          contentWidth
+        )}
+      </Text>
       {agentTypes.size > 0 && (
-        <Text dimColor>{truncateText(`Agent types: ${truncateSummaryList([...agentTypes], contentWidth)}`, contentWidth)}</Text>
+        <Text dimColor>
+          {truncateText(
+            `Agent types: ${truncateSummaryList([...agentTypes], contentWidth)}`,
+            contentWidth
+          )}
+        </Text>
       )}
       <Text> </Text>
       <Box flexDirection="row" gap={2}>
@@ -1044,7 +1187,9 @@ function ExecutingStep({
   const totalItems = progressItems.length;
   const completedItems = progressItems.filter((item) => item.status === 'success').length;
   const overallProgress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
-  const anyRunning = progressItems.some((item) => item.status === 'running' || item.status === 'pending');
+  const anyRunning = progressItems.some(
+    (item) => item.status === 'running' || item.status === 'pending'
+  );
   const anyError = progressItems.some((item) => item.status === 'error');
   const overallStatus = anyError ? 'error' : anyRunning ? 'running' : 'success';
 
@@ -1087,24 +1232,41 @@ function ResultsStep({
 
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>{title}</Text>
+      <Text bold color={inkColors.accent}>
+        {title}
+      </Text>
       <Text> </Text>
       <Text>
-        <Text bold color={inkColors.success}>{successes.length}</Text> succeeded
+        <Text bold color={inkColors.success}>
+          {successes.length}
+        </Text>{' '}
+        succeeded
         <Text color={inkColors.muted}> | </Text>
-        <Text bold color={inkColors.muted}>{skipped.length}</Text> skipped
+        <Text bold color={inkColors.muted}>
+          {skipped.length}
+        </Text>{' '}
+        skipped
         <Text color={inkColors.muted}> | </Text>
-        <Text bold color={failures.length > 0 ? inkColors.error : inkColors.muted}>{failures.length}</Text> failed
+        <Text bold color={failures.length > 0 ? inkColors.error : inkColors.muted}>
+          {failures.length}
+        </Text>{' '}
+        failed
       </Text>
       {(skipped.length > 0 || failures.length > 0) && <Text> </Text>}
       {skipped.map((result, index) => (
         <Text key={`skip-${index}`} color={inkColors.muted}>
-          {truncateText(`- ${result.target}${result.error ? `: ${result.error}` : ''}`, contentWidth)}
+          {truncateText(
+            `- ${result.target}${result.error ? `: ${result.error}` : ''}`,
+            contentWidth
+          )}
         </Text>
       ))}
       {failures.map((result, index) => (
         <Text key={`fail-${index}`} color={inkColors.error}>
-          {truncateText(`x ${result.target}${result.error ? `: ${result.error}` : ''}`, contentWidth)}
+          {truncateText(
+            `x ${result.target}${result.error ? `: ${result.error}` : ''}`,
+            contentWidth
+          )}
         </Text>
       ))}
       <Text> </Text>

@@ -109,9 +109,7 @@ describe('AgentsScreen', () => {
     const loadAgentDetail = vi.fn();
     const { AgentsScreen } = await import('../../../src/tui/screens/AgentsScreen.js');
     const store = makeMockStore({ focusedAgentIndex: 0, loadAgentDetail });
-    render(
-      React.createElement(AgentsScreen, { store, band: 'standard' as const, columns: 100 })
-    );
+    render(React.createElement(AgentsScreen, { store, band: 'standard' as const, columns: 100 }));
     vi.runAllTimers();
     // useEffect triggers loadAgentDetail when focused agent changes and detail not loaded
     expect(loadAgentDetail).toHaveBeenCalledWith('claude');
@@ -130,9 +128,7 @@ describe('AgentsScreen', () => {
         },
       },
     });
-    render(
-      React.createElement(AgentsScreen, { store, band: 'standard' as const, columns: 100 })
-    );
+    render(React.createElement(AgentsScreen, { store, band: 'standard' as const, columns: 100 }));
     vi.runAllTimers();
     // Should not call loadAgentDetail since detail already exists
     expect(loadAgentDetail).not.toHaveBeenCalled();

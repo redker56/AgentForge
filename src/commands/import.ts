@@ -10,6 +10,8 @@ import { checkbox, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import type { Command } from 'commander';
 
+import { exitCommand } from './errors.js';
+
 import type { CommandContext } from './index.js';
 
 interface ImportResult {
@@ -33,7 +35,7 @@ export function register(program: Command, ctx: CommandContext): void {
       if (!process.stdin.isTTY && !id) {
         console.error(chalk.red('ID must be specified in non-interactive mode'));
         console.log(chalk.dim('Example: af import projects myproject myskill'));
-        process.exit(1);
+        exitCommand(1);
       }
 
       switch (source) {
@@ -116,8 +118,7 @@ async function importFromProject(
   if (!project) {
     console.error(chalk.red(`Project not found: ${projectId ?? 'undefined'}`));
     console.log(chalk.dim('Run "af list projects" to see registered projects'));
-    process.exit(1);
-    return;
+    exitCommand(1);
   }
 
   const skills = ctx.scan.scanProject(project.path);
@@ -136,7 +137,7 @@ async function importFromProject(
       for (const skill of skills) {
         console.log(chalk.dim(`  - ${skill.name}`));
       }
-      process.exit(1);
+      exitCommand(1);
     }
     toImport = [skillName];
   } else if (process.stdin.isTTY) {
@@ -158,7 +159,7 @@ async function importFromProject(
     });
   } else {
     console.error(chalk.red('Skill name must be specified in non-interactive mode'));
-    process.exit(1);
+    exitCommand(1);
   }
 
   if (toImport.length === 0) {
@@ -229,8 +230,7 @@ async function importFromAgent(
   if (!agent) {
     console.error(chalk.red(`Agent not found: ${agentId ?? 'undefined'}`));
     console.log(chalk.dim('Run "af list agents" to see available Agents'));
-    process.exit(1);
-    return;
+    exitCommand(1);
   }
 
   const skillDirs = ctx.fileOps.listSubdirectories(agent.basePath);
@@ -249,7 +249,7 @@ async function importFromAgent(
       for (const skill of skillDirs) {
         console.log(chalk.dim(`  - ${skill}`));
       }
-      process.exit(1);
+      exitCommand(1);
     }
     toImport = [skillName];
   } else if (process.stdin.isTTY) {
@@ -279,7 +279,7 @@ async function importFromAgent(
     });
   } else {
     console.error(chalk.red('Skill name must be specified in non-interactive mode'));
-    process.exit(1);
+    exitCommand(1);
   }
 
   if (toImport.length === 0) {

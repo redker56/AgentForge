@@ -14,7 +14,9 @@ interface ErrorMessageProps {
 export function ErrorMessage({ message }: ErrorMessageProps): React.ReactElement {
   return (
     <Text>
-      <Text color={inkColors.error} backgroundColor={inkColors.error}> </Text>
+      <Text color={inkColors.error} backgroundColor={inkColors.error}>
+        {' '}
+      </Text>
       <Text color={inkColors.error}> {message}</Text>
     </Text>
   );

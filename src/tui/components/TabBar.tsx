@@ -45,7 +45,9 @@ export function TabBar({ store, band, columns }: TabBarProps): React.ReactElemen
 
   return (
     <Box flexWrap="wrap">
-      <Text bold color={inkColors.accent}>AgentForge</Text>
+      <Text bold color={inkColors.accent}>
+        AgentForge
+      </Text>
       {showSubtitle && (
         <>
           <Text color={inkColors.muted}> / </Text>

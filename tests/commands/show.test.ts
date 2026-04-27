@@ -31,7 +31,7 @@ describe('show command', () => {
     consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     processExit = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit mocked');
+      throw new Error('Command exited with code 1');
     });
   });
 
@@ -241,7 +241,7 @@ describe('show command', () => {
 
     await expect(
       program.parseAsync(['show', 'invalid', 'target'], { from: 'user' })
-    ).rejects.toThrow('process.exit mocked');
+    ).rejects.toThrow('Command exited with code 1');
 
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Invalid target'));
   });
@@ -263,7 +263,7 @@ describe('show command', () => {
 
     await expect(
       program.parseAsync(['show', 'agents', 'unknown'], { from: 'user' })
-    ).rejects.toThrow('process.exit mocked');
+    ).rejects.toThrow('Command exited with code 1');
 
     expect(getAgentMock).toHaveBeenCalledWith('unknown');
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Agent not found'));
@@ -285,7 +285,7 @@ describe('show command', () => {
 
     await expect(
       program.parseAsync(['show', 'projects', 'unknown'], { from: 'user' })
-    ).rejects.toThrow('process.exit mocked');
+    ).rejects.toThrow('Command exited with code 1');
 
     expect(getProjectMock).toHaveBeenCalledWith('unknown');
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Project not found'));
@@ -309,7 +309,7 @@ describe('show command', () => {
 
     await expect(
       program.parseAsync(['show', 'skills', 'unknown'], { from: 'user' })
-    ).rejects.toThrow('process.exit mocked');
+    ).rejects.toThrow('Command exited with code 1');
 
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));
   });

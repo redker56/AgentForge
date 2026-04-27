@@ -37,7 +37,7 @@ describe('CommandPalette', () => {
     const path = await import('path');
     const source = fs.readFileSync(
       path.join(process.cwd(), 'src/tui/components/CommandPalette.tsx'),
-      'utf-8',
+      'utf-8'
     );
 
     // Count the entries in COMMANDS array
@@ -51,15 +51,21 @@ describe('CommandPalette', () => {
     const path = await import('path');
     const source = fs.readFileSync(
       path.join(process.cwd(), 'src/tui/components/CommandPalette.tsx'),
-      'utf-8',
+      'utf-8'
     );
 
     const expectedCommands = [
-      'add-skill', 'add-agent', 'add-project',
-      'remove-skill', 'remove-agent', 'remove-project',
-      'sync-agents', 'sync-projects',
+      'add-skill',
+      'add-agent',
+      'add-project',
+      'remove-skill',
+      'remove-agent',
+      'remove-project',
+      'sync-agents',
+      'sync-projects',
       'unsync',
-      'update-skill', 'update-all',
+      'update-skill',
+      'update-all',
       'categorize-skill',
       'import-skills',
     ];
@@ -74,13 +80,13 @@ describe('CommandPalette', () => {
     const path = await import('path');
     const source = fs.readFileSync(
       path.join(process.cwd(), 'src/tui/components/CommandPalette.tsx'),
-      'utf-8',
+      'utf-8'
     );
 
     expect(source).toContain("openUpdateForm(state, names, 'updateSelected')");
     expect(source).toContain("openUpdateForm(state, names, 'updateAllGit')");
     expect(source).toContain("setSyncFormStep('select-unsync-scope')");
     expect(source).toContain("formType: 'categorizeSkills'");
-    expect(source).toContain("setSyncFormSelectedTargetIds(new Set(targetPairs))");
+    expect(source).toContain('setSyncFormSelectedTargetIds(new Set(targetPairs))');
   });
 });

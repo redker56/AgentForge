@@ -2,6 +2,7 @@ import { Box, Text } from 'ink';
 import React from 'react';
 
 import { inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
+import { truncateDisplayText } from '../utils/displayWidth.js';
 
 export interface ChecklistSkill {
   name: string;
@@ -21,10 +22,7 @@ interface ImportChecklistProps {
 }
 
 function truncateText(text: string, maxWidth: number): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 /**
@@ -92,7 +90,9 @@ export function ImportChecklist({
         );
       })}
       <Box marginTop={1}>
-        <Text dimColor>{truncateText('Space: toggle | Up/Down: navigate | Enter: confirm', columns - 2)}</Text>
+        <Text dimColor>
+          {truncateText('Space: toggle | Up/Down: navigate | Enter: confirm', columns - 2)}
+        </Text>
       </Box>
     </Box>
   );

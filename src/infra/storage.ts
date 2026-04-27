@@ -1,14 +1,14 @@
 /**
- * @module Infra/Storage
+ * @module Infra/JsonRegistryRepository
  * @layer infra
  * @allowed-imports types
- * @responsibility Data persistence singleton — reads/writes `~/.agentforge/registry.json`.
+ * @responsibility JSON registry repository -- reads/writes `~/.agentforge/registry.json`.
  *
  * All access to skill metadata, agent configuration, and project records
- * goes through this class. Implements the StorageInterface defined in types.ts.
+ * goes through this JSON-backed repository implementation.
  *
- * @architecture Infrastructure layer singleton. Only imports from `types.ts`.
- * Instantiated via `getInstance()` in `cli.ts` and injected into app-layer services.
+ * @architecture Infrastructure repository. Entry points instantiate this adapter and
+ * inject it into app-layer services through `RegistryRepository`.
  */
 
 import os from 'os';
@@ -31,9 +31,7 @@ import {
 
 import type { RegistryRepository } from './registry-repository.js';
 
-const FORGE_DIR = path.join(os.homedir(), '.agentforge');
-const SKILLS_DIR = path.join(FORGE_DIR, 'skills');
-const REGISTRY_FILE = path.join(FORGE_DIR, 'registry.json');
+const DEFAULT_FORGE_DIR = path.join(os.homedir(), '.agentforge');
 
 const DEFAULT_REGISTRY: RegistryData = {
   version: '1.0',
@@ -42,23 +40,29 @@ const DEFAULT_REGISTRY: RegistryData = {
   projects: {},
 };
 
-export class Storage implements StorageInterface, RegistryRepository {
+export class JsonRegistryRepository implements StorageInterface, RegistryRepository {
+  private readonly forgeDir: string;
+  private readonly skillsDir: string;
+  private readonly registryFile: string;
   private data: RegistryData;
   private batchDepth = 0;
   private batchDirty = false;
 
-  constructor() {
+  constructor(forgeDir: string = DEFAULT_FORGE_DIR) {
+    this.forgeDir = forgeDir;
+    this.skillsDir = path.join(forgeDir, 'skills');
+    this.registryFile = path.join(forgeDir, 'registry.json');
     this.data = this.load();
   }
 
   // ========== Path ==========
 
   getSkillsDir(): string {
-    return SKILLS_DIR;
+    return this.skillsDir;
   }
 
   getSkillPath(name: string): string {
-    return path.join(SKILLS_DIR, name);
+    return path.join(this.skillsDir, name);
   }
 
   // ========== Skill ==========
@@ -245,8 +249,8 @@ export class Storage implements StorageInterface, RegistryRepository {
 
   private load(): RegistryData {
     try {
-      if (fs.existsSync(REGISTRY_FILE)) {
-        const content = fs.readFileSync(REGISTRY_FILE, 'utf-8');
+      if (fs.existsSync(this.registryFile)) {
+        const content = fs.readFileSync(this.registryFile, 'utf-8');
         const data = JSON.parse(content) as Partial<RegistryData>;
         let migrated = false;
 
@@ -285,8 +289,7 @@ export class Storage implements StorageInterface, RegistryRepository {
         };
 
         if (migrated) {
-          fs.ensureDirSync(FORGE_DIR);
-          fs.writeFileSync(REGISTRY_FILE, JSON.stringify(registry, null, 2));
+          this.writeRegistry(registry);
         }
 
         return registry;
@@ -298,8 +301,14 @@ export class Storage implements StorageInterface, RegistryRepository {
   }
 
   private persist(): void {
-    fs.ensureDirSync(FORGE_DIR);
-    fs.writeFileSync(REGISTRY_FILE, JSON.stringify(this.data, null, 2));
+    this.writeRegistry(this.data);
+  }
+
+  private writeRegistry(data: RegistryData): void {
+    fs.ensureDirSync(this.forgeDir);
+    const tempFile = `${this.registryFile}.tmp-${process.pid}-${Date.now()}`;
+    fs.writeFileSync(tempFile, JSON.stringify(data, null, 2));
+    fs.renameSync(tempFile, this.registryFile);
   }
 
   private schedulePersist(): void {

@@ -6,7 +6,7 @@
  *
  * Manages the project-local config file that records which skills have been
  * synced to that project (and under which agent type / mode). Unlike the
- * user-level Storage singleton, this is per-project and stateless.
+ * user-level JSON registry repository, this is per-project and stateless.
  */
 
 import path from 'path';
@@ -53,7 +53,9 @@ export class ProjectStorage implements ProjectStateRepository {
   write(projectPath: string, config: ProjectLocalConfig): void {
     const configPath = this.getConfigPath(projectPath);
     fs.ensureDirSync(path.dirname(configPath));
-    fs.writeJsonSync(configPath, config, { spaces: 2 });
+    const tempPath = `${configPath}.tmp-${process.pid}-${Date.now()}`;
+    fs.writeJsonSync(tempPath, config, { spaces: 2 });
+    fs.renameSync(tempPath, configPath);
   }
 
   update(projectPath: string, updater: (config: ProjectLocalConfig) => ProjectLocalConfig): void {

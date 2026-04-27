@@ -10,6 +10,8 @@ import type { Command } from 'commander';
 
 import type { AgentId } from '../types.js';
 
+import { exitCommand } from './errors.js';
+
 import type { CommandContext } from './index.js';
 
 export function register(program: Command, ctx: CommandContext): void {
@@ -32,7 +34,7 @@ export function register(program: Command, ctx: CommandContext): void {
         } else {
           console.error(chalk.red(`Invalid target: ${target}`));
           console.log(chalk.dim('Supported: agents, projects'));
-          process.exit(1);
+          exitCommand(1);
         }
       }
     );
@@ -47,7 +49,7 @@ async function unsyncFromAgents(
   if (!name) {
     if (!process.stdin.isTTY) {
       console.error(chalk.red('Please specify skill name: af unsync agents <skill-name>'));
-      process.exit(1);
+      exitCommand(1);
     }
     // Only show skills synced to Agents
     const skills = ctx.skills.list().filter((s) => (s.syncedTo || []).length > 0);
@@ -64,7 +66,7 @@ async function unsyncFromAgents(
   const skill = ctx.skills.get(name);
   if (!skill) {
     console.error(chalk.red(`Skill not found: ${name}`));
-    process.exit(1);
+    exitCommand(1);
   }
 
   const syncedAgents = skill.syncedTo || [];
@@ -108,7 +110,7 @@ async function unsyncFromProjects(
   if (!name) {
     if (!process.stdin.isTTY) {
       console.error(chalk.red('Please specify skill name: af unsync projects <skill-name>'));
-      process.exit(1);
+      exitCommand(1);
     }
     // Show all skills, prioritize those with project sync records or project distribution
     const skills = ctx.skills.list();
@@ -145,7 +147,7 @@ async function unsyncFromProjects(
   const skill = ctx.skills.get(name);
   if (!skill) {
     console.error(chalk.red(`Skill not found: ${name}`));
-    process.exit(1);
+    exitCommand(1);
   }
 
   // Get recorded sync projects
@@ -216,7 +218,7 @@ async function unsyncFromProjects(
         console.log(chalk.green('Sync removed'));
       } catch (e: unknown) {
         console.log(chalk.red(e instanceof Error ? e.message : String(e)));
-        process.exit(1);
+        exitCommand(1);
       }
       return;
     }
@@ -263,7 +265,7 @@ async function unsyncFromProjects(
       return;
     } catch (e: unknown) {
       console.log(chalk.red(e instanceof Error ? e.message : String(e)));
-      process.exit(1);
+      exitCommand(1);
     }
   }
 
@@ -283,6 +285,6 @@ async function unsyncFromProjects(
     console.log(chalk.green('Sync removed'));
   } catch (e: unknown) {
     console.log(chalk.red(e instanceof Error ? e.message : String(e)));
-    process.exit(1);
+    exitCommand(1);
   }
 }

@@ -94,9 +94,7 @@ describe('SyncScreen', () => {
   it('renders title "Sync Skills"', async () => {
     const { SyncScreen } = await import('../../../src/tui/screens/SyncScreen.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(SyncScreen, { store })
-    );
+    const { lastFrame } = render(React.createElement(SyncScreen, { store }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('Sync Skills');
@@ -117,9 +115,7 @@ describe('SyncScreen', () => {
   it('renders SyncForm content', async () => {
     const { SyncScreen } = await import('../../../src/tui/screens/SyncScreen.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(SyncScreen, { store })
-    );
+    const { lastFrame } = render(React.createElement(SyncScreen, { store }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // SyncForm shows "Choose operation" at the select-op step
@@ -134,9 +130,7 @@ describe('SyncScreen', () => {
         { id: 'sync-skill1', label: 'Syncing skill1...', progress: 50, status: 'running' },
       ],
     });
-    const { lastFrame } = render(
-      React.createElement(SyncScreen, { store })
-    );
+    const { lastFrame } = render(React.createElement(SyncScreen, { store }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // Progress bar should show when items exist
@@ -149,9 +143,7 @@ describe('SyncScreen', () => {
       syncFormStep: 'select-op',
       updateProgressItems: [],
     });
-    const { lastFrame } = render(
-      React.createElement(SyncScreen, { store })
-    );
+    const { lastFrame } = render(React.createElement(SyncScreen, { store }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // Should show the sync form content, not progress bar

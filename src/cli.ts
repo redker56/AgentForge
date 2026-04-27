@@ -1,19 +1,21 @@
 /**
  * @module CLI Entry
  * @layer root
- * @responsibility Entry point — assembles all services, builds the CommandContext, and launches the CLI.
+ * @responsibility Entry point -- assembles all services, builds the CommandContext, and launches the CLI.
  *
  * This is the only file in the entire codebase that has the authority to import from
  * every layer (infra, app, commands, tui). All other files must follow the strict
  * dependency direction: commands -> app -> infra.
  *
- * @architecture Service assembly hub: instantiates Storage singleton, creates service
+ * @architecture Service assembly hub: instantiates storage/repository adapters, creates service
  * instances, wires the CommandContext, and delegates command registration.
  */
 
+import { createRequire } from 'module';
 import os from 'os';
 import path from 'path';
 
+import { select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import fs from 'fs-extra';
@@ -24,12 +26,19 @@ import { ScanService } from './app/scan-service.js';
 import { SkillService } from './app/skill-service.js';
 import { AgentSyncService } from './app/sync/agent-sync-service.js';
 import { ProjectSyncService } from './app/sync/project-sync-service.js';
-import { SyncCheckService } from './app/sync-check-service.js';
+import {
+  SyncCheckService,
+  type ConflictResolution,
+  type SyncConflictResolver,
+} from './app/sync-check-service.js';
+import { CommandExit, exitCommand, isCommandExit } from './commands/errors.js';
 import { registerAll, type CommandContext } from './commands/index.js';
-import { Storage } from './infra/storage.js';
+import { JsonRegistryRepository } from './infra/storage.js';
 
 // First run check
 const REGISTRY_FILE = path.join(os.homedir(), '.agentforge', 'registry.json');
+const require = createRequire(import.meta.url);
+const packageJson = require('../package.json') as { version: string };
 
 export function isFirstRun(): boolean {
   return !fs.existsSync(REGISTRY_FILE);
@@ -67,13 +76,67 @@ export function showWelcome(): void {
   console.log();
 }
 
+function createCliConflictResolver(): SyncConflictResolver {
+  return {
+    onConflicts: (skillName, conflicts): void => {
+      console.log(
+        chalk.yellow(
+          `\nDetected ${conflicts.length} Agent(s) with same-name skill "${skillName}":\n`
+        )
+      );
+    },
+    onAutoLink: (conflict): void => {
+      console.log(chalk.dim(`  ${conflict.agentName} (${conflict.agentId})`));
+      console.log(chalk.green(`    \u2713 Same content, auto-linked as synced`));
+    },
+    onDifferentContent: (conflict): void => {
+      console.log(chalk.dim(`  ${conflict.agentName} (${conflict.agentId})`));
+      console.log(chalk.yellow(`    \u26A0 Different content`));
+    },
+    chooseResolution: async (conflict): Promise<ConflictResolution> => {
+      let action: ConflictResolution;
+      try {
+        action = (await select({
+          message: `How to handle same-name skill for ${conflict.agentName}?`,
+          choices: [
+            { name: 'Link as synced (keep Agent version)', value: 'link' },
+            { name: 'Skip (do not link, manually sync later to overwrite)', value: 'skip' },
+            { name: 'Cancel entire operation', value: 'cancel' },
+          ],
+        })) as ConflictResolution;
+      } catch {
+        console.log(chalk.yellow('\nOperation cancelled'));
+        exitCommand(0);
+      }
+
+      if (action === 'cancel') {
+        console.log(chalk.yellow('\nOperation cancelled'));
+        exitCommand(0);
+      }
+
+      return action;
+    },
+  };
+}
+
 export function launchCLI(): void {
+  void runCLI().catch((error: unknown) => {
+    if (isCommandExit(error)) {
+      process.exitCode = error.exitCode;
+      return;
+    }
+
+    throw error;
+  });
+}
+
+export async function runCLI(): Promise<void> {
   // Initialize services
-  const storage = new Storage();
+  const storage = new JsonRegistryRepository();
   const projectStorage = new ProjectStorage();
   const skills = new SkillService(storage);
   const sync = new AgentSyncService(storage);
-  const syncCheck = new SyncCheckService(storage, sync);
+  const syncCheck = new SyncCheckService(storage, sync, createCliConflictResolver());
   const scan = new ScanService(storage);
   const projectSync = new ProjectSyncService(storage, projectStorage);
   const fileOps = new FileOperationsService();
@@ -83,11 +146,14 @@ export function launchCLI(): void {
 
   // Create CLI
   const program = new Command();
+  program.exitOverride((error) => {
+    throw new CommandExit(error.exitCode, error.message);
+  });
 
   program
     .name('af')
     .description('Manage and sync skills across AI agents and project workspaces')
-    .version('0.2.0')
+    .version(packageJson.version)
     .addHelpText(
       'after',
       '\nNext steps:\n' +
@@ -103,8 +169,8 @@ export function launchCLI(): void {
   const args = process.argv.slice(2);
   if (args.length === 0 && isFirstRun()) {
     showWelcome();
-    process.exit(0);
+    return;
   }
 
-  program.parse();
+  await program.parseAsync();
 }

@@ -10,6 +10,8 @@ import type { Command } from 'commander';
 
 import { formatProjectSkillList, formatSourceLabel } from '../app/cli-formatting.js';
 
+import { exitCommand } from './errors.js';
+
 import type { CommandContext } from './index.js';
 
 async function showAgent(ctx: CommandContext, agentId: string): Promise<void> {
@@ -17,7 +19,7 @@ async function showAgent(ctx: CommandContext, agentId: string): Promise<void> {
   if (!agent) {
     console.error(chalk.red(`Agent not found: ${agentId}`));
     console.log(chalk.dim('Run "af list agents" to see available Agents'));
-    process.exit(1);
+    exitCommand(1);
   }
 
   console.log(chalk.bold(`\n${agent.name} (${agent.id})\n`));
@@ -83,7 +85,7 @@ async function showProject(ctx: CommandContext, projectId: string): Promise<void
   if (!project) {
     console.error(chalk.red(`Project not found: ${projectId}`));
     console.log(chalk.dim('Run "af list projects" to see registered projects'));
-    process.exit(1);
+    exitCommand(1);
   }
 
   console.log(chalk.bold(`\nProject: ${projectId}\n`));
@@ -102,7 +104,7 @@ function showSkill(ctx: CommandContext, skillName: string): void {
   if (!skill) {
     console.error(chalk.red(`Skill not found: ${skillName}`));
     console.log(chalk.dim('Run "af list skills" to see all skills'));
-    process.exit(1);
+    exitCommand(1);
   }
 
   const meta = ctx.storage.getSkill(skillName);
@@ -185,7 +187,7 @@ export function register(program: Command, ctx: CommandContext): void {
           console.error(chalk.red(`Invalid target: ${target}`));
           console.log(chalk.dim('Available targets: agents, projects, skills'));
           console.log(chalk.dim('Example: af show agents claude'));
-          process.exit(1);
+          exitCommand(1);
       }
     });
 }

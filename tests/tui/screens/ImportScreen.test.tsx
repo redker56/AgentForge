@@ -65,9 +65,7 @@ describe('ImportScreen', () => {
   it('renders title "Import Skills"', async () => {
     const { ImportScreen } = await import('../../../src/tui/screens/ImportScreen.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(ImportScreen, { store })
-    );
+    const { lastFrame } = render(React.createElement(ImportScreen, { store }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('Import Skills');
@@ -76,9 +74,7 @@ describe('ImportScreen', () => {
   it('renders ImportFormTab content', async () => {
     const { ImportScreen } = await import('../../../src/tui/screens/ImportScreen.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(ImportScreen, { store })
-    );
+    const { lastFrame } = render(React.createElement(ImportScreen, { store }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // ImportFormTab shows "Choose source" at the select-source-type step
@@ -93,9 +89,7 @@ describe('ImportScreen', () => {
         { id: 'import-skill1', label: 'Importing skill1...', progress: 50, status: 'running' },
       ],
     });
-    const { lastFrame } = render(
-      React.createElement(ImportScreen, { store })
-    );
+    const { lastFrame } = render(React.createElement(ImportScreen, { store }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // Progress bar should show when items exist
@@ -108,9 +102,7 @@ describe('ImportScreen', () => {
       importTabStep: 'select-source-type',
       updateProgressItems: [],
     });
-    const { lastFrame } = render(
-      React.createElement(ImportScreen, { store })
-    );
+    const { lastFrame } = render(React.createElement(ImportScreen, { store }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // Should show the import form content, not progress bar

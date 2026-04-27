@@ -1,6 +1,6 @@
 {
   "name": "@redker56/agentforge",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "A CLI for managing and syncing skills across Claude Code, Codex, Gemini CLI, OpenClaw, Cursor, OpenCode, Qoder, and project workspaces.",
   "type": "module",
   "bin": {
@@ -22,12 +22,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "verify": "npm run build && npm test && npm run check:package",
-    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "verify": "npm run verify:ci",
+    "verify:ci": "npm run build && npm test && npm run lint && npm run arch:test && npm run format:check && npm run audit:prod && npm run check:package && npm pack && npm run smoke:pack",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\"",
     "lint": "eslint src tests",
     "lint:fix": "eslint src tests --fix",
-    "arch:test": "vitest run tests/architecture/layer-boundaries.test.ts"
+    "arch:test": "vitest run tests/architecture/layer-boundaries.test.ts",
+    "audit:prod": "npm audit --omit=dev --audit-level=high"
   },
   "keywords": [
     "ai",

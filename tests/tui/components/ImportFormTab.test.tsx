@@ -87,7 +87,14 @@ describe('ImportFormTab', () => {
   // ===== Sprint 4: StepIndicator integration =====
 
   it('renders StepIndicator with 6 import steps', () => {
-    const steps = ['Select Source Type', 'Select Source', 'Select Skills', 'Confirm', 'Executing', 'Results'];
+    const steps = [
+      'Select Source Type',
+      'Select Source',
+      'Select Skills',
+      'Confirm',
+      'Executing',
+      'Results',
+    ];
     const { lastFrame } = render(React.createElement(StepIndicator, { steps, currentStep: 0 }));
     const output = lastFrame() ?? '';
     expect(output).toContain('Select Source Type');
@@ -100,7 +107,14 @@ describe('ImportFormTab', () => {
   });
 
   it('import step indicator updates when navigating through steps', () => {
-    const steps = ['Select Source Type', 'Select Source', 'Select Skills', 'Confirm', 'Executing', 'Results'];
+    const steps = [
+      'Select Source Type',
+      'Select Source',
+      'Select Skills',
+      'Confirm',
+      'Executing',
+      'Results',
+    ];
 
     // Step 0: select-source-type
     const { lastFrame: lf1 } = render(

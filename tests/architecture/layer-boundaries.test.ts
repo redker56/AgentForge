@@ -8,6 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+import ts from 'typescript';
 import { describe, it, expect } from 'vitest';
 
 /**
@@ -104,30 +105,42 @@ function isInternalImport(importPath: string): boolean {
   return importPath.startsWith('.') || importPath.startsWith('..');
 }
 
-/**
- * Parse imports from a TypeScript file content
- */
 function parseImports(content: string, filePath: string): ImportInfo[] {
   const imports: ImportInfo[] = [];
-  const lines = content.split('\n');
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
 
-  // Match import statements
-  // Handles: import X from '...'; import type { X } from '...'; import { X, Y } from '...';
-  const importRegex = /^import\s+(type\s+)?(?:[^'"]+\s+from\s+)?['"]([^'"]+)['"]/;
-
-  lines.forEach((line, index) => {
-    const match = line.match(importRegex);
-    if (match) {
-      const isTypeOnly = match[1] !== undefined;
-      const importPath = match[2];
+  const addImport = (
+    node: ts.ImportDeclaration | ts.ExportDeclaration,
+    moduleSpecifier: ts.Expression,
+    isTypeOnly: boolean
+  ): void => {
+    if (ts.isStringLiteral(moduleSpecifier)) {
+      const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
       imports.push({
         file: filePath,
-        importPath,
-        lineNumber: index + 1,
+        importPath: moduleSpecifier.text,
+        lineNumber: position.line + 1,
         isTypeOnly,
       });
     }
-  });
+  };
+
+  for (const statement of sourceFile.statements) {
+    if (ts.isImportDeclaration(statement)) {
+      addImport(statement, statement.moduleSpecifier, statement.importClause?.isTypeOnly ?? false);
+      continue;
+    }
+
+    if (ts.isExportDeclaration(statement) && statement.moduleSpecifier) {
+      addImport(statement, statement.moduleSpecifier, statement.isTypeOnly);
+    }
+  }
 
   return imports;
 }
@@ -149,7 +162,11 @@ function findTypeScriptFiles(dir: string): string[] {
 
     if (entry.isDirectory()) {
       files.push(...findTypeScriptFiles(fullPath));
-    } else if (entry.isFile() && entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')) {
+    } else if (
+      entry.isFile() &&
+      (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) &&
+      !entry.name.endsWith('.d.ts')
+    ) {
       files.push(fullPath);
     }
   }

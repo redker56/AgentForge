@@ -15,12 +15,11 @@ import React from 'react';
 import { describe, it, expect } from 'vitest';
 
 import { ProgressBar, ProgressBarStack } from '../../../src/tui/components/ProgressBar.js';
+import { getDisplayWidth } from '../../../src/tui/utils/displayWidth.js';
 
 describe('ProgressBar', () => {
   it('renders with filled and empty block characters', () => {
-    const { lastFrame } = render(
-      <ProgressBar label="Test skill" progress={50} status="running" />
-    );
+    const { lastFrame } = render(<ProgressBar label="Test skill" progress={50} status="running" />);
     const output = lastFrame() ?? '';
     // 50% fill with default 30-char bar = 15 filled + 15 empty
     expect(output).toContain('\u2588'); // FULL_BLOCK
@@ -126,9 +125,7 @@ describe('ProgressBar', () => {
   });
 
   it('does not show count when completed/total not provided', () => {
-    const { lastFrame } = render(
-      <ProgressBar label="Simple" progress={50} status="running" />
-    );
+    const { lastFrame } = render(<ProgressBar label="Simple" progress={50} status="running" />);
     const output = lastFrame() ?? '';
     // Should have percentage but no count
     expect(output).toContain('50%');
@@ -154,11 +151,18 @@ describe('ProgressBar', () => {
 
   it('truncates long labels to 28 characters', () => {
     const longLabel = 'this-is-a-very-long-skill-name-that-exceeds-twenty-eight-chars';
-    const { lastFrame } = render(
-      <ProgressBar label={longLabel} progress={50} status="running" />
-    );
+    const { lastFrame } = render(<ProgressBar label={longLabel} progress={50} status="running" />);
     const output = lastFrame() ?? '';
     expect(output).toContain('\u2588'.repeat(15)); // Bar renders after truncated label
+  });
+
+  it('keeps wide labels inside the fixed label column', () => {
+    const wideLabel = '\u4e2d\u6587\u6280\u80fd\u540d\u79f0-that-is-long';
+    const { lastFrame } = render(<ProgressBar label={wideLabel} progress={50} status="running" />);
+    const output = lastFrame() ?? '';
+    const labelColumn = output.split(' [')[0] ?? '';
+
+    expect(getDisplayWidth(labelColumn)).toBe(28);
   });
 });
 
@@ -190,11 +194,11 @@ describe('ProgressBarStack', () => {
       { id: 's3', label: 'skill-gamma', progress: 50, status: 'running' as const },
     ];
     const totalItems = progressItems.length;
-    const completedItems = progressItems.filter(i => i.status === 'success').length;
+    const completedItems = progressItems.filter((i) => i.status === 'success').length;
     const overallProgress = Math.round((completedItems / totalItems) * 100);
-    const overallStatus = progressItems.some(i => i.status === 'error')
+    const overallStatus = progressItems.some((i) => i.status === 'error')
       ? 'error'
-      : progressItems.some(i => i.status === 'running' || i.status === 'pending')
+      : progressItems.some((i) => i.status === 'running' || i.status === 'pending')
         ? 'running'
         : 'success';
 

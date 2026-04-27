@@ -14,6 +14,8 @@ import type { Command } from 'commander';
 
 import { BUILTIN_AGENTS } from '../types.js';
 
+import { exitCommand } from './errors.js';
+
 import type { CommandContext } from './index.js';
 
 export function register(program: Command, ctx: CommandContext): void {
@@ -60,7 +62,7 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
         await postInstall(ctx, skillName);
       } catch (e: unknown) {
         console.log(chalk.red(e instanceof Error ? e.message : String(e)));
-        process.exit(1);
+        exitCommand(1);
       }
       return;
     }
@@ -94,7 +96,7 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
         console.log(
           chalk.yellow('No skills found in repository (directories containing SKILL.md)')
         );
-        process.exit(1);
+        exitCommand(1);
       }
 
       if (skills.length === 1) {
@@ -150,7 +152,7 @@ async function addSkill(ctx: CommandContext, url: string, name?: string): Promis
     }
   } catch (e: unknown) {
     console.error(chalk.red(e instanceof Error ? e.message : String(e)));
-    process.exit(1);
+    exitCommand(1);
   }
 }
 

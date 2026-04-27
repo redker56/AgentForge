@@ -83,9 +83,7 @@ describe('AgentTable', () => {
   it('renders agent names', async () => {
     const { AgentTable } = await import('../../../src/tui/components/AgentTable.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(AgentTable, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(AgentTable, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('claude');
@@ -95,9 +93,7 @@ describe('AgentTable', () => {
   it('renders separator line based on dynamic width', async () => {
     const { AgentTable } = await import('../../../src/tui/components/AgentTable.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(AgentTable, { store, columns: 80 })
-    );
+    const { lastFrame } = render(React.createElement(AgentTable, { store, columns: 80 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // The separator character is U+2500
@@ -125,9 +121,7 @@ describe('AgentTable', () => {
   it('focused row has the vertical bar indicator', async () => {
     const { AgentTable } = await import('../../../src/tui/components/AgentTable.js');
     const store = makeMockStore({ focusedAgentIndex: 0 });
-    const { lastFrame } = render(
-      React.createElement(AgentTable, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(AgentTable, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // U+258E is the vertical bar indicator used for focus highlight
@@ -137,9 +131,7 @@ describe('AgentTable', () => {
   it('renders header row', async () => {
     const { AgentTable } = await import('../../../src/tui/components/AgentTable.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(AgentTable, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(AgentTable, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('ID');
@@ -150,9 +142,7 @@ describe('AgentTable', () => {
   it('shows resolved counts instead of placeholder question marks', async () => {
     const { AgentTable } = await import('../../../src/tui/components/AgentTable.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(AgentTable, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(AgentTable, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).not.toContain('?');

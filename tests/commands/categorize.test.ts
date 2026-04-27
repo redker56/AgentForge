@@ -16,7 +16,7 @@ describe('categorize command', () => {
     consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     processExit = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit mocked');
+      throw new Error('Command exited with code 1');
     });
   });
 
@@ -129,7 +129,7 @@ describe('categorize command', () => {
       program.parseAsync(['categorize', 'skills', 'docx', 'documents', '--clear'], {
         from: 'user',
       })
-    ).rejects.toThrow('process.exit mocked');
+    ).rejects.toThrow('Command exited with code 1');
 
     expect(consoleError).toHaveBeenCalledWith(
       expect.stringContaining('--clear does not accept category arguments')
@@ -149,7 +149,7 @@ describe('categorize command', () => {
       program.parseAsync(['categorize', 'skills', '--skills', 'docx', 'xlsx'], {
         from: 'user',
       })
-    ).rejects.toThrow('process.exit mocked');
+    ).rejects.toThrow('Command exited with code 1');
 
     expect(consoleError).toHaveBeenCalledWith(
       expect.stringContaining('Batch categorize requires --categories')

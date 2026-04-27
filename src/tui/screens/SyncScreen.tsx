@@ -31,7 +31,9 @@ export function SyncScreen({ store }: SyncScreenProps): React.ReactElement {
   return (
     <Box flexDirection="column" height="100%">
       <Box paddingX={1}>
-        <Text bold color={inkColors.accent}>{title}</Text>
+        <Text bold color={inkColors.accent}>
+          {title}
+        </Text>
       </Box>
       <Box flexGrow={1}>
         <SyncForm store={store} />

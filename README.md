@@ -413,8 +413,13 @@ npm run build
 # Test
 npm test
 
-# Pre-release verification
+# Runtime dependency audit
+npm run audit:prod
+
+# Full local CI verification
 npm run verify
+# Same command, named explicitly for CI parity
+npm run verify:ci
 ```
 
 ## License

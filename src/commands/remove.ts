@@ -11,6 +11,8 @@ import type { Command } from 'commander';
 
 import { BUILTIN_AGENTS, type Agent, type SkillMeta } from '../types.js';
 
+import { exitCommand } from './errors.js';
+
 import type { CommandContext } from './index.js';
 
 function getProjectTargetId(projectId: string, agentType: string): string {
@@ -97,13 +99,13 @@ export async function removeSkill(
 ): Promise<void> {
   if (!ctx.skills.exists(skillName)) {
     console.error(chalk.red(`Skill not found: ${skillName}`));
-    process.exit(1);
+    exitCommand(1);
   }
 
   const meta = ctx.storage.getSkill(skillName);
   if (!meta) {
     console.error(chalk.red(`Skill metadata not found: ${skillName}`));
-    process.exit(1);
+    exitCommand(1);
   }
 
   const agentSyncCount = meta.syncedTo.length;
@@ -144,7 +146,7 @@ export async function removeProject(
   const project = ctx.storage.getProject(projectId);
   if (!project) {
     console.error(chalk.red(`Project not found: ${projectId}`));
-    process.exit(1);
+    exitCommand(1);
   }
 
   // Confirm deletion
@@ -184,7 +186,7 @@ export async function removeAgent(
   if (builtinIds.includes(agentId)) {
     console.error(chalk.red(`Built-in Agent "${agentId}" cannot be removed`));
     console.log(chalk.dim('Only custom Agent configurations can be removed'));
-    process.exit(1);
+    exitCommand(1);
   }
 
   const agent = ctx.storage
@@ -193,7 +195,7 @@ export async function removeAgent(
   if (!agent) {
     console.error(chalk.red(`Agent configuration not found: ${agentId}`));
     console.log(chalk.dim('Run "af list agents" to see active Agents'));
-    process.exit(1);
+    exitCommand(1);
   }
 
   const syncedSkills = ctx.storage

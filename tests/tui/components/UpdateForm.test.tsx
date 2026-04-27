@@ -2,7 +2,11 @@ import { render } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { getProgressViewport, UpdateForm } from '../../../src/tui/components/UpdateForm.js';
+import {
+  getProgressViewport,
+  getRetryableUpdateSkillNames,
+  UpdateForm,
+} from '../../../src/tui/components/UpdateForm.js';
 
 function createMockStore(overrides: Record<string, unknown> = {}) {
   const state = {
@@ -121,5 +125,30 @@ describe('UpdateForm', () => {
     ]);
     expect(viewport.hiddenAboveCount).toBe(1);
     expect(viewport.hiddenBelowCount).toBe(1);
+  });
+
+  it('selects only per-skill update failures for retry', () => {
+    expect(
+      getRetryableUpdateSkillNames([
+        {
+          skillName: 'git-skill',
+          sourceType: 'git',
+          outcome: 'error',
+          detail: 'TLS handshake failed',
+        },
+        {
+          skillName: 'update',
+          sourceType: 'unknown',
+          outcome: 'error',
+          detail: 'Unexpected update failure',
+        },
+        {
+          skillName: 'local-skill',
+          sourceType: 'local',
+          outcome: 'skipped',
+          detail: 'Skipped',
+        },
+      ])
+    ).toEqual(['git-skill']);
   });
 });

@@ -109,9 +109,7 @@ describe('ProjectsScreen', () => {
     const loadProjectDetail = vi.fn();
     const { ProjectsScreen } = await import('../../../src/tui/screens/ProjectsScreen.js');
     const store = makeMockStore({ focusedProjectIndex: 0, loadProjectDetail });
-    render(
-      React.createElement(ProjectsScreen, { store, band: 'standard' as const, columns: 100 })
-    );
+    render(React.createElement(ProjectsScreen, { store, band: 'standard' as const, columns: 100 }));
     vi.runAllTimers();
     // useEffect triggers loadProjectDetail when focused project changes and detail not loaded
     expect(loadProjectDetail).toHaveBeenCalledWith('proj-1');
@@ -129,9 +127,7 @@ describe('ProjectsScreen', () => {
         },
       },
     });
-    render(
-      React.createElement(ProjectsScreen, { store, band: 'standard' as const, columns: 100 })
-    );
+    render(React.createElement(ProjectsScreen, { store, band: 'standard' as const, columns: 100 }));
     vi.runAllTimers();
     // Should not call loadProjectDetail since detail already exists
     expect(loadProjectDetail).not.toHaveBeenCalled();

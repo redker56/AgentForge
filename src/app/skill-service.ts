@@ -2,14 +2,14 @@
  * @module App/SkillService
  * @layer app
  * @allowed-imports infra/, types
- * @responsibility Skill CRUD operations — install, update, delete, discover, and import skills.
+ * @responsibility Skill CRUD operations -- install, update, delete, discover, and import skills.
  *
  * All skill mutations go through this service so that storage and file
  * operations stay consistent. File operations delegate to `infra/files.ts`;
  * persistence delegates to `infra/storage.ts`.
  *
- * @architecture App-layer orchestration — receives a Storage instance via
- * constructor injection and delegates all I/O to the infra layer.
+ * @architecture App-layer orchestration -- receives a `RegistryRepository` via
+ * constructor injection and delegates all I/O to injected repository and infra services.
  */
 
 import path from 'path';

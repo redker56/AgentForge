@@ -27,7 +27,7 @@ describe('add command', () => {
     consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     processExit = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit mocked');
+      throw new Error('Command exited with code 1');
     });
     vi.clearAllMocks();
   });
@@ -155,10 +155,7 @@ describe('add command', () => {
 
       await expect(
         program.parseAsync(['add', 'skills', 'https://example.com/empty.git'], { from: 'user' })
-      ).rejects.toThrow('process.exit mocked');
-
-      // process.exit throws before console output is reached
-      expect(processExit).toHaveBeenCalled();
+      ).rejects.toThrow('Command exited with code 1');
     });
 
     it('installs multiple skills when user selects them', async () => {

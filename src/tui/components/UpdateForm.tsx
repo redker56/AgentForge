@@ -10,6 +10,7 @@ import type { StoreApi } from 'zustand';
 import type { AppStore } from '../store/index.js';
 import type { UpdateResult } from '../store/uiSlice.js';
 import { inkColors } from '../theme.js';
+import { truncateDisplayText } from '../utils/displayWidth.js';
 
 import { ProgressBarStack } from './ProgressBar.js';
 
@@ -41,7 +42,9 @@ function parseSkillNames(encoded: string | undefined): string[] {
   if (!encoded) return [];
   try {
     const parsed = JSON.parse(encoded) as unknown;
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string')
+      : [];
   } catch {
     return [];
   }
@@ -73,10 +76,7 @@ function renderFixedRows(
 }
 
 function truncateText(text: string, maxWidth = CONTENT_WIDTH): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 function findViewportAnchorIndex(items: AppStore['shellState']['updateProgressItems']): number {
@@ -118,6 +118,12 @@ export function getProgressViewport(
   };
 }
 
+export function getRetryableUpdateSkillNames(results: UpdateResult[]): string[] {
+  return results
+    .filter((item) => item.outcome === 'error' && item.skillName !== 'update')
+    .map((item) => item.skillName);
+}
+
 export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
   const formState = useStore(store, (s) => s.shellState.formState);
   const skills = useStore(store, (s) => s.skills);
@@ -126,7 +132,8 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
   const [phase, setPhase] = useState<UpdatePhase>('preview');
   const [results, setResults] = useState<UpdateResult[]>([]);
 
-  const isVisible = formState?.formType === 'updateSelected' || formState?.formType === 'updateAllGit';
+  const isVisible =
+    formState?.formType === 'updateSelected' || formState?.formType === 'updateAllGit';
   const requestedSkillNames = useMemo(
     () => parseSkillNames(formState?.data.skillNames),
     [formState?.data.skillNames]
@@ -180,9 +187,39 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
     setResults([]);
   }, [formState?.formType, formState?.data.skillNames, isVisible]);
 
+  const failedSkillNames = useMemo(() => getRetryableUpdateSkillNames(results), [results]);
+
+  function runUpdate(skillNames: string[]): void {
+    setPhase('executing');
+    setResults([]);
+    void store
+      .getState()
+      .updateSkills(skillNames)
+      .then((nextResults) => {
+        setResults(nextResults);
+        setPhase('results');
+      })
+      .catch((error: unknown) => {
+        setResults([
+          {
+            skillName: 'update',
+            sourceType: 'unknown',
+            outcome: 'error',
+            detail: error instanceof Error ? error.message : String(error),
+          },
+        ]);
+        setPhase('results');
+      });
+  }
+
   useInput(
     (input, key) => {
       if (!isVisible || phase === 'executing') return;
+
+      if (phase === 'results' && input.toLowerCase() === 'r' && failedSkillNames.length > 0) {
+        runUpdate(failedSkillNames);
+        return;
+      }
 
       if (key.return) {
         if (phase === 'preview') {
@@ -191,25 +228,7 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
             return;
           }
 
-          setPhase('executing');
-          void store
-            .getState()
-            .updateSkills(requestedSkillNames)
-            .then((nextResults) => {
-              setResults(nextResults);
-              setPhase('results');
-            })
-            .catch((error: unknown) => {
-              setResults([
-                {
-                  skillName: 'update',
-                  sourceType: 'unknown',
-                  outcome: 'error',
-                  detail: error instanceof Error ? error.message : String(error),
-                },
-              ]);
-              setPhase('results');
-            });
+          runUpdate(requestedSkillNames);
           return;
         }
 
@@ -230,7 +249,8 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
     return <></>;
   }
 
-  const title = formState.formType === 'updateAllGit' ? 'Update All Git Skills' : 'Update Selected Skills';
+  const title =
+    formState.formType === 'updateAllGit' ? 'Update All Git Skills' : 'Update Selected Skills';
   const previewRows = previewItems.map((item) => (
     <Text key={item.skillName}>
       {truncateText(
@@ -240,7 +260,9 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
   ));
 
   const fixedPreviewRows = renderFixedRows(previewRows, (index) => (
-    <Text key={`empty-preview-${index}`} dimColor> </Text>
+    <Text key={`empty-preview-${index}`} dimColor>
+      {' '}
+    </Text>
   ));
   const {
     visibleItems: visibleProgressItems,
@@ -278,12 +300,23 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
     );
   });
   const fixedResultRows = renderFixedRows(resultRows, (index) => (
-    <Text key={`empty-result-${index}`} dimColor> </Text>
+    <Text key={`empty-result-${index}`} dimColor>
+      {' '}
+    </Text>
   ));
 
   return (
-    <Box flexDirection="column" borderStyle="single" padding={1} width={FORM_WIDTH} marginTop={1} borderColor={inkColors.border}>
-      <Text bold color={inkColors.accent}>{title}</Text>
+    <Box
+      flexDirection="column"
+      borderStyle="single"
+      padding={1}
+      width={FORM_WIDTH}
+      marginTop={1}
+      borderColor={inkColors.border}
+    >
+      <Text bold color={inkColors.accent}>
+        {title}
+      </Text>
       <Text color={inkColors.muted}>
         {requestedSkillNames.length} requested | {updatableCount} updatable
         {skippedPreviewCount > 0 ? ` | ${skippedPreviewCount} skipped` : ''}
@@ -303,21 +336,29 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
           {updatableCount > 0 ? (
             <Text dimColor>Enter:Start update Esc:Cancel</Text>
           ) : (
-            <Text dimColor>{truncateText('No git-backed skills to update. Enter or Esc to close.')}</Text>
+            <Text dimColor>
+              {truncateText('No git-backed skills to update. Enter or Esc to close.')}
+            </Text>
           )}
         </>
       )}
 
       {phase === 'executing' && (
         <>
-          <Text dimColor>{truncateText('Updating git-backed skills and re-syncing managed copies...')}</Text>
+          <Text dimColor>
+            {truncateText('Updating git-backed skills and re-syncing managed copies...')}
+          </Text>
           <Text> </Text>
           {visibleProgressItems.length > 0 ? (
             <ProgressBarStack items={visibleProgressItems} />
           ) : (
             <Text dimColor>Preparing update tasks...</Text>
           )}
-          {progressOverflowSummary ? <Text dimColor>{progressOverflowSummary}</Text> : <Text dimColor> </Text>}
+          {progressOverflowSummary ? (
+            <Text dimColor>{progressOverflowSummary}</Text>
+          ) : (
+            <Text dimColor> </Text>
+          )}
           <Text> </Text>
           <Text dimColor>Please wait...</Text>
         </>
@@ -330,7 +371,9 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
             <Text color={inkColors.muted}> | </Text>
             <Text color={inkColors.muted}>{skippedCount} skipped</Text>
             <Text color={inkColors.muted}> | </Text>
-            <Text color={errorCount > 0 ? inkColors.error : inkColors.muted}>{errorCount} errors</Text>
+            <Text color={errorCount > 0 ? inkColors.error : inkColors.muted}>
+              {errorCount} errors
+            </Text>
           </Text>
           <Text> </Text>
           {fixedResultRows}
@@ -339,7 +382,11 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
           )}
           {results.length <= MAX_VISIBLE_ROWS && <Text dimColor> </Text>}
           <Text> </Text>
-          <Text dimColor>Enter:Close Esc:Close</Text>
+          {errorCount > 0 && failedSkillNames.length > 0 ? (
+            <Text dimColor>R:Retry failed Enter:Close Esc:Close</Text>
+          ) : (
+            <Text dimColor>Enter:Close Esc:Close</Text>
+          )}
         </>
       )}
     </Box>

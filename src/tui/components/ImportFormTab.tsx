@@ -13,6 +13,7 @@ import type { StoreApi } from 'zustand';
 import type { AppStore } from '../store/index.js';
 import type { OperationResult } from '../store/uiSlice.js';
 import { inkColors, renderFocusPrefix, spacing } from '../theme.js';
+import { truncateDisplayText } from '../utils/displayWidth.js';
 
 import { ImportChecklist } from './ImportChecklist.js';
 import { ProgressBar } from './ProgressBar.js';
@@ -26,10 +27,7 @@ const STEP_INDICATOR_WIDTH = 22;
 const MIN_CONTENT_WIDTH = 24;
 
 function truncateText(text: string, maxWidth: number): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 export function ImportFormTab({ store }: ImportFormTabProps): React.ReactElement {
@@ -37,7 +35,10 @@ export function ImportFormTab({ store }: ImportFormTabProps): React.ReactElement
   const importTabStep = useStore(store, (s) => s.importWorkflowState.step);
   const importTabSourceType = useStore(store, (s) => s.importWorkflowState.sourceType);
   const importTabSourceId = useStore(store, (s) => s.importWorkflowState.sourceId);
-  const importTabSelectedSkillNames = useStore(store, (s) => s.importWorkflowState.selectedSkillNames);
+  const importTabSelectedSkillNames = useStore(
+    store,
+    (s) => s.importWorkflowState.selectedSkillNames
+  );
   const importTabResults = useStore(store, (s) => s.importWorkflowState.results);
   const importTabFocusedIndex = useStore(store, (s) => s.importWorkflowState.focusedIndex);
   const discoveredSkills = useStore(store, (s) => s.importWorkflowState.discoveredSkills);
@@ -69,7 +70,9 @@ export function ImportFormTab({ store }: ImportFormTabProps): React.ReactElement
           return;
         }
         if (key.upArrow || key.downArrow) {
-          s.setImportTabSourceType(s.importWorkflowState.sourceType === 'project' ? 'agent' : 'project');
+          s.setImportTabSourceType(
+            s.importWorkflowState.sourceType === 'project' ? 'agent' : 'project'
+          );
         }
         if (key.return || input === ' ') {
           if (!s.importWorkflowState.sourceType) {
@@ -92,7 +95,9 @@ export function ImportFormTab({ store }: ImportFormTabProps): React.ReactElement
           s.setImportTabFocusedIndex(Math.max(0, s.importWorkflowState.focusedIndex - 1));
         }
         if (key.downArrow) {
-          s.setImportTabFocusedIndex(Math.min(sourceList.length - 1, s.importWorkflowState.focusedIndex + 1));
+          s.setImportTabFocusedIndex(
+            Math.min(sourceList.length - 1, s.importWorkflowState.focusedIndex + 1)
+          );
         }
         if (key.return || input === ' ') {
           const focused = sourceList[s.importWorkflowState.focusedIndex];
@@ -147,26 +152,48 @@ export function ImportFormTab({ store }: ImportFormTabProps): React.ReactElement
         handleImportBack(store);
       }
     },
-    { isActive: activeTab === 'import' && !showSearch && !showHelp && !confirmState && !formState && !conflictState },
+    {
+      isActive:
+        activeTab === 'import' &&
+        !showSearch &&
+        !showHelp &&
+        !confirmState &&
+        !formState &&
+        !conflictState,
+    }
   );
 
   // Import step indicator
-  const importSteps = ['Select Source Type', 'Select Source', 'Select Skills', 'Confirm', 'Executing', 'Results'];
+  const importSteps = [
+    'Select Source Type',
+    'Select Source',
+    'Select Skills',
+    'Confirm',
+    'Executing',
+    'Results',
+  ];
   function importStepToLabel(step: string): string {
     switch (step) {
-      case 'select-source-type': return 'Select Source Type';
-      case 'select-source': return 'Select Source';
-      case 'select-skills': return 'Select Skills';
-      case 'confirm': return 'Confirm';
-      case 'executing': return 'Executing';
-      case 'results': return 'Results';
-      default: return step;
+      case 'select-source-type':
+        return 'Select Source Type';
+      case 'select-source':
+        return 'Select Source';
+      case 'select-skills':
+        return 'Select Skills';
+      case 'confirm':
+        return 'Confirm';
+      case 'executing':
+        return 'Executing';
+      case 'results':
+        return 'Results';
+      default:
+        return step;
     }
   }
   const importCurrentIndex = importSteps.indexOf(importStepToLabel(importTabStep));
   const columns = stdout?.columns ?? 120;
   const contentWidth = Math.max(
-    columns - STEP_INDICATOR_WIDTH - (spacing.paddingX * 4) - 6,
+    columns - STEP_INDICATOR_WIDTH - spacing.paddingX * 4 - 6,
     MIN_CONTENT_WIDTH
   );
 
@@ -196,12 +223,21 @@ export function ImportFormTab({ store }: ImportFormTabProps): React.ReactElement
             selected={importTabSelectedSkillNames}
             focusedIndex={importTabFocusedIndex}
             onToggle={(name) => toggleImportSkill(store, name)}
-            onUp={() => store.getState().setImportTabFocusedIndex(Math.max(0, store.getState().importWorkflowState.focusedIndex - 1))}
+            onUp={() =>
+              store
+                .getState()
+                .setImportTabFocusedIndex(
+                  Math.max(0, store.getState().importWorkflowState.focusedIndex - 1)
+                )
+            }
             onDown={() =>
               store
                 .getState()
                 .setImportTabFocusedIndex(
-                  Math.min(discoveredSkills.length - 1, store.getState().importWorkflowState.focusedIndex + 1)
+                  Math.min(
+                    discoveredSkills.length - 1,
+                    store.getState().importWorkflowState.focusedIndex + 1
+                  )
                 )
             }
             columns={contentWidth}
@@ -216,7 +252,9 @@ export function ImportFormTab({ store }: ImportFormTabProps): React.ReactElement
           />
         )}
         {importTabStep === 'executing' && <ExecutingStep progressItems={updateProgressItems} />}
-        {importTabStep === 'results' && <ResultsStep results={importTabResults} contentWidth={contentWidth} />}
+        {importTabStep === 'results' && (
+          <ResultsStep results={importTabResults} contentWidth={contentWidth} />
+        )}
       </Box>
     </Box>
   );
@@ -236,15 +274,13 @@ function runDiscovery(storeApi: StoreApi<AppStore>): void {
   }
 
   const candidates =
-    sourceType === 'project'
-      ? state.scanProjectSkills(sourceId)
-      : state.scanAgentSkills(sourceId);
+    sourceType === 'project' ? state.scanProjectSkills(sourceId) : state.scanAgentSkills(sourceId);
   state.setImportDiscoveredSkills(candidates);
 }
 
 async function executeImport(
   s: ReturnType<StoreApi<AppStore>['getState']>,
-  _storeApi: StoreApi<AppStore>,
+  _storeApi: StoreApi<AppStore>
 ): Promise<void> {
   const skillNames = [...s.importWorkflowState.selectedSkillNames];
   const sourceId = s.importWorkflowState.sourceId;
@@ -328,11 +364,19 @@ function SelectSourceType({
 }): React.ReactElement {
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>Import Skills</Text>
+      <Text bold color={inkColors.accent}>
+        Import Skills
+      </Text>
       <Text> </Text>
       <Text>Choose source:</Text>
-      <Text>{renderFocusPrefix(sourceType === 'project')}{truncateText('Import from Project', Math.max(contentWidth - 2, 8))}</Text>
-      <Text>{renderFocusPrefix(sourceType === 'agent')}{truncateText('Import from Agent', Math.max(contentWidth - 2, 8))}</Text>
+      <Text>
+        {renderFocusPrefix(sourceType === 'project')}
+        {truncateText('Import from Project', Math.max(contentWidth - 2, 8))}
+      </Text>
+      <Text>
+        {renderFocusPrefix(sourceType === 'agent')}
+        {truncateText('Import from Agent', Math.max(contentWidth - 2, 8))}
+      </Text>
       <Text> </Text>
       <Text dimColor>{truncateText('Up/Down to choose, Enter to continue', contentWidth)}</Text>
     </Box>
@@ -357,7 +401,9 @@ function SelectSource({
 
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>{title}</Text>
+      <Text bold color={inkColors.accent}>
+        {title}
+      </Text>
       <Text> </Text>
       {list.map((item, i) => {
         const isFocused = i === focusedIndex;
@@ -371,7 +417,9 @@ function SelectSource({
           </Text>
         );
       })}
-      {list.length === 0 && <Text dimColor>{truncateText(`No ${sourceType}s configured`, contentWidth)}</Text>}
+      {list.length === 0 && (
+        <Text dimColor>{truncateText(`No ${sourceType}s configured`, contentWidth)}</Text>
+      )}
       <Text> </Text>
       <Text dimColor>{truncateText('Up/Down to select, Enter to continue', contentWidth)}</Text>
     </Box>
@@ -393,10 +441,15 @@ function ConfirmStep({
 
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>Confirm Import</Text>
+      <Text bold color={inkColors.accent}>
+        Confirm Import
+      </Text>
       <Text> </Text>
       <Text>
-        {truncateText(`Import ${skillNames.size} skill(s) from ${label} "${sourceId}".`, contentWidth)}
+        {truncateText(
+          `Import ${skillNames.size} skill(s) from ${label} "${sourceId}".`,
+          contentWidth
+        )}
       </Text>
       <Text> </Text>
       <Text dimColor>{truncateText(`Skills: ${[...skillNames].join(', ')}`, contentWidth)}</Text>
@@ -423,10 +476,18 @@ function ExecutingStep({
 }): React.ReactElement {
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>Importing skills...</Text>
+      <Text bold color={inkColors.accent}>
+        Importing skills...
+      </Text>
       <Text> </Text>
       {progressItems.map((item) => (
-        <ProgressBar key={item.id} label={item.label} progress={item.progress} status={item.status} error={item.error} />
+        <ProgressBar
+          key={item.id}
+          label={item.label}
+          progress={item.progress}
+          status={item.status}
+          error={item.error}
+        />
       ))}
     </Box>
   );
@@ -444,13 +505,18 @@ function ResultsStep({
 
   return (
     <Box flexDirection="column">
-      <Text bold color={inkColors.accent}>Import complete</Text>
+      <Text bold color={inkColors.accent}>
+        Import complete
+      </Text>
       <Text> </Text>
       <Text>{truncateText(`${successCount} succeeded, ${failCount} failed.`, contentWidth)}</Text>
       <Text> </Text>
       {results.map((r, i) => (
         <Text key={`${r.target}-${i}`} color={r.success ? inkColors.success : inkColors.error}>
-          {truncateText(`${r.success ? 'OK' : 'FAIL'} ${r.target}${r.error ? `: ${r.error}` : ''}`, contentWidth)}
+          {truncateText(
+            `${r.success ? 'OK' : 'FAIL'} ${r.target}${r.error ? `: ${r.error}` : ''}`,
+            contentWidth
+          )}
         </Text>
       ))}
       <Text> </Text>

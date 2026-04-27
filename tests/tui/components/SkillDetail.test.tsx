@@ -75,8 +75,18 @@ describe('SkillDetail', () => {
           ],
           syncedProjects: [],
           syncStatus: [
-            { agentId: 'claude', agentName: 'Claude Code', mode: 'symlink' as const, status: 'synced' as const },
-            { agentId: 'codex', agentName: 'Codex', mode: 'symlink' as const, status: 'synced' as const },
+            {
+              agentId: 'claude',
+              agentName: 'Claude Code',
+              mode: 'symlink' as const,
+              status: 'synced' as const,
+            },
+            {
+              agentId: 'codex',
+              agentName: 'Codex',
+              mode: 'symlink' as const,
+              status: 'synced' as const,
+            },
           ],
           projectDistribution: [
             {
@@ -87,7 +97,8 @@ describe('SkillDetail', () => {
               ],
             },
           ],
-          skillMdPreview: '# Architectural Coherence\n- Remove compatibility layers\n- Keep naming consistent',
+          skillMdPreview:
+            '# Architectural Coherence\n- Remove compatibility layers\n- Keep naming consistent',
         },
       },
     });

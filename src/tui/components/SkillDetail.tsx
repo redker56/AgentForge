@@ -69,12 +69,15 @@ export function SkillDetail({
 }: SkillDetailProps): React.ReactElement {
   const focusedIndex = useStore(store, (s) => s.skillsBrowserState.focusedIndex);
   const skills = useStore(store, (s) => s.skills);
-  const activeSkillCategoryFilter = useStore(store, (s) => s.skillsBrowserState.activeCategoryFilter);
+  const activeSkillCategoryFilter = useStore(
+    store,
+    (s) => s.skillsBrowserState.activeCategoryFilter
+  );
   const skillDetails = useStore(store, (s) => s.skillDetails);
 
   const focusedSkill =
     skillName != null
-      ? skills.find((skill) => skill.name === skillName) ?? null
+      ? (skills.find((skill) => skill.name === skillName) ?? null)
       : getFocusedVisibleSkill(skills, activeSkillCategoryFilter, focusedIndex);
   const detail = focusedSkill ? skillDetails[focusedSkill.name] : undefined;
 
@@ -228,7 +231,7 @@ export function SkillDetail({
         bold: true,
       });
       detail.skillMdPreview.split('\n').forEach((line, index) => {
-      lines.push({
+        lines.push({
           key: `preview-${index}`,
           text: truncateDisplayText(sanitizeDetailText(line || ' '), contentWidth),
           color: inkColors.muted,

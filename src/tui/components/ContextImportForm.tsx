@@ -7,6 +7,7 @@ import type { ContextSkillRow } from '../contextTypes.js';
 import type { AppStore } from '../store/index.js';
 import type { OperationResult } from '../store/uiSlice.js';
 import { inkColors } from '../theme.js';
+import { truncateDisplayText } from '../utils/displayWidth.js';
 
 interface ContextImportFormProps {
   store: StoreApi<AppStore>;
@@ -15,10 +16,7 @@ interface ContextImportFormProps {
 type Phase = 'preview' | 'executing' | 'results';
 
 function truncateText(text: string, maxWidth = 64): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 export function ContextImportForm({ store }: ContextImportFormProps): React.ReactElement {
@@ -75,8 +73,17 @@ export function ContextImportForm({ store }: ContextImportFormProps): React.Reac
   );
 
   return (
-    <Box flexDirection="column" borderStyle="single" padding={1} width={76} marginTop={1} borderColor={inkColors.borderActive}>
-      <Text bold color={inkColors.accent}>Import Selected Context Skills</Text>
+    <Box
+      flexDirection="column"
+      borderStyle="single"
+      padding={1}
+      width={76}
+      marginTop={1}
+      borderColor={inkColors.borderActive}
+    >
+      <Text bold color={inkColors.accent}>
+        Import Selected Context Skills
+      </Text>
       <Text color={inkColors.muted}>
         {requestedCount} requested | {Math.max(requestedCount - alreadyImportedCount, 0)} importable
       </Text>
@@ -88,7 +95,12 @@ export function ContextImportForm({ store }: ContextImportFormProps): React.Reac
             <Text color={inkColors.warning}>No context skills selected.</Text>
           ) : (
             rows.map((row) => (
-              <Text key={row.rowId} color={row.registrySkillName || row.isImported ? inkColors.muted : inkColors.secondary}>
+              <Text
+                key={row.rowId}
+                color={
+                  row.registrySkillName || row.isImported ? inkColors.muted : inkColors.secondary
+                }
+              >
                 {truncateText(
                   `${row.projectId ? `[${row.projectId}] ` : `[${row.agentName ?? row.agentId ?? 'agent'}] `}${row.name}${
                     row.registrySkillName || row.isImported ? ' (already imported)' : ''

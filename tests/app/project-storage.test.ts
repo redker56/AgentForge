@@ -48,6 +48,17 @@ describe('ProjectStorage', () => {
       expect(loaded.syncedSkills[0].name).toBe('test-skill');
     });
 
+    it('leaves no temporary config files after writes', () => {
+      projectStorage.write(projectPath, {
+        syncedSkills: [],
+      });
+
+      const tempFiles = fs
+        .readdirSync(projectPath)
+        .filter((name) => name.startsWith('.agentforge.json.tmp-'));
+      expect(tempFiles).toEqual([]);
+    });
+
     it('should return default config when file does not exist', () => {
       const loaded = projectStorage.read(projectPath);
       expect(loaded.syncedSkills).toEqual([]);

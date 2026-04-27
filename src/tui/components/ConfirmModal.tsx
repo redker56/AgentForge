@@ -9,27 +9,33 @@ import type { StoreApi } from 'zustand';
 
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
+import { truncateDisplayText } from '../utils/displayWidth.js';
 
 interface ConfirmModalProps {
   store: StoreApi<AppStore>;
 }
 
 function truncateText(text: string, maxWidth = 52): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 export function ConfirmModal({ store }: ConfirmModalProps): React.ReactElement {
-  const confirmState = useStore(store, s => s.shellState.confirmState);
+  const confirmState = useStore(store, (s) => s.shellState.confirmState);
 
   if (!confirmState) return <></>;
 
   return (
     <Box flexDirection="column" alignItems="center" justifyContent="center" height="100%">
-      <Box flexDirection="column" borderStyle="single" padding={1} width={56} borderColor={inkColors.border}>
-        <Text bold color={inkColors.error}>{truncateText(confirmState.title)}</Text>
+      <Box
+        flexDirection="column"
+        borderStyle="single"
+        padding={1}
+        width={56}
+        borderColor={inkColors.border}
+      >
+        <Text bold color={inkColors.error}>
+          {truncateText(confirmState.title)}
+        </Text>
         <Text> </Text>
         <Text>{truncateText(confirmState.message)}</Text>
         <Text> </Text>

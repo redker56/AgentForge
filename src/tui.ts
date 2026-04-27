@@ -15,13 +15,13 @@ import { ProjectSyncService } from './app/sync/project-sync-service.js';
 import { SyncCheckService } from './app/sync-check-service.js';
 import { DefaultWorkbenchCommands } from './app/workbench-commands.js';
 import { DefaultWorkbenchQueries } from './app/workbench-queries.js';
-import { Storage } from './infra/storage.js';
+import { JsonRegistryRepository } from './infra/storage.js';
 import { App } from './tui/App.js';
 import { createAppStore } from './tui/store/index.js';
 import type { WorkbenchContext } from './tui/store/workbenchContext.js';
 
 export function launchTUI(): void {
-  const storage = new Storage();
+  const storage = new JsonRegistryRepository();
   const projectStorage = new ProjectStorage();
   const skillService = new SkillService(storage);
   const syncService = new AgentSyncService(storage);

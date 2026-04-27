@@ -76,4 +76,34 @@ describe('SyncCheckService', () => {
       { agentId: 'codex', mode: 'copy' },
     ]);
   });
+
+  it('uses an injected resolver for different-content conflicts', async () => {
+    const updateSkillSync = vi.fn((_: string, records: SyncRecord[]) => {
+      skill.syncedTo = [...records];
+    });
+    const storage = {
+      getSkill: () => skill,
+      getAgent: (agentId: string) => ({ id: agentId, name: agentId, basePath: '' }),
+      updateSkillSync,
+    };
+    const sync = {
+      checkSyncStatus: () => [
+        { target: 'codex', exists: true, sameContent: false, isSymlink: false, linkTarget: null },
+      ],
+    };
+    const resolver = {
+      onConflicts: vi.fn(),
+      onDifferentContent: vi.fn(),
+      chooseResolution: vi.fn(() => 'link' as const),
+    };
+
+    const service = new SyncCheckService(storage as never, sync as never, resolver);
+    const linkedAgents = await service.resolveAndRecordSyncLinks(skill.name);
+
+    expect(resolver.onConflicts).toHaveBeenCalledOnce();
+    expect(resolver.onDifferentContent).toHaveBeenCalledOnce();
+    expect(resolver.chooseResolution).toHaveBeenCalledOnce();
+    expect(linkedAgents).toEqual(['codex']);
+    expect(updateSkillSync).toHaveBeenCalledWith(skill.name, [{ agentId: 'codex', mode: 'copy' }]);
+  });
 });

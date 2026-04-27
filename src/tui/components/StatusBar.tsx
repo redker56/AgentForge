@@ -11,11 +11,7 @@ import type { StoreApi } from 'zustand';
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
 import type { AppStore, TabId } from '../store/index.js';
 import { inkColors, symbols } from '../theme.js';
-import {
-  dedupeHints,
-  rankAndTruncateHints,
-  type HintSpec,
-} from '../utils/hintPriority.js';
+import { dedupeHints, rankAndTruncateHints, type HintSpec } from '../utils/hintPriority.js';
 
 interface StatusBarProps {
   store: StoreApi<AppStore>;
@@ -129,24 +125,33 @@ function renderCountSummary(
   const showLibrary = mode === 'full' || mode === 'medium';
   const skillLabel = mode === 'full' ? ' skills' : mode === 'micro' ? '' : ' sk';
   const agentLabel = mode === 'full' ? ' agents' : mode === 'micro' ? '' : ' ag';
-  const projectLabel = mode === 'full' ? ' projects' : mode === 'medium' ? ' proj' : mode === 'compact' ? ' pr' : '';
+  const projectLabel =
+    mode === 'full' ? ' projects' : mode === 'medium' ? ' proj' : mode === 'compact' ? ' pr' : '';
   const selectedLabel = mode === 'full' ? ' selected' : mode === 'micro' ? '' : ' sel';
 
   return (
     <Text>
       {showLibrary && <Text color={inkColors.muted}>Library </Text>}
-      <Text bold color={inkColors.accent}>{skillsCount}</Text>
+      <Text bold color={inkColors.accent}>
+        {skillsCount}
+      </Text>
       {skillLabel && <Text color={inkColors.secondary}>{skillLabel}</Text>}
       {separator}
-      <Text bold color={inkColors.info}>{agentsCount}</Text>
+      <Text bold color={inkColors.info}>
+        {agentsCount}
+      </Text>
       {agentLabel && <Text color={inkColors.secondary}>{agentLabel}</Text>}
       {separator}
-      <Text bold color={inkColors.success}>{projectsCount}</Text>
+      <Text bold color={inkColors.success}>
+        {projectsCount}
+      </Text>
       {projectLabel && <Text color={inkColors.secondary}>{projectLabel}</Text>}
       {selectedCount > 0 && (
         <>
           {separator}
-          <Text bold color={inkColors.success}>{selectedCount}</Text>
+          <Text bold color={inkColors.success}>
+            {selectedCount}
+          </Text>
           {selectedLabel && <Text color={inkColors.secondary}>{selectedLabel}</Text>}
         </>
       )}
@@ -159,7 +164,8 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
   const agentsCount = useStore(store, (s) => s.agents.length);
   const projectsCount = useStore(store, (s) => s.projects.length);
   const activeTab = useStore(store, (s) => s.shellState.activeTab);
-  const selectedSkillNames = useStore(store, (s) => s.skillsBrowserState.selectedNames) ?? new Set<string>();
+  const selectedSkillNames =
+    useStore(store, (s) => s.skillsBrowserState.selectedNames) ?? new Set<string>();
   const selectedAgentSkillRowIds =
     useStore(store, (s) => s.agentsBrowserState.selectedSkillRowIds) ?? new Set<string>();
   const selectedProjectSkillRowIds =
@@ -219,15 +225,12 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
 
   if (undoActive && undoBuffer) {
     const remainingSeconds = Math.ceil(undoBuffer.remainingMs / 1000);
-    const entityName = (undoBuffer.snapshot as Record<string, string>)?.name
-      || (undoBuffer.snapshot as Record<string, string>)?.id
-      || 'item';
+    const entityName =
+      (undoBuffer.snapshot as Record<string, string>)?.name ||
+      (undoBuffer.snapshot as Record<string, string>)?.id ||
+      'item';
     leftSectionText = `${symbols.crossMark} Deleted '${entityName}' - Undo (${remainingSeconds}s)`;
-    leftSection = (
-      <Text color={inkColors.warning}>
-        {leftSectionText}
-      </Text>
-    );
+    leftSection = <Text color={inkColors.warning}>{leftSectionText}</Text>;
   } else if (activeToast) {
     const toastSymbol =
       activeToast.variant === 'success'
@@ -242,11 +245,7 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
           ? inkColors.error
           : inkColors.info;
     leftSectionText = `${toastSymbol} ${activeToast.message}`;
-    leftSection = (
-      <Text color={color}>
-        {leftSectionText}
-      </Text>
-    );
+    leftSection = <Text color={color}>{leftSectionText}</Text>;
   } else {
     const summaryMode = chooseCountSummaryMode(
       columns,
@@ -274,10 +273,7 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
 
   const contentWidth = Math.max(columns - 2, 0);
   const minimumGap = 1;
-  const availableWidth = Math.max(
-    contentWidth - estimateWidth(leftSectionText) - minimumGap,
-    0
-  );
+  const availableWidth = Math.max(contentWidth - estimateWidth(leftSectionText) - minimumGap, 0);
   const { segments } = rankAndTruncateHints(contextHints, band, availableWidth);
 
   return (
@@ -290,9 +286,7 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
       borderColor={inkColors.border}
       paddingX={1}
     >
-      <Box flexShrink={0}>
-        {leftSection}
-      </Box>
+      <Box flexShrink={0}>{leftSection}</Box>
       <Box flexGrow={1} justifyContent="flex-end" paddingLeft={segments.length > 0 ? 1 : 0}>
         {segments.map((seg, i) => (
           <React.Fragment key={seg.key}>

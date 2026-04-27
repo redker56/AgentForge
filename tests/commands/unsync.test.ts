@@ -25,7 +25,7 @@ describe('unsync command', () => {
     consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     processExit = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit mocked');
+      throw new Error('Command exited with code 1');
     });
   });
 
@@ -91,7 +91,7 @@ describe('unsync command', () => {
 
       await expect(
         program.parseAsync(['unsync', 'agents', 'unknown-skill'], { from: 'user' })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(getMock).toHaveBeenCalledWith('unknown-skill');
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));
@@ -275,7 +275,7 @@ describe('unsync command', () => {
 
       await expect(
         program.parseAsync(['unsync', 'projects', 'unknown-skill'], { from: 'user' })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(getMock).toHaveBeenCalledWith('unknown-skill');
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));
@@ -365,7 +365,7 @@ describe('unsync command', () => {
       register(program, { fileOps: createMockFileOps() } as never);
 
       await expect(program.parseAsync(['unsync', 'invalid'], { from: 'user' })).rejects.toThrow(
-        'process.exit mocked'
+        'Command exited with code 1'
       );
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Invalid target'));

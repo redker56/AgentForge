@@ -10,7 +10,14 @@ import type { StoreApi } from 'zustand';
 
 import { useNavigation } from '../hooks/useNavigation.js';
 import type { AppStore } from '../store/index.js';
-import { emptyStateText, inkColors, renderFocusPrefix, selectionMarkers, statusDots } from '../theme.js';
+import {
+  emptyStateText,
+  inkColors,
+  renderFocusPrefix,
+  selectionMarkers,
+  statusDots,
+} from '../theme.js';
+import { truncateDisplayText } from '../utils/displayWidth.js';
 import { getVisibleFocusedSkillIndex, getVisibleSkills } from '../utils/skillsView.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
@@ -21,16 +28,16 @@ interface SkillListProps {
 }
 
 function truncateText(text: string, maxWidth: number): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 export function SkillList({ store, columns }: SkillListProps): React.ReactElement {
   const skills = useStore(store, (s) => s.skills);
   const focusedIndex = useStore(store, (s) => s.skillsBrowserState.focusedIndex);
-  const activeSkillCategoryFilter = useStore(store, (s) => s.skillsBrowserState.activeCategoryFilter);
+  const activeSkillCategoryFilter = useStore(
+    store,
+    (s) => s.skillsBrowserState.activeCategoryFilter
+  );
   const selectedNames = useStore(store, (s) => s.skillsBrowserState.selectedNames);
   const visibleSkills = getVisibleSkills(skills, activeSkillCategoryFilter);
   const visibleFocusedIndex = getVisibleFocusedSkillIndex(
@@ -51,7 +58,12 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
       </Text>
 
       {hiddenAbove > 0 && (
-        <ScrollIndicator hiddenAbove={hiddenAbove} hiddenBelow={0} columns={columns} position="above" />
+        <ScrollIndicator
+          hiddenAbove={hiddenAbove}
+          hiddenBelow={0}
+          columns={columns}
+          position="above"
+        />
       )}
 
       {visibleItems.map((skill, i) => {
@@ -87,7 +99,10 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
           skill.categories.length > 0 ? `{${skill.categories.join(', ')}}` : '';
         const baseReservedWidth = sourceText.length + 2 + 1;
         const nameWidth = Math.max(
-          Math.min(skill.name.length, maxRowWidth - baseReservedWidth - (fullCategoriesText ? 4 : 0)),
+          Math.min(
+            skill.name.length,
+            maxRowWidth - baseReservedWidth - (fullCategoriesText ? 4 : 0)
+          ),
           4
         );
         const displayName = truncateText(skill.name, nameWidth);
@@ -111,8 +126,7 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
                   </Text>
                 ) : null}
                 <Text backgroundColor={inkColors.focusBg} color={inkColors.focusText} bold>
-                  {displayName}
-                  {' '}
+                  {displayName}{' '}
                   <Text color={focusedSourceColor} backgroundColor={inkColors.focusBg}>
                     {sourceText}
                   </Text>
@@ -123,8 +137,7 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
                         {displayCategories}
                       </Text>
                     </>
-                  ) : null}
-                  {' '}
+                  ) : null}{' '}
                   <Text color={statusColor} backgroundColor={inkColors.focusBg}>
                     {statusDot}
                   </Text>
@@ -133,16 +146,12 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
             ) : (
               <>
                 <Text>{prefix}</Text>
-                {isSelected ? (
-                  <Text color={inkColors.success}>{marker}{' '}</Text>
-                ) : null}
+                {isSelected ? <Text color={inkColors.success}>{marker} </Text> : null}
                 <Text color={inkColors.primary} bold>
                   {displayName}
                 </Text>
                 <Text> </Text>
-                <Text color={sourceColor}>
-                  {sourceText}
-                </Text>
+                <Text color={sourceColor}>{sourceText}</Text>
                 {displayCategories ? (
                   <>
                     <Text> </Text>
@@ -157,12 +166,15 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
         );
       })}
 
-      {visibleSkills.length === 0 && (
-        <Text color={inkColors.muted}>{emptyStateText.skills}</Text>
-      )}
+      {visibleSkills.length === 0 && <Text color={inkColors.muted}>{emptyStateText.skills}</Text>}
 
       {hiddenBelow > 0 && (
-        <ScrollIndicator hiddenAbove={0} hiddenBelow={hiddenBelow} columns={columns} position="below" />
+        <ScrollIndicator
+          hiddenAbove={0}
+          hiddenBelow={hiddenBelow}
+          columns={columns}
+          position="below"
+        />
       )}
     </Box>
   );

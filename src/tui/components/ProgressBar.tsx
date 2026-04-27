@@ -11,6 +11,8 @@ import React from 'react';
 import type { ProgressItem } from '../store/uiSlice.js';
 import { progressStatusColors } from '../theme.js';
 
+import { FixedText } from './FixedText.js';
+
 interface ProgressBarProps {
   label: string;
   progress: number; // 0-100
@@ -25,10 +27,23 @@ interface ProgressBarProps {
 const FULL_BLOCK = '\u2588';
 const LIGHT_SHADE = '\u2591';
 
-export function ProgressBar({ label, progress, status, error: _error, width, columns, completed, total }: ProgressBarProps): React.ReactElement {
+export function ProgressBar({
+  label,
+  progress,
+  status,
+  error: _error,
+  width,
+  columns,
+  completed,
+  total,
+}: ProgressBarProps): React.ReactElement {
   // Adaptive width: columns > 120 -> scale up, otherwise 30, min 15
-  const baseWidth = typeof width === 'number' ? width :
-    typeof columns === 'number' && columns > 120 ? Math.max(50, Math.min(60, columns - 70)) : 30;
+  const baseWidth =
+    typeof width === 'number'
+      ? width
+      : typeof columns === 'number' && columns > 120
+        ? Math.max(50, Math.min(60, columns - 70))
+        : 30;
   const barWidth = Math.max(15, baseWidth);
 
   const filled = Math.round((progress / 100) * barWidth);
@@ -39,13 +54,16 @@ export function ProgressBar({ label, progress, status, error: _error, width, col
 
   return (
     <Box flexDirection="row" flexWrap="wrap">
-      <Text>{truncate(label, 28).padEnd(28)}</Text>
+      <FixedText width={28}>{label}</FixedText>
       <Text>{' ['}</Text>
       <Text color={color}>{bar}</Text>
       <Text>{'] '}</Text>
       <Text>{String(progress).padStart(3)}%</Text>
       {typeof completed === 'number' && typeof total === 'number' && (
-        <Text> ({completed}/{total})</Text>
+        <Text>
+          {' '}
+          ({completed}/{total})
+        </Text>
       )}
     </Box>
   );
@@ -65,8 +83,4 @@ export function ProgressBarStack({ items }: { items: ProgressItem[] }): React.Re
       ))}
     </Box>
   );
-}
-
-function truncate(s: string, maxLen: number): string {
-  return s.length > maxLen ? s.slice(0, maxLen - 1) + '…' : s;
 }

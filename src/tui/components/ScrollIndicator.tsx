@@ -4,8 +4,9 @@
  * and "v N more" below the list when items are hidden below.
  */
 
-import { Text } from 'ink';
 import React from 'react';
+
+import { FixedText } from './FixedText.js';
 
 interface ScrollIndicatorProps {
   hiddenAbove: number;
@@ -25,9 +26,10 @@ export function ScrollIndicator({
 
   const arrow = position === 'above' ? '^' : 'v';
   const maxWidth = Math.max(columns - 2, 4);
-  const text = `${arrow} ${count} more`.padEnd(maxWidth).slice(0, maxWidth);
 
   return (
-    <Text dimColor>{text}</Text>
+    <FixedText dimColor width={maxWidth}>
+      {`${arrow} ${count} more`}
+    </FixedText>
   );
 }

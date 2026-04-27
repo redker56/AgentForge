@@ -25,7 +25,7 @@ describe('sync command', () => {
     consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     processExit = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit mocked');
+      throw new Error('Command exited with code 1');
     });
   });
 
@@ -84,7 +84,7 @@ describe('sync command', () => {
 
       await expect(
         program.parseAsync(['sync', 'agents', 'unknown-skill'], { from: 'user' })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));
     });
@@ -131,7 +131,7 @@ describe('sync command', () => {
       } as never);
 
       await expect(program.parseAsync(['sync', 'invalid'], { from: 'user' })).rejects.toThrow(
-        'process.exit mocked'
+        'Command exited with code 1'
       );
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Invalid target'));
@@ -199,7 +199,7 @@ describe('sync command', () => {
           ['sync', 'projects', 'test-skill', 'proj-a', '--agent-types', 'invalid-agent'],
           { from: 'user' }
         )
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
     });
 
     it('exits with error when skill not found for project sync', async () => {
@@ -221,7 +221,7 @@ describe('sync command', () => {
 
       await expect(
         program.parseAsync(['sync', 'projects', 'unknown-skill'], { from: 'user' })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));
     });
@@ -249,7 +249,7 @@ describe('sync command', () => {
 
       await expect(
         program.parseAsync(['sync', 'projects', 'test-skill', 'proj-a'], { from: 'user' })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(syncToProject).toHaveBeenCalled();
     });
@@ -268,7 +268,7 @@ describe('sync command', () => {
         } as never);
 
         await expect(program.parseAsync(['sync', 'projects'], { from: 'user' })).rejects.toThrow(
-          'process.exit mocked'
+          'Command exited with code 1'
         );
 
         expect(consoleError).toHaveBeenCalledWith(
@@ -356,7 +356,7 @@ describe('sync command', () => {
         program.parseAsync(['sync', 'projects', 'test-skill', 'proj-a', '--mode', 'invalid'], {
           from: 'user',
         })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Invalid sync mode'));
     });
@@ -405,7 +405,7 @@ describe('sync command', () => {
         program.parseAsync(['sync', 'agents', 'test-skill', 'claude', '--mode', 'bad'], {
           from: 'user',
         })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Invalid sync mode'));
     });
@@ -532,7 +532,7 @@ describe('sync command', () => {
 
       await expect(
         program.parseAsync(['sync', 'agents', 'my-skill', 'claude'], { from: 'user' })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('boom'));
     });

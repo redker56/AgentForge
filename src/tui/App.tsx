@@ -65,18 +65,21 @@ export function App({ store }: AppProps): React.ReactElement {
   const updateFormOpen =
     formState?.formType === 'updateSelected' || formState?.formType === 'updateAllGit';
 
-  const breadcrumbState = useStore(store, useShallow((s) => ({
-    activeTab: s.shellState.activeTab,
-    showSearch: s.shellState.showSearch,
-    showHelp: s.shellState.showHelp,
-    showCommandPalette: s.shellState.showCommandPalette,
-    confirmState: s.shellState.confirmState,
-    formState: s.shellState.formState,
-    syncFormStep: s.syncWorkflowState.step,
-    importTabStep: s.importWorkflowState.step,
-    detailOverlayVisible: s.shellState.detailOverlayVisible,
-    widthBand: s.shellState.widthBand,
-  })));
+  const breadcrumbState = useStore(
+    store,
+    useShallow((s) => ({
+      activeTab: s.shellState.activeTab,
+      showSearch: s.shellState.showSearch,
+      showHelp: s.shellState.showHelp,
+      showCommandPalette: s.shellState.showCommandPalette,
+      confirmState: s.shellState.confirmState,
+      formState: s.shellState.formState,
+      syncFormStep: s.syncWorkflowState.step,
+      importTabStep: s.importWorkflowState.step,
+      detailOverlayVisible: s.shellState.detailOverlayVisible,
+      widthBand: s.shellState.widthBand,
+    }))
+  );
   const breadcrumbSegments = deriveBreadcrumbs(breadcrumbState);
 
   return (
@@ -85,14 +88,16 @@ export function App({ store }: AppProps): React.ReactElement {
       <BreadcrumbBar segments={breadcrumbSegments} />
       {isCompact && (
         <Text color={inkColors.warning}>
-          {"\u26A0"} Compact terminal layout active -- widen to 80+ columns for the full detail view
+          {'\u26A0'} Compact terminal layout active -- widen to 80+ columns for the full detail view
         </Text>
       )}
       <Box flexGrow={1}>
         <>
           {activeTab === 'skills' && <SkillsScreen store={store} band={band} columns={columns} />}
           {activeTab === 'agents' && <AgentsScreen store={store} band={band} columns={columns} />}
-          {activeTab === 'projects' && <ProjectsScreen store={store} band={band} columns={columns} />}
+          {activeTab === 'projects' && (
+            <ProjectsScreen store={store} band={band} columns={columns} />
+          )}
           {activeTab === 'sync' && <SyncScreen store={store} />}
           {activeTab === 'import' && <ImportScreen store={store} />}
         </>

@@ -9,12 +9,10 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import type { SkillCategoryUpdateMode } from '../../app/skill-service.js';
-import {
-  normalizeSkillCategories,
-  type SkillMeta,
-} from '../../types.js';
+import { normalizeSkillCategories, type SkillMeta } from '../../types.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, renderFocusPrefix } from '../theme.js';
+import { truncateDisplayText } from '../utils/displayWidth.js';
 
 interface CategoryFormProps {
   store: StoreApi<AppStore>;
@@ -38,8 +36,16 @@ interface CategoryResult {
 const MODE_OPTIONS: CategoryModeOption[] = [
   { id: 'set', label: 'Set categories', description: 'Replace categories with the entered list' },
   { id: 'add', label: 'Add categories', description: 'Append entered categories to existing ones' },
-  { id: 'remove', label: 'Remove categories', description: 'Remove entered categories from matching skills' },
-  { id: 'clear', label: 'Clear categories', description: 'Remove all categories from selected skills' },
+  {
+    id: 'remove',
+    label: 'Remove categories',
+    description: 'Remove entered categories from matching skills',
+  },
+  {
+    id: 'clear',
+    label: 'Clear categories',
+    description: 'Remove all categories from selected skills',
+  },
 ];
 
 const MAX_VISIBLE_RESULT_ROWS = 8;
@@ -50,7 +56,9 @@ function parseSkillNames(encoded: string | undefined): string[] {
   if (!encoded) return [];
   try {
     const parsed = JSON.parse(encoded) as unknown;
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string')
+      : [];
   } catch {
     return [];
   }
@@ -59,7 +67,11 @@ function parseSkillNames(encoded: string | undefined): string[] {
 function padRows(rows: React.ReactNode[], prefix: string): React.ReactNode[] {
   const visible = rows.slice(0, MAX_VISIBLE_RESULT_ROWS);
   while (visible.length < MAX_VISIBLE_RESULT_ROWS) {
-    visible.push(<Text key={`${prefix}-${visible.length}`} dimColor> </Text>);
+    visible.push(
+      <Text key={`${prefix}-${visible.length}`} dimColor>
+        {' '}
+      </Text>
+    );
   }
   return visible;
 }
@@ -69,10 +81,7 @@ function formatCategories(categories: string[]): string {
 }
 
 function truncateText(text: string, maxWidth = CONTENT_WIDTH): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
@@ -137,15 +146,11 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
 
       if (phase === 'select-mode') {
         if (key.upArrow) {
-          setModeIndex((current) =>
-            current > 0 ? current - 1 : MODE_OPTIONS.length - 1
-          );
+          setModeIndex((current) => (current > 0 ? current - 1 : MODE_OPTIONS.length - 1));
           return;
         }
         if (key.downArrow) {
-          setModeIndex((current) =>
-            current < MODE_OPTIONS.length - 1 ? current + 1 : 0
-          );
+          setModeIndex((current) => (current < MODE_OPTIONS.length - 1 ? current + 1 : 0));
           return;
         }
         if (key.return) {
@@ -211,15 +216,14 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
   const errorCount = results.length - successCount;
   const resultRows = padRows(
     results.map((result) => (
-      <Text
-        key={result.skillName}
-        color={result.success ? inkColors.success : inkColors.error}
-      >
-        {truncateText(`${result.success ? '[updated]' : '[error]  '} ${result.skillName}${
-          result.success
-            ? ` -> ${formatCategories(result.categories)}`
-            : ` - ${result.error ?? 'Unknown error'}`
-        }`)}
+      <Text key={result.skillName} color={result.success ? inkColors.success : inkColors.error}>
+        {truncateText(
+          `${result.success ? '[updated]' : '[error]  '} ${result.skillName}${
+            result.success
+              ? ` -> ${formatCategories(result.categories)}`
+              : ` - ${result.error ?? 'Unknown error'}`
+          }`
+        )}
       </Text>
     )),
     'category-result'
@@ -234,7 +238,9 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
       marginTop={1}
       borderColor={inkColors.border}
     >
-      <Text bold color={inkColors.accent}>Categorize Skills</Text>
+      <Text bold color={inkColors.accent}>
+        Categorize Skills
+      </Text>
       <Text color={inkColors.muted}>
         {requestedSkillNames.length} target{requestedSkillNames.length !== 1 ? 's' : ''}
       </Text>
@@ -289,9 +295,13 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
           <Text bold>Confirm changes</Text>
           <Text color={inkColors.muted}>{truncateText(`Mode: ${activeMode.label}`)}</Text>
           <Text color={inkColors.muted}>
-            {truncateText(`Categories: ${activeMode.id === 'clear'
-              ? '(clear all)'
-              : formatCategories(normalizedInputCategories)}`)}
+            {truncateText(
+              `Categories: ${
+                activeMode.id === 'clear'
+                  ? '(clear all)'
+                  : formatCategories(normalizedInputCategories)
+              }`
+            )}
           </Text>
           <Text> </Text>
           {requestedSkillNames.map((skillName) => (

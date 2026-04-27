@@ -8,6 +8,8 @@ import path from 'path';
 import chalk from 'chalk';
 import type { Command } from 'commander';
 
+import { exitCommand } from './errors.js';
+
 import type { CommandContext } from './index.js';
 
 export function register(program: Command, ctx: CommandContext): void {
@@ -32,7 +34,7 @@ export function register(program: Command, ctx: CommandContext): void {
         );
         console.log(chalk.dim('\nUsage: af completion <shell>'));
         console.log(chalk.dim('Supported shells: bash, zsh, fish, powershell'));
-        process.exit(1);
+        exitCommand(1);
       }
 
       const script = generateCompletion(targetShell);
@@ -185,7 +187,7 @@ function installCompletion(shell: string, script: string, ctx: CommandContext): 
 
   if (!configPath) {
     console.error(chalk.red(`Cannot determine config file path for ${shell}`));
-    process.exit(1);
+    exitCommand(1);
   }
 
   const startMarker = '# af completion (auto-generated)';
@@ -239,7 +241,7 @@ function installCompletion(shell: string, script: string, ctx: CommandContext): 
     console.error(chalk.red(`Installation failed: ${(err as Error).message}`));
     console.log(chalk.dim('\nYou can manually run this command to install:'));
     console.log(chalk.dim(`  af completion ${shell} >> ${configPath}`));
-    process.exit(1);
+    exitCommand(1);
   }
 }
 

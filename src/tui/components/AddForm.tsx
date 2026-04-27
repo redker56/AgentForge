@@ -13,11 +13,16 @@ import type { StoreApi } from 'zustand';
 import { BUILTIN_AGENTS } from '../../types.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
-import { validateUrl, validateSkillName, validateAgentId, validateNonEmpty } from '../utils/validators.js';
+import { truncateDisplayText } from '../utils/displayWidth.js';
+import {
+  validateUrl,
+  validateSkillName,
+  validateAgentId,
+  validateNonEmpty,
+} from '../utils/validators.js';
 
 import { BlurValidatedInput } from './BlurValidatedInput.js';
 import { ErrorMessage } from './ErrorMessage.js';
-
 
 interface AddFormProps {
   store: StoreApi<AppStore>;
@@ -39,32 +44,59 @@ const FORM_TITLES: Record<string, string> = {
 };
 
 const SKILL_FIELDS: FieldConfig[] = [
-  { key: 'url', label: 'Git URL', placeholder: 'https://github.com/user/skills-repo', validate: validateUrl },
-  { key: 'name', label: 'Skill Name', placeholder: '(optional, auto-detected)', validate: (v: string) => v.trim() ? validateSkillName(v) : null },
+  {
+    key: 'url',
+    label: 'Git URL',
+    placeholder: 'https://github.com/user/skills-repo',
+    validate: validateUrl,
+  },
+  {
+    key: 'name',
+    label: 'Skill Name',
+    placeholder: '(optional, auto-detected)',
+    validate: (v: string) => (v.trim() ? validateSkillName(v) : null),
+  },
 ];
 
 const AGENT_FIELDS: FieldConfig[] = [
-  { key: 'id', label: 'Agent ID', placeholder: 'my-agent', validate: (v: string): string | null => {
-    const base = validateAgentId(v);
-    if (base) return base;
-    if (BUILTIN_AGENTS.some(a => a.id === v.trim())) return 'Cannot use built-in agent ID';
-    return null;
-  }},
-  { key: 'name', label: 'Display Name', placeholder: 'My Agent', validate: (v: string) => validateNonEmpty(v, 'Display name') },
-  { key: 'basePath', label: 'Skills Path', placeholder: '~/.my-agent/skills', validate: (v: string) => validateNonEmpty(v, 'Skills path') },
+  {
+    key: 'id',
+    label: 'Agent ID',
+    placeholder: 'my-agent',
+    validate: (v: string): string | null => {
+      const base = validateAgentId(v);
+      if (base) return base;
+      if (BUILTIN_AGENTS.some((a) => a.id === v.trim())) return 'Cannot use built-in agent ID';
+      return null;
+    },
+  },
+  {
+    key: 'name',
+    label: 'Display Name',
+    placeholder: 'My Agent',
+    validate: (v: string) => validateNonEmpty(v, 'Display name'),
+  },
+  {
+    key: 'basePath',
+    label: 'Skills Path',
+    placeholder: '~/.my-agent/skills',
+    validate: (v: string) => validateNonEmpty(v, 'Skills path'),
+  },
   { key: 'skillsDirName', label: 'Dir Name', placeholder: '(optional)' },
 ];
 
 const PROJECT_FIELDS: FieldConfig[] = [
   { key: 'id', label: 'Project ID', placeholder: 'my-project', validate: validateAgentId },
-  { key: 'path', label: 'Project Path', placeholder: '/path/to/project', validate: (v: string) => validateNonEmpty(v, 'Project path') },
+  {
+    key: 'path',
+    label: 'Project Path',
+    placeholder: '/path/to/project',
+    validate: (v: string) => validateNonEmpty(v, 'Project path'),
+  },
 ];
 
 function truncateText(text: string, maxWidth = 54): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 function getFields(formType: string): FieldConfig[] {
@@ -80,13 +112,16 @@ function validate(formType: string, data: Record<string, string>): Record<string
     if (!data.url?.trim()) errors.url = 'Git URL is required';
   } else if (formType === 'addAgent') {
     if (!data.id?.trim()) errors.id = 'Agent ID is required';
-    else if (!/^[a-zA-Z0-9-_]+$/.test(data.id)) errors.id = 'Only letters, numbers, hyphens, underscores';
-    else if (BUILTIN_AGENTS.some(a => a.id === data.id)) errors.id = 'Cannot use built-in agent ID';
+    else if (!/^[a-zA-Z0-9-_]+$/.test(data.id))
+      errors.id = 'Only letters, numbers, hyphens, underscores';
+    else if (BUILTIN_AGENTS.some((a) => a.id === data.id))
+      errors.id = 'Cannot use built-in agent ID';
     if (!data.name?.trim()) errors.name = 'Display name is required';
     if (!data.basePath?.trim()) errors.basePath = 'Skills path is required';
   } else if (formType === 'addProject') {
     if (!data.id?.trim()) errors.id = 'Project ID is required';
-    else if (!/^[a-zA-Z0-9-_]+$/.test(data.id)) errors.id = 'Only letters, numbers, hyphens, underscores';
+    else if (!/^[a-zA-Z0-9-_]+$/.test(data.id))
+      errors.id = 'Only letters, numbers, hyphens, underscores';
     if (!data.path?.trim()) errors.path = 'Project path is required';
   }
 
@@ -94,7 +129,7 @@ function validate(formType: string, data: Record<string, string>): Record<string
 }
 
 export function AddForm({ store }: AddFormProps): React.ReactElement {
-  const formState = useStore(store, s => s.shellState.formState);
+  const formState = useStore(store, (s) => s.shellState.formState);
   const [phase, setPhase] = useState<FormPhase>('input');
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -104,53 +139,58 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
   const [discoverFocusedIndex, setDiscoverFocusedIndex] = useState(0);
 
   // Per-field blur validation states: fieldKey -> { isValid | null }
-  const [fieldValidation, setFieldValidation] = useState<Record<string, { valid: boolean; error: string | null }>>({});
+  const [fieldValidation, setFieldValidation] = useState<
+    Record<string, { valid: boolean; error: string | null }>
+  >({});
 
   // Local input handler for Tab (field switch), Space/Enter/Up/Down (discover phase)
-  useInput((input, key) => {
-    // Tab: switch field in input phase
-    if (key.tab && phase === 'input') {
-      const fields = getFields(formState?.formType || '');
-      if (key.shift) {
-        setFocusedField(prev => (prev > 0 ? prev - 1 : fields.length - 1));
-      } else {
-        setFocusedField(prev => (prev < fields.length - 1 ? prev + 1 : 0));
+  useInput(
+    (input, key) => {
+      // Tab: switch field in input phase
+      if (key.tab && phase === 'input') {
+        const fields = getFields(formState?.formType || '');
+        if (key.shift) {
+          setFocusedField((prev) => (prev > 0 ? prev - 1 : fields.length - 1));
+        } else {
+          setFocusedField((prev) => (prev < fields.length - 1 ? prev + 1 : 0));
+        }
+        return;
       }
-      return;
-    }
 
-    // Discover phase: Up/Down navigate, Space toggle, Enter confirm
-    if (phase === 'discover') {
-      const state = store.getState();
-      const discovered: Array<{ name: string; subPath: string }> = JSON.parse(
-        state.shellState.formState?.data.discoveredSkills || '[]'
-      );
+      // Discover phase: Up/Down navigate, Space toggle, Enter confirm
+      if (phase === 'discover') {
+        const state = store.getState();
+        const discovered: Array<{ name: string; subPath: string }> = JSON.parse(
+          state.shellState.formState?.data.discoveredSkills || '[]'
+        );
 
-      if (key.upArrow) {
-        setDiscoverFocusedIndex(prev => (prev > 0 ? prev - 1 : discovered.length - 1));
-        return;
+        if (key.upArrow) {
+          setDiscoverFocusedIndex((prev) => (prev > 0 ? prev - 1 : discovered.length - 1));
+          return;
+        }
+        if (key.downArrow) {
+          setDiscoverFocusedIndex((prev) => (prev < discovered.length - 1 ? prev + 1 : 0));
+          return;
+        }
+        if (input === ' ') {
+          setSelectedDiscover((prev) => {
+            const next = new Set(prev);
+            if (next.has(discoverFocusedIndex)) next.delete(discoverFocusedIndex);
+            else next.add(discoverFocusedIndex);
+            return next;
+          });
+          return;
+        }
+        if (key.return) {
+          handleDiscoverSubmit();
+          return;
+        }
       }
-      if (key.downArrow) {
-        setDiscoverFocusedIndex(prev => (prev < discovered.length - 1 ? prev + 1 : 0));
-        return;
-      }
-      if (input === ' ') {
-        setSelectedDiscover(prev => {
-          const next = new Set(prev);
-          if (next.has(discoverFocusedIndex)) next.delete(discoverFocusedIndex);
-          else next.add(discoverFocusedIndex);
-          return next;
-        });
-        return;
-      }
-      if (key.return) {
-        handleDiscoverSubmit();
-        return;
-      }
+    },
+    {
+      isActive: (formState?.formType?.startsWith('add') ?? false) && phase !== 'loading',
     }
-  }, {
-    isActive: (formState?.formType?.startsWith('add') ?? false) && phase !== 'loading',
-  });
+  );
 
   if (!formState || !formState.formType.startsWith('add')) return <></>;
 
@@ -194,37 +234,43 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
     const state = store.getState();
 
     if (formType === 'addSkill') {
-      state.addSkillFromUrl(fieldValues.url || '', fieldValues.name || undefined).then(() => {
-        const currentState = store.getState();
-        if (currentState.shellState.formState?.data.phase !== 'discover') {
+      state
+        .addSkillFromUrl(fieldValues.url || '', fieldValues.name || undefined)
+        .then(() => {
+          const currentState = store.getState();
+          if (currentState.shellState.formState?.data.phase !== 'discover') {
+            setPhase('result');
+          }
+        })
+        .catch((e: unknown) => {
+          setResultError(e instanceof Error ? e.message : String(e));
           setPhase('result');
-        }
-      }).catch((e: unknown) => {
-        setResultError(e instanceof Error ? e.message : String(e));
-        setPhase('result');
-      });
+        });
     } else if (formType === 'addAgent') {
-      state.addAgent(
-        fieldValues.id || '',
-        fieldValues.name || '',
-        fieldValues.basePath || '',
-        fieldValues.skillsDirName || undefined,
-      ).then(() => {
-        store.getState().setFormState(null);
-      }).catch((e: unknown) => {
-        setResultError(e instanceof Error ? e.message : String(e));
-        setPhase('result');
-      });
+      state
+        .addAgent(
+          fieldValues.id || '',
+          fieldValues.name || '',
+          fieldValues.basePath || '',
+          fieldValues.skillsDirName || undefined
+        )
+        .then(() => {
+          store.getState().setFormState(null);
+        })
+        .catch((e: unknown) => {
+          setResultError(e instanceof Error ? e.message : String(e));
+          setPhase('result');
+        });
     } else if (formType === 'addProject') {
-      state.addProject(
-        fieldValues.id || '',
-        fieldValues.path || '',
-      ).then(() => {
-        store.getState().setFormState(null);
-      }).catch((e: unknown) => {
-        setResultError(e instanceof Error ? e.message : String(e));
-        setPhase('result');
-      });
+      state
+        .addProject(fieldValues.id || '', fieldValues.path || '')
+        .then(() => {
+          store.getState().setFormState(null);
+        })
+        .catch((e: unknown) => {
+          setResultError(e instanceof Error ? e.message : String(e));
+          setPhase('result');
+        });
     }
   }, [fieldValues, fields, formType, store]);
 
@@ -250,14 +296,27 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
   }, [selectedDiscover, store]);
 
   return (
-    <Box flexDirection="column" borderStyle="single" padding={1} width={60} marginTop={1} borderColor={inkColors.border}>
-      <Text bold color={inkColors.accent}>{title}</Text>
+    <Box
+      flexDirection="column"
+      borderStyle="single"
+      padding={1}
+      width={60}
+      marginTop={1}
+      borderColor={inkColors.border}
+    >
+      <Text bold color={inkColors.accent}>
+        {title}
+      </Text>
       <Text> </Text>
 
       {phase === 'input' && (
         <>
           {Object.keys(fieldErrors).length > 0 && (
-            <Text color={inkColors.error}>{truncateText(`Please fix ${Object.keys(fieldErrors).length} error(s) before submitting.`)}</Text>
+            <Text color={inkColors.error}>
+              {truncateText(
+                `Please fix ${Object.keys(fieldErrors).length} error(s) before submitting.`
+              )}
+            </Text>
           )}
           {fields.map((field, i) => {
             const fieldHasFocus = i === focusedField;
@@ -276,7 +335,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
                     <BlurValidatedInput
                       value={fieldValues[field.key] || ''}
                       onChange={(value: string) => {
-                        setFieldValues(prev => ({ ...prev, [field.key]: value }));
+                        setFieldValues((prev) => ({ ...prev, [field.key]: value }));
                         if (fieldErrors[field.key]) {
                           const next = { ...fieldErrors };
                           // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -290,7 +349,10 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
                           setFieldValidation(next);
                         }
                       }}
-                      validate={field.validate ?? ((v: string): string | null => v.trim() ? null : 'Required')}
+                      validate={
+                        field.validate ??
+                        ((v: string): string | null => (v.trim() ? null : 'Required'))
+                      }
                       onSubmit={() => {
                         if (i < fields.length - 1) {
                           setFocusedField(i + 1);
@@ -302,7 +364,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
                       label=""
                       hasFocus={fieldHasFocus}
                       onValidationResult={(isValid, error) => {
-                        setFieldValidation(prev => ({
+                        setFieldValidation((prev) => ({
                           ...prev,
                           [field.key]: { valid: isValid, error },
                         }));
@@ -327,7 +389,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
                     value={fieldValues[field.key] || ''}
                     placeholder={field.placeholder}
                     onChange={(value: string) => {
-                      setFieldValues(prev => ({ ...prev, [field.key]: value }));
+                      setFieldValues((prev) => ({ ...prev, [field.key]: value }));
                       if (fieldErrors[field.key]) {
                         const next = { ...fieldErrors };
                         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -345,9 +407,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
                     focus={fieldHasFocus}
                   />
                 </Box>
-                {fieldErrors[field.key] && (
-                  <ErrorMessage message={fieldErrors[field.key]} />
-                )}
+                {fieldErrors[field.key] && <ErrorMessage message={fieldErrors[field.key]} />}
               </Box>
             );
           })}
@@ -358,7 +418,9 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
 
       {phase === 'loading' && (
         <Box>
-          <Text color={inkColors.accent}><Spinner type="dots" /></Text>
+          <Text color={inkColors.accent}>
+            <Spinner type="dots" />
+          </Text>
           <Text> Processing...</Text>
         </Box>
       )}
@@ -375,34 +437,37 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
         </>
       )}
 
-      {phase === 'discover' && ((): React.ReactElement => {
-        const state = store.getState();
-        const discovered: Array<{ name: string; subPath: string }> = JSON.parse(
-          state.shellState.formState?.data.discoveredSkills || '[]'
-        );
-        return (
-          <>
-            <Text dimColor>Multiple skills found in repository:</Text>
-            <Text> </Text>
-            {discovered.map((skill, i) => {
-              const isFocused = i === discoverFocusedIndex;
-              const isSelected = selectedDiscover.has(i);
-              return (
-                <Text key={skill.name}>
-                  <Text color={isFocused ? inkColors.accent : inkColors.muted}>
-                    {renderFocusPrefix(isFocused)}
+      {phase === 'discover' &&
+        ((): React.ReactElement => {
+          const state = store.getState();
+          const discovered: Array<{ name: string; subPath: string }> = JSON.parse(
+            state.shellState.formState?.data.discoveredSkills || '[]'
+          );
+          return (
+            <>
+              <Text dimColor>Multiple skills found in repository:</Text>
+              <Text> </Text>
+              {discovered.map((skill, i) => {
+                const isFocused = i === discoverFocusedIndex;
+                const isSelected = selectedDiscover.has(i);
+                return (
+                  <Text key={skill.name}>
+                    <Text color={isFocused ? inkColors.accent : inkColors.muted}>
+                      {renderFocusPrefix(isFocused)}
+                    </Text>
+                    <Text color={isSelected ? inkColors.success : undefined}>
+                      {truncateText(
+                        `${isSelected ? selectionMarkers.selected : selectionMarkers.unselected} ${skill.name}`
+                      )}
+                    </Text>
                   </Text>
-                  <Text color={isSelected ? inkColors.success : undefined}>
-                    {truncateText(`${isSelected ? selectionMarkers.selected : selectionMarkers.unselected} ${skill.name}`)}
-                  </Text>
-                </Text>
-              );
-            })}
-            <Text> </Text>
-            <Text dimColor>Space:Toggle Enter:Confirm Esc:Cancel</Text>
-          </>
-        );
-      })()}
+                );
+              })}
+              <Text> </Text>
+              <Text dimColor>Space:Toggle Enter:Confirm Esc:Cancel</Text>
+            </>
+          );
+        })()}
     </Box>
   );
 }

@@ -9,6 +9,7 @@ import type {
 import { getVisibleContextSkillRows } from '../contextTypes.js';
 import { useNavigation } from '../hooks/useNavigation.js';
 import { emptyStateText, inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
+import { truncateDisplayText } from '../utils/displayWidth.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
 
@@ -23,10 +24,7 @@ interface ContextSkillListProps {
 }
 
 function truncateText(text: string, maxWidth: number): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 function getStatusText(row: VisibleContextSkillRow): string {
@@ -63,7 +61,12 @@ export function ContextSkillList({
       </Text>
 
       {hiddenAbove > 0 && visibleRows.length > 0 && (
-        <ScrollIndicator hiddenAbove={hiddenAbove} hiddenBelow={0} columns={columns} position="above" />
+        <ScrollIndicator
+          hiddenAbove={hiddenAbove}
+          hiddenBelow={0}
+          columns={columns}
+          position="above"
+        />
       )}
 
       {visibleItems.map((row, offset) => {
@@ -96,12 +99,11 @@ export function ContextSkillList({
               <Text color={isFocused ? inkColors.accent : inkColors.primary}>{prefix}</Text>
               <Text> </Text>
               {isSelected ? (
-                <Text color={isFocused ? inkColors.success : inkColors.success}>{marker}{' '}</Text>
+                <Text color={isFocused ? inkColors.success : inkColors.success}>{marker} </Text>
               ) : null}
               {isFocused ? (
                 <Text backgroundColor={inkColors.focusBg} color={inkColors.focusText} bold>
-                  {displayName}
-                  {' '}
+                  {displayName}{' '}
                   <Text backgroundColor={inkColors.focusBg} color={getStatusColor(row)}>
                     {statusText}
                   </Text>
@@ -134,12 +136,15 @@ export function ContextSkillList({
         );
       })}
 
-      {visibleRows.length === 0 && (
-        <Text color={inkColors.muted}>{emptyText}</Text>
-      )}
+      {visibleRows.length === 0 && <Text color={inkColors.muted}>{emptyText}</Text>}
 
       {hiddenBelow > 0 && visibleRows.length > 0 && (
-        <ScrollIndicator hiddenAbove={0} hiddenBelow={hiddenBelow} columns={columns} position="below" />
+        <ScrollIndicator
+          hiddenAbove={0}
+          hiddenBelow={hiddenBelow}
+          columns={columns}
+          position="below"
+        />
       )}
     </Box>
   );

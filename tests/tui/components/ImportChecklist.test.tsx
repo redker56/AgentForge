@@ -7,8 +7,16 @@ import type { ChecklistSkill } from '../../../src/tui/components/ImportChecklist
 
 const mockSkills: ChecklistSkill[] = [
   { name: 'react-hooks', path: '/home/user/.claude/skills/react-hooks', alreadyExists: false },
-  { name: 'typescript-base', path: '/home/user/.claude/skills/typescript-base', alreadyExists: true },
-  { name: 'very-long-path-skill-that-exceeds-available-width-convention', path: '/very/long/path/that/should/be/truncated/properly/react-hooks', alreadyExists: false },
+  {
+    name: 'typescript-base',
+    path: '/home/user/.claude/skills/typescript-base',
+    alreadyExists: true,
+  },
+  {
+    name: 'very-long-path-skill-that-exceeds-available-width-convention',
+    path: '/very/long/path/that/should/be/truncated/properly/react-hooks',
+    alreadyExists: false,
+  },
 ];
 
 describe('ImportChecklist', () => {

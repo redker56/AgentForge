@@ -100,9 +100,7 @@ describe('SkillList', () => {
   it('renders empty state when no skills', async () => {
     const { SkillList } = await import('../../../src/tui/components/SkillList.js');
     const store = makeMockStore({ skills: [] });
-    const { lastFrame } = render(
-      React.createElement(SkillList, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(SkillList, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('No skills installed');
@@ -111,9 +109,7 @@ describe('SkillList', () => {
   it('renders skill names', async () => {
     const { SkillList } = await import('../../../src/tui/components/SkillList.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(SkillList, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(SkillList, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('alpha');
@@ -124,9 +120,7 @@ describe('SkillList', () => {
   it('focused row has background highlight indicator', async () => {
     const { SkillList } = await import('../../../src/tui/components/SkillList.js');
     const store = makeMockStore({ focusedSkillIndex: 0 });
-    const { lastFrame } = render(
-      React.createElement(SkillList, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(SkillList, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // The focused row should contain the vertical bar character (U+258E)
@@ -136,9 +130,7 @@ describe('SkillList', () => {
   it('unselected skills have no checkbox marker', async () => {
     const { SkillList } = await import('../../../src/tui/components/SkillList.js');
     const store = makeMockStore({ selectedSkillNames: new Set<string>() });
-    const { lastFrame } = render(
-      React.createElement(SkillList, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(SkillList, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // No [+] markers when no skills are selected
@@ -148,9 +140,7 @@ describe('SkillList', () => {
   it('selected skills show [+] checkbox', async () => {
     const { SkillList } = await import('../../../src/tui/components/SkillList.js');
     const store = makeMockStore({ selectedSkillNames: new Set(['alpha']) });
-    const { lastFrame } = render(
-      React.createElement(SkillList, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(SkillList, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // Updated to use [+] selection marker
@@ -162,9 +152,7 @@ describe('SkillList', () => {
     // beta has syncedTo=[], exists=true -> hollow gray dot (U+25CB)
     const { SkillList } = await import('../../../src/tui/components/SkillList.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(SkillList, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(SkillList, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // alpha should have filled circle (U+25CF)
@@ -174,9 +162,7 @@ describe('SkillList', () => {
   it('renders source types correctly', async () => {
     const { SkillList } = await import('../../../src/tui/components/SkillList.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(SkillList, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(SkillList, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('[git]');
@@ -198,9 +184,7 @@ describe('SkillList', () => {
       ],
       selectedSkillNames: new Set(['super-long-skill-name-that-would-otherwise-wrap']),
     });
-    const { lastFrame } = render(
-      React.createElement(SkillList, { store, columns: 28 })
-    );
+    const { lastFrame } = render(React.createElement(SkillList, { store, columns: 28 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('[+]');

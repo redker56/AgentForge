@@ -22,7 +22,9 @@ export function ImportScreen({ store }: ImportScreenProps): React.ReactElement {
   return (
     <Box flexDirection="column" height="100%">
       <Box paddingX={1}>
-        <Text bold color={inkColors.accent}>Import Skills</Text>
+        <Text bold color={inkColors.accent}>
+          Import Skills
+        </Text>
       </Box>
       <Box flexGrow={1}>
         <ImportFormTab store={store} />

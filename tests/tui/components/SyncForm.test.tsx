@@ -95,39 +95,45 @@ describe('SyncForm', () => {
 
   // Sprint 3: ResultsStep compact summary tests
   it('renders ResultsStep via React.createElement', () => {
-    const element = React.createElement(SyncForm, { store: createMockStore({
-      syncFormStep: 'results',
-      syncFormResults: [
-        { target: 'skill-a -> claude', success: true },
-        { target: 'skill-a -> codex', success: true },
-        { target: 'skill-a -> gemini', success: true },
-        { target: 'skill-a -> openclaw', success: true },
-      ],
-    })});
+    const element = React.createElement(SyncForm, {
+      store: createMockStore({
+        syncFormStep: 'results',
+        syncFormResults: [
+          { target: 'skill-a -> claude', success: true },
+          { target: 'skill-a -> codex', success: true },
+          { target: 'skill-a -> gemini', success: true },
+          { target: 'skill-a -> openclaw', success: true },
+        ],
+      }),
+    });
     expect(element.type).toBe(SyncForm);
   });
 
   it('renders ResultsStep with mixed results via React.createElement', () => {
-    const element = React.createElement(SyncForm, { store: createMockStore({
-      syncFormStep: 'results',
-      syncFormResults: [
-        { target: 'skill-a -> claude', success: true },
-        { target: 'skill-a -> codex', success: true },
-        { target: 'skill-a -> gemini', success: true },
-        { target: 'skill-a -> openclaw', success: false, error: 'permission denied' },
-      ],
-    })});
+    const element = React.createElement(SyncForm, {
+      store: createMockStore({
+        syncFormStep: 'results',
+        syncFormResults: [
+          { target: 'skill-a -> claude', success: true },
+          { target: 'skill-a -> codex', success: true },
+          { target: 'skill-a -> gemini', success: true },
+          { target: 'skill-a -> openclaw', success: false, error: 'permission denied' },
+        ],
+      }),
+    });
     expect(element.type).toBe(SyncForm);
   });
 
   it('renders ResultsStep with all failures via React.createElement', () => {
-    const element = React.createElement(SyncForm, { store: createMockStore({
-      syncFormStep: 'results',
-      syncFormResults: [
-        { target: 'skill-a -> claude', success: false, error: 'perm denied' },
-        { target: 'skill-a -> codex', success: false, error: 'network error' },
-      ],
-    })});
+    const element = React.createElement(SyncForm, {
+      store: createMockStore({
+        syncFormStep: 'results',
+        syncFormResults: [
+          { target: 'skill-a -> claude', success: false, error: 'perm denied' },
+          { target: 'skill-a -> codex', success: false, error: 'network error' },
+        ],
+      }),
+    });
     expect(element.type).toBe(SyncForm);
   });
 
@@ -143,7 +149,15 @@ describe('SyncForm', () => {
   });
 
   it('renders StepIndicator with correct steps for sync-agents operation', () => {
-    const steps = ['Select Operation', 'Select Skills', 'Select Targets', 'Select Mode', 'Confirm', 'Executing', 'Results'];
+    const steps = [
+      'Select Operation',
+      'Select Skills',
+      'Select Targets',
+      'Select Mode',
+      'Confirm',
+      'Executing',
+      'Results',
+    ];
     const { lastFrame } = render(React.createElement(StepIndicator, { steps, currentStep: 0 }));
     const output = lastFrame() ?? '';
     expect(output).toContain('Select Operation');
@@ -152,33 +166,58 @@ describe('SyncForm', () => {
     expect(output).toContain('Confirm');
     expect(output).toContain('Results');
     // 7 steps total
-    const nonEmptyLines = output.split('\n').filter(l => l.trim().length > 0);
+    const nonEmptyLines = output.split('\n').filter((l) => l.trim().length > 0);
     expect(nonEmptyLines.length).toBe(7);
   });
 
   it('renders StepIndicator with correct steps for sync-projects operation', () => {
-    const steps = ['Select Operation', 'Select Skills', 'Select Targets', 'Select Agent Types', 'Select Mode', 'Confirm', 'Executing', 'Results'];
+    const steps = [
+      'Select Operation',
+      'Select Skills',
+      'Select Targets',
+      'Select Agent Types',
+      'Select Mode',
+      'Confirm',
+      'Executing',
+      'Results',
+    ];
     const { lastFrame } = render(React.createElement(StepIndicator, { steps, currentStep: 0 }));
     const output = lastFrame() ?? '';
     // 8 steps total
-    const nonEmptyLines = output.split('\n').filter(l => l.trim().length > 0);
+    const nonEmptyLines = output.split('\n').filter((l) => l.trim().length > 0);
     expect(nonEmptyLines.length).toBe(8);
     expect(output).toContain('Select Agent Types');
     expect(output).toContain('Select Mode');
   });
 
   it('renders StepIndicator with correct steps for project unsync operation', () => {
-    const steps = ['Select Operation', 'Select Skills', 'Select Scope', 'Select Targets', 'Select Unsync Mode', 'Confirm', 'Executing', 'Results'];
+    const steps = [
+      'Select Operation',
+      'Select Skills',
+      'Select Scope',
+      'Select Targets',
+      'Select Unsync Mode',
+      'Confirm',
+      'Executing',
+      'Results',
+    ];
     const { lastFrame } = render(React.createElement(StepIndicator, { steps, currentStep: 0 }));
     const output = lastFrame() ?? '';
-    const nonEmptyLines = output.split('\n').filter(l => l.trim().length > 0);
+    const nonEmptyLines = output.split('\n').filter((l) => l.trim().length > 0);
     expect(nonEmptyLines.length).toBe(8);
     expect(output).toContain('Select Scope');
     expect(output).toContain('Select Unsync Mode');
   });
 
   it('step indicator updates when navigating from select-op to select-skills', () => {
-    const steps = ['Select Operation', 'Select Skills', 'Select Targets', 'Confirm', 'Executing', 'Results'];
+    const steps = [
+      'Select Operation',
+      'Select Skills',
+      'Select Targets',
+      'Confirm',
+      'Executing',
+      'Results',
+    ];
 
     // At step 0 (select-op)
     const { lastFrame: lf1 } = render(
@@ -219,7 +258,9 @@ describe('SyncForm', () => {
       { id: 's3', label: 'gamma', progress: 50, status: 'running' as const },
     ];
     const totalItems = progressItems.length;
-    const completedItems = progressItems.filter((i: { status: string }) => i.status === 'success').length;
+    const completedItems = progressItems.filter(
+      (i: { status: string }) => i.status === 'success'
+    ).length;
     const overallProgress = Math.round((completedItems / totalItems) * 100);
 
     const { lastFrame } = render(
@@ -257,9 +298,13 @@ describe('SyncForm', () => {
       { id: 's2', label: 'beta', progress: 100, status: 'error' as const, error: 'failed' },
     ];
     const totalItems = progressItems.length;
-    const completedItems = progressItems.filter((i: { status: string }) => i.status === 'success').length;
+    const completedItems = progressItems.filter(
+      (i: { status: string }) => i.status === 'success'
+    ).length;
     const anyError = progressItems.some((i: { status: string }) => i.status === 'error');
-    const anyRunning = progressItems.some((i: { status: string }) => i.status === 'running' || i.status === 'pending');
+    const anyRunning = progressItems.some(
+      (i: { status: string }) => i.status === 'running' || i.status === 'pending'
+    );
     const overallStatus = anyError ? 'error' : anyRunning ? 'running' : 'success';
 
     expect(overallStatus).toBe('error');

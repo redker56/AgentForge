@@ -10,6 +10,7 @@ import type { StoreApi } from 'zustand';
 import { useNavigation } from '../hooks/useNavigation.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, renderFocusPrefix, emptyStateText } from '../theme.js';
+import { padDisplayText, truncateDisplayText } from '../utils/displayWidth.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
 
@@ -19,10 +20,7 @@ interface ProjectTableProps {
 }
 
 function truncateText(text: string, maxWidth: number): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 function formatDate(isoString: string): string {
@@ -59,15 +57,20 @@ export function ProjectTable({ store, columns }: ProjectTableProps): React.React
         Projects <Text color={inkColors.muted}>({projects.length})</Text>
       </Text>
       <Text color={inkColors.muted}>
-        {'ID'.padEnd(idWidth)}
-        {'Path'.padEnd(pathWidth)}
-        {'Added'.padEnd(addedWidth)}
+        {padDisplayText('ID', idWidth)}
+        {padDisplayText('Path', pathWidth)}
+        {padDisplayText('Added', addedWidth)}
         Skills
       </Text>
       <Text color={inkColors.muted}>{'\u2500'.repeat(Math.max(availableWidth, 10))}</Text>
 
       {hiddenAbove > 0 && visibleItems.length > 0 && (
-        <ScrollIndicator hiddenAbove={hiddenAbove} hiddenBelow={0} columns={columns} position="above" />
+        <ScrollIndicator
+          hiddenAbove={hiddenAbove}
+          hiddenBelow={0}
+          columns={columns}
+          position="above"
+        />
       )}
 
       {visibleItems.map((project, index) => {
@@ -75,9 +78,9 @@ export function ProjectTable({ store, columns }: ProjectTableProps): React.React
         const isFocused = actualIndex === focusedProjectIndex;
         const prefix = renderFocusPrefix(isFocused);
         const rowText =
-          `${project.id.padEnd(idWidth)}` +
-          `${truncateText(project.path, pathWidth).padEnd(pathWidth)}` +
-          `${formatDate(project.addedAt).padEnd(addedWidth)}` +
+          `${padDisplayText(project.id, idWidth)}` +
+          `${padDisplayText(truncateText(project.path, pathWidth), pathWidth)}` +
+          `${padDisplayText(formatDate(project.addedAt), addedWidth)}` +
           `${String(projectSummaries[project.id]?.skillCount ?? 0)}`;
 
         return (
@@ -98,7 +101,12 @@ export function ProjectTable({ store, columns }: ProjectTableProps): React.React
       {projects.length === 0 && <Text color={inkColors.muted}>{emptyStateText.projects}</Text>}
 
       {hiddenBelow > 0 && visibleItems.length > 0 && (
-        <ScrollIndicator hiddenAbove={0} hiddenBelow={hiddenBelow} columns={columns} position="below" />
+        <ScrollIndicator
+          hiddenAbove={0}
+          hiddenBelow={hiddenBelow}
+          columns={columns}
+          position="below"
+        />
       )}
     </Box>
   );

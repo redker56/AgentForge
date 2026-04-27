@@ -10,6 +10,8 @@ import type { Command } from 'commander';
 
 import type { SyncMode, AgentId } from '../types.js';
 
+import { exitCommand } from './errors.js';
+
 import type { CommandContext } from './index.js';
 
 /**
@@ -30,7 +32,7 @@ function validateExistingAgentTypes(ctx: CommandContext, agentTypes: AgentId[]):
     console.error(chalk.red(`Agent not available: ${invalidAgentTypes.join(', ')}`));
     console.log(chalk.dim('Agent availability is determined by the user-level skills directory.'));
     console.log(chalk.dim('Run "af list agents" to see available Agents.'));
-    process.exit(1);
+    exitCommand(1);
   }
 }
 
@@ -55,7 +57,7 @@ export function register(program: Command, ctx: CommandContext): void {
         } else {
           console.error(chalk.red(`Invalid target: ${target}`));
           console.log(chalk.dim('Supported: agents, projects'));
-          process.exit(1);
+          exitCommand(1);
         }
       }
     );
@@ -72,7 +74,7 @@ async function syncToAgents(
   if (!name) {
     if (!process.stdin.isTTY) {
       console.error(chalk.red('Please specify skill name: af sync agents <skill-name>'));
-      process.exit(1);
+      exitCommand(1);
     }
     const skills = ctx.skills.list();
     if (skills.length === 0) {
@@ -96,7 +98,7 @@ async function syncToAgents(
   for (const skillName of skillNames) {
     if (!ctx.skills.exists(skillName)) {
       console.error(chalk.red(`Skill not found: ${skillName}`));
-      process.exit(1);
+      exitCommand(1);
     }
   }
 
@@ -123,7 +125,7 @@ async function syncToAgents(
   if (options.mode) {
     if (options.mode !== 'copy' && options.mode !== 'symlink') {
       console.error(chalk.red(`Invalid sync mode: ${options.mode}, use copy or symlink`));
-      process.exit(1);
+      exitCommand(1);
     }
     mode = options.mode;
   } else if (process.stdin.isTTY) {
@@ -156,7 +158,7 @@ async function syncToAgents(
       }
     } catch (e: unknown) {
       console.log(chalk.red(`Sync failed: ${e instanceof Error ? e.message : String(e)}`));
-      process.exit(1);
+      exitCommand(1);
     }
   }
 }
@@ -172,7 +174,7 @@ async function syncToProjects(
   if (!name) {
     if (!process.stdin.isTTY) {
       console.error(chalk.red('Please specify skill name: af sync projects <skill-name>'));
-      process.exit(1);
+      exitCommand(1);
     }
     const skills = ctx.skills.list();
     if (skills.length === 0) {
@@ -196,7 +198,7 @@ async function syncToProjects(
   for (const skillName of skillNames) {
     if (!ctx.skills.exists(skillName)) {
       console.error(chalk.red(`Skill not found: ${skillName}`));
-      process.exit(1);
+      exitCommand(1);
     }
   }
 
@@ -224,7 +226,7 @@ async function syncToProjects(
   if (options.mode) {
     if (options.mode !== 'copy' && options.mode !== 'symlink') {
       console.error(chalk.red(`Invalid sync mode: ${options.mode}, use copy or symlink`));
-      process.exit(1);
+      exitCommand(1);
     }
     mode = options.mode as SyncMode;
   } else if (process.stdin.isTTY) {
@@ -279,7 +281,7 @@ async function syncToProjects(
             `  Failed for project ${projectId}: ${e instanceof Error ? e.message : String(e)}`
           )
         );
-        process.exit(1);
+        exitCommand(1);
       }
     }
 

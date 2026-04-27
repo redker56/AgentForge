@@ -5,7 +5,43 @@
 import chalk from 'chalk';
 import type { Command } from 'commander';
 
+import { exitCommand } from './errors.js';
+
 import type { CommandContext } from './index.js';
+
+interface UpdateFailure {
+  skillName: string;
+  message: string;
+}
+
+type UpdateOutcome = 'updated' | 'skipped';
+
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function updateAndResync(ctx: CommandContext, skillName: string): Promise<UpdateOutcome> {
+  const updated = await ctx.skills.update(skillName);
+  if (!updated) {
+    return 'skipped';
+  }
+
+  await ctx.sync.resync(skillName);
+  await ctx.projectSync.resync(skillName);
+  return 'updated';
+}
+
+function printFailureSummary(failures: UpdateFailure[]): void {
+  if (failures.length === 0) {
+    return;
+  }
+
+  console.error(chalk.red(`\n${failures.length} skill update(s) failed:`));
+  for (const failure of failures) {
+    console.error(chalk.red(`  ${failure.skillName}: ${failure.message}`));
+  }
+  console.error(chalk.dim('\nRetry a failed item with: af update <skill-name>'));
+}
 
 export function register(program: Command, ctx: CommandContext): void {
   program
@@ -16,7 +52,7 @@ export function register(program: Command, ctx: CommandContext): void {
         const meta = ctx.skills.get(name);
         if (!meta) {
           console.error(chalk.red(`Skill not found: ${name}`));
-          process.exit(1);
+          exitCommand(1);
         }
         if (meta.source.type !== 'git') {
           console.log(chalk.dim('Local skills do not need updating'));
@@ -24,13 +60,18 @@ export function register(program: Command, ctx: CommandContext): void {
         }
 
         console.log(chalk.cyan(`Updating ${name}...`));
-        const updated = await ctx.skills.update(name);
-        if (!updated) {
-          console.log(chalk.dim('Local skills do not need updating'));
-          return;
+        try {
+          const outcome = await updateAndResync(ctx, name);
+          if (outcome === 'skipped') {
+            console.log(chalk.dim('Local skills do not need updating'));
+            return;
+          }
+        } catch (error: unknown) {
+          console.error(chalk.red(`Update failed for ${name}: ${formatError(error)}`));
+          console.error(chalk.dim(`Retry with: af update ${name}`));
+          exitCommand(1);
         }
-        await ctx.sync.resync(name);
-        await ctx.projectSync.resync(name);
+
         console.log(chalk.green(`Updated ${name}`));
       } else {
         const list = ctx.skills.list().filter((s) => s.source.type === 'git');
@@ -40,16 +81,27 @@ export function register(program: Command, ctx: CommandContext): void {
           return;
         }
 
+        const failures: UpdateFailure[] = [];
+
         for (const s of list) {
           console.log(chalk.cyan(`Updating ${s.name}...`));
-          const updated = await ctx.skills.update(s.name);
-          if (!updated) {
-            console.log(chalk.dim(`Skipped ${s.name}: local skills do not need updating`));
-            continue;
+          try {
+            const outcome = await updateAndResync(ctx, s.name);
+            if (outcome === 'skipped') {
+              console.log(chalk.dim(`Skipped ${s.name}: local skills do not need updating`));
+              continue;
+            }
+            console.log(chalk.green(`Updated ${s.name}`));
+          } catch (error: unknown) {
+            const message = formatError(error);
+            failures.push({ skillName: s.name, message });
+            console.error(chalk.red(`Failed ${s.name}: ${message}`));
           }
-          await ctx.sync.resync(s.name);
-          await ctx.projectSync.resync(s.name);
-          console.log(chalk.green(`Updated ${s.name}`));
+        }
+
+        if (failures.length > 0) {
+          printFailureSummary(failures);
+          exitCommand(1);
         }
       }
     });

@@ -21,15 +21,21 @@ interface AgentsScreenProps {
   columns: number;
 }
 
-export function AgentsScreen({ store, band, columns }: AgentsScreenProps): React.ReactElement | null {
+export function AgentsScreen({
+  store,
+  band,
+  columns,
+}: AgentsScreenProps): React.ReactElement | null {
   const focusedAgentIndex = useStore(store, (s) => s.agentsBrowserState.focusedIndex);
   const agents = useStore(store, (s) => s.agents);
   const agentDetails = useStore(store, (s) => s.agentDetails);
   const agentViewMode = useStore(store, (s) => s.agentsBrowserState.viewMode) ?? 'master';
-  const focusedAgentSkillIndex = useStore(store, (s) => s.agentsBrowserState.focusedSkillIndex) ?? 0;
+  const focusedAgentSkillIndex =
+    useStore(store, (s) => s.agentsBrowserState.focusedSkillIndex) ?? 0;
   const selectedAgentSkillRowIds =
     useStore(store, (s) => s.agentsBrowserState.selectedSkillRowIds) ?? new Set<string>();
-  const activeAgentSkillFilter = useStore(store, (s) => s.agentsBrowserState.activeSkillFilter) ?? 'all';
+  const activeAgentSkillFilter =
+    useStore(store, (s) => s.agentsBrowserState.activeSkillFilter) ?? 'all';
   const detailOverlayVisible = useStore(store, (s) => s.shellState.detailOverlayVisible);
   const detailSkillName = useStore(store, (s) => s.shellState.detailSkillName);
 
@@ -151,7 +157,12 @@ export function AgentsScreen({ store, band, columns }: AgentsScreenProps): React
       {detailOverlayVisible && detailSkillName && (
         <Box flexDirection="row">
           <Box flexGrow={1} />
-          <SkillDetail store={store} band="standard" columns={columns} skillName={detailSkillName} />
+          <SkillDetail
+            store={store}
+            band="standard"
+            columns={columns}
+            skillName={detailSkillName}
+          />
         </Box>
       )}
     </Box>

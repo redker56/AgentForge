@@ -140,7 +140,7 @@ describe('remove command register', () => {
     consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     processExit = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit mocked');
+      throw new Error('Command exited with code 1');
     });
   });
 
@@ -198,7 +198,7 @@ describe('remove command register', () => {
 
     await expect(
       program.parseAsync(['remove', 'skills', 'nonexistent'], { from: 'user' })
-    ).rejects.toThrow('process.exit mocked');
+    ).rejects.toThrow('Command exited with code 1');
 
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));
   });
@@ -236,7 +236,7 @@ describe('remove command register', () => {
 
     await expect(
       program.parseAsync(['remove', 'projects', 'nonexistent'], { from: 'user' })
-    ).rejects.toThrow('process.exit mocked');
+    ).rejects.toThrow('Command exited with code 1');
 
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Project not found'));
   });
@@ -285,7 +285,7 @@ describe('remove command register', () => {
 
     await expect(
       program.parseAsync(['remove', 'agents', 'nonexistent'], { from: 'user' })
-    ).rejects.toThrow('process.exit mocked');
+    ).rejects.toThrow('Command exited with code 1');
 
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('configuration not found'));
   });

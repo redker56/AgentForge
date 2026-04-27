@@ -64,7 +64,7 @@ describe('SearchOverlay', () => {
     const path = await import('path');
     const source = fs.readFileSync(
       path.join(process.cwd(), 'src/tui/components/SearchOverlay.tsx'),
-      'utf-8',
+      'utf-8'
     );
 
     // Static cursor (no blinking to avoid Ink re-render flicker)
@@ -78,7 +78,7 @@ describe('SearchOverlay', () => {
     const path = await import('path');
     const source = fs.readFileSync(
       path.join(process.cwd(), 'src/tui/components/SearchOverlay.tsx'),
-      'utf-8',
+      'utf-8'
     );
 
     // Should have HighlightedText component using bold + accent color
@@ -93,7 +93,7 @@ describe('SearchOverlay', () => {
     const path = await import('path');
     const source = fs.readFileSync(
       path.join(process.cwd(), 'src/tui/components/SearchOverlay.tsx'),
-      'utf-8',
+      'utf-8'
     );
 
     // Should display result count text
@@ -143,8 +143,10 @@ describe('SearchOverlay', () => {
       subscribe: () => () => {},
     };
 
-    const oneFrame = render(React.createElement(SearchOverlay, { store: oneResultStore })).lastFrame() ?? '';
-    const threeFrame = render(React.createElement(SearchOverlay, { store: threeResultStore })).lastFrame() ?? '';
+    const oneFrame =
+      render(React.createElement(SearchOverlay, { store: oneResultStore })).lastFrame() ?? '';
+    const threeFrame =
+      render(React.createElement(SearchOverlay, { store: threeResultStore })).lastFrame() ?? '';
 
     expect(oneFrame.split('\n').length).toBe(threeFrame.split('\n').length);
   });

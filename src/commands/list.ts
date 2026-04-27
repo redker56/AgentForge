@@ -23,6 +23,8 @@ import {
   type Agent,
 } from '../types.js';
 
+import { exitCommand } from './errors.js';
+
 import type { CommandContext } from './index.js';
 
 interface ListOptions {
@@ -190,7 +192,7 @@ async function listProjects(ctx: CommandContext): Promise<void> {
 async function listSkills(ctx: CommandContext, options: ListOptions): Promise<void> {
   if (options.category && options.uncategorized) {
     console.error(chalk.red('Use either --category or --uncategorized, not both'));
-    process.exit(1);
+    exitCommand(1);
   }
 
   const list = ctx.skills

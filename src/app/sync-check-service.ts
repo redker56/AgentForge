@@ -8,13 +8,9 @@
  * resolution options (link as synced, skip, or cancel).
  *
  * @architecture Separates conflict detection (pure function) from resolution
- * (user interaction). `detectConflicts()` and `resolveConflicts()` are pure
- * synchronous functions suitable for both CLI and TUI paths.
- * `resolveAndRecordSyncLinks()` is the CLI entry point with interactive prompts.
+ * (caller-provided interaction). `detectConflicts()` and `resolveConflicts()`
+ * are pure synchronous functions suitable for both CLI and TUI paths.
  */
-
-import { select } from '@inquirer/prompts';
-import chalk from 'chalk';
 
 import type { RegistryRepository } from '../infra/registry-repository.js';
 import type { SyncRecord } from '../types.js';
@@ -31,10 +27,18 @@ export interface SyncConflict {
 
 export type ConflictResolution = 'link' | 'skip' | 'cancel';
 
+export interface SyncConflictResolver {
+  onConflicts?(skillName: string, conflicts: SyncConflict[]): void;
+  onAutoLink?(conflict: SyncConflict): void;
+  onDifferentContent?(conflict: SyncConflict): void;
+  chooseResolution?(conflict: SyncConflict): ConflictResolution | Promise<ConflictResolution>;
+}
+
 export class SyncCheckService {
   constructor(
     private readonly storage: RegistryRepository,
-    private readonly sync: AgentSyncService
+    private readonly sync: AgentSyncService,
+    private readonly resolver?: SyncConflictResolver
   ) {}
 
   /**
@@ -85,8 +89,9 @@ export class SyncCheckService {
   }
 
   /**
-   * CLI entry point: detect conflicts, prompt user via @inquirer/prompts,
-   * apply resolutions, and update storage.
+   * Detect conflicts, apply caller-provided resolutions, and update storage.
+   * Without a resolver, same-content conflicts are linked and different-content
+   * conflicts are skipped.
    */
   async resolveAndRecordSyncLinks(
     skillName: string,
@@ -102,50 +107,24 @@ export class SyncCheckService {
     const resolutions = new Map<string, ConflictResolution>();
 
     if (conflicts.length > 0) {
-      console.log(
-        chalk.yellow(
-          `\nDetected ${conflicts.length} Agent(s) with same-name skill "${skillName}":\n`
-        )
-      );
+      this.resolver?.onConflicts?.(skillName, conflicts);
     }
 
     for (const conflict of conflicts) {
       if (conflict.sameContent) {
-        // Same content, auto-mark as synced
-        console.log(chalk.dim(`  ${conflict.agentName} (${conflict.agentId})`));
-        console.log(chalk.green(`    \u2713 Same content, auto-linked as synced`));
+        this.resolver?.onAutoLink?.(conflict);
         resolutions.set(conflict.agentId, 'link');
-      } else {
-        // Different content, ask user
-        console.log(chalk.dim(`  ${conflict.agentName} (${conflict.agentId})`));
-        console.log(chalk.yellow(`    \u26A0 Different content`));
-
-        try {
-          const action = await select({
-            message: `How to handle same-name skill for ${conflict.agentName}?`,
-            choices: [
-              { name: 'Link as synced (keep Agent version)', value: 'link' },
-              { name: 'Skip (do not link, manually sync later to overwrite)', value: 'skip' },
-              { name: 'Cancel entire operation', value: 'cancel' },
-            ],
-          });
-          resolutions.set(conflict.agentId, action as ConflictResolution);
-        } catch {
-          // User pressed Ctrl+C -- treat as cancel
-          console.log(chalk.yellow('\nOperation cancelled'));
-          process.exit(0);
-        }
+        continue;
       }
+
+      this.resolver?.onDifferentContent?.(conflict);
+      const action = this.resolver?.chooseResolution
+        ? await this.resolver.chooseResolution(conflict)
+        : 'skip';
+      resolutions.set(conflict.agentId, action);
     }
 
-    // Apply resolutions (may throw on 'cancel', caught above)
-    let linkedAgentIds: string[];
-    try {
-      linkedAgentIds = this.resolveConflicts(skillName, resolutions);
-    } catch {
-      console.log(chalk.yellow('\nOperation cancelled'));
-      process.exit(0);
-    }
+    const linkedAgentIds = this.resolveConflicts(skillName, resolutions);
 
     // Merge with existing records + seed agents
     const merged = new Map<string, SyncRecord>();

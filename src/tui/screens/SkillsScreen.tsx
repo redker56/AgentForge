@@ -35,10 +35,17 @@ function formatSummaryDate(value?: string): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-export function SkillsScreen({ store, band, columns }: SkillsScreenProps): React.ReactElement | null {
+export function SkillsScreen({
+  store,
+  band,
+  columns,
+}: SkillsScreenProps): React.ReactElement | null {
   const focusedIndex = useStore(store, (s) => s.skillsBrowserState.focusedIndex);
   const skills = useStore(store, (s) => s.skills);
-  const activeSkillCategoryFilter = useStore(store, (s) => s.skillsBrowserState.activeCategoryFilter);
+  const activeSkillCategoryFilter = useStore(
+    store,
+    (s) => s.skillsBrowserState.activeCategoryFilter
+  );
   const detailOverlayVisible = useStore(store, (s) => s.shellState.detailOverlayVisible);
 
   useEffect(() => {
@@ -80,13 +87,19 @@ export function SkillsScreen({ store, band, columns }: SkillsScreenProps): React
     <Box flexDirection="column" height="100%" paddingX={1}>
       <Box flexWrap="wrap">
         <Text color={inkColors.muted}>Library: </Text>
-        <Text bold color={inkColors.accent}>{totalSkills}</Text>
+        <Text bold color={inkColors.accent}>
+          {totalSkills}
+        </Text>
         <Text color={inkColors.secondary}> skills total</Text>
         <Text color={inkColors.muted}> / </Text>
-        <Text bold color={inkColors.success}>{syncedToAgents}</Text>
+        <Text bold color={inkColors.success}>
+          {syncedToAgents}
+        </Text>
         <Text color={inkColors.secondary}> synced to agents</Text>
         <Text color={inkColors.muted}> / </Text>
-        <Text bold color={inkColors.info}>{inProjects}</Text>
+        <Text bold color={inkColors.info}>
+          {inProjects}
+        </Text>
         <Text color={inkColors.secondary}> in projects</Text>
         <Text color={inkColors.muted}> / </Text>
         <Text color={inkColors.muted}>Last update: </Text>

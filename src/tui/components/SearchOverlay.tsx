@@ -15,6 +15,7 @@ import type { StoreApi } from 'zustand';
 
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
+import { truncateDisplayText } from '../utils/displayWidth.js';
 import { computeSearchResults } from '../utils/search.js';
 import { getVisibleSkills } from '../utils/skillsView.js';
 
@@ -26,10 +27,7 @@ const MAX_VISIBLE_RESULTS = 8;
 const SEARCH_HINT = 'Type to search in the current tab';
 
 function truncateText(text: string, maxWidth: number): string {
-  if (maxWidth <= 0) return '';
-  if (text.length <= maxWidth) return text;
-  if (maxWidth <= 3) return text.slice(0, maxWidth);
-  return `${text.slice(0, maxWidth - 3)}...`;
+  return truncateDisplayText(text, maxWidth);
 }
 
 function HighlightedText({
@@ -54,7 +52,9 @@ function HighlightedText({
     const segment = text.slice(i, j);
     if (isMatch) {
       segments.push(
-        <Text bold color={inkColors.accent} key={`m-${i}`}>{segment}</Text>
+        <Text bold color={inkColors.accent} key={`m-${i}`}>
+          {segment}
+        </Text>
       );
     } else {
       segments.push(
@@ -73,7 +73,10 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
   const { stdout } = useStdout();
   const searchQuery = useStore(store, (s) => s.shellState.searchQuery);
   const skills = useStore(store, (s) => s.skills);
-  const activeSkillCategoryFilter = useStore(store, (s) => s.skillsBrowserState.activeCategoryFilter);
+  const activeSkillCategoryFilter = useStore(
+    store,
+    (s) => s.skillsBrowserState.activeCategoryFilter
+  );
   const agents = useStore(store, (s) => s.agents);
   const projects = useStore(store, (s) => s.projects);
   const searchResultIndex = useStore(store, (s) => s.shellState.searchResultIndex);
@@ -82,9 +85,8 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
   const resultWidth = Math.max(overlayWidth - 2, 20);
   const displayQuery = truncateText(searchQuery || '', Math.max(overlayWidth - 12, 8));
 
-  const searchableSkills = activeTab === 'skills'
-    ? getVisibleSkills(skills, activeSkillCategoryFilter)
-    : skills;
+  const searchableSkills =
+    activeTab === 'skills' ? getVisibleSkills(skills, activeSkillCategoryFilter) : skills;
   const results = useMemo(
     () => computeSearchResults(searchQuery, searchableSkills, agents, projects, activeTab),
     [searchQuery, searchableSkills, agents, projects, activeTab]
@@ -126,89 +128,95 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
     ...Array.from({ length: MAX_VISIBLE_RESULTS - visibleResults.length }, () => null),
   ];
 
-  useInput((input, key) => {
-    const state = store.getState();
+  useInput(
+    (input, key) => {
+      const state = store.getState();
 
-    if (key.escape) {
-      state.setShowSearch(false);
-      return;
-    }
-
-    if (key.return) {
-      const query = state.shellState.searchQuery;
-      if (!query.trim()) {
+      if (key.escape) {
         state.setShowSearch(false);
         return;
       }
 
-      const currentResults = computeSearchResults(
-        query,
-        state.shellState.activeTab === 'skills'
-          ? getVisibleSkills(state.skills, state.skillsBrowserState.activeCategoryFilter)
-          : state.skills,
-        state.agents,
-        state.projects,
-        state.shellState.activeTab
-      );
-      const idx = Math.min(state.shellState.searchResultIndex, Math.max(currentResults.length - 1, 0));
-
-      if (currentResults[idx]) {
-        const result = currentResults[idx];
-        state.setActiveTab(result.tabId);
-
-        if (result.tabId === 'skills') {
-          const skillIndex = state.skills.findIndex((s) => s.name === result.itemId);
-          if (skillIndex >= 0) state.setFocusedSkillIndex(skillIndex);
-        } else if (result.tabId === 'agents') {
-          const agentIndex = state.agents.findIndex((a) => a.id === result.itemId);
-          if (agentIndex >= 0) state.setFocusedAgentIndex(agentIndex);
-        } else if (result.tabId === 'projects') {
-          const projectIndex = state.projects.findIndex((p) => p.id === result.itemId);
-          if (projectIndex >= 0) state.setFocusedProjectIndex(projectIndex);
+      if (key.return) {
+        const query = state.shellState.searchQuery;
+        if (!query.trim()) {
+          state.setShowSearch(false);
+          return;
         }
+
+        const currentResults = computeSearchResults(
+          query,
+          state.shellState.activeTab === 'skills'
+            ? getVisibleSkills(state.skills, state.skillsBrowserState.activeCategoryFilter)
+            : state.skills,
+          state.agents,
+          state.projects,
+          state.shellState.activeTab
+        );
+        const idx = Math.min(
+          state.shellState.searchResultIndex,
+          Math.max(currentResults.length - 1, 0)
+        );
+
+        if (currentResults[idx]) {
+          const result = currentResults[idx];
+          state.setActiveTab(result.tabId);
+
+          if (result.tabId === 'skills') {
+            const skillIndex = state.skills.findIndex((s) => s.name === result.itemId);
+            if (skillIndex >= 0) state.setFocusedSkillIndex(skillIndex);
+          } else if (result.tabId === 'agents') {
+            const agentIndex = state.agents.findIndex((a) => a.id === result.itemId);
+            if (agentIndex >= 0) state.setFocusedAgentIndex(agentIndex);
+          } else if (result.tabId === 'projects') {
+            const projectIndex = state.projects.findIndex((p) => p.id === result.itemId);
+            if (projectIndex >= 0) state.setFocusedProjectIndex(projectIndex);
+          }
+        }
+
+        state.setShowSearch(false);
+        return;
       }
 
-      state.setShowSearch(false);
-      return;
-    }
-
-    if (key.upArrow) {
-      const currentIdx = store.getState().shellState.searchResultIndex;
-      if (currentIdx > 0) {
-        state.setSearchResultIndex(currentIdx - 1);
+      if (key.upArrow) {
+        const currentIdx = store.getState().shellState.searchResultIndex;
+        if (currentIdx > 0) {
+          state.setSearchResultIndex(currentIdx - 1);
+        }
+        return;
       }
-      return;
-    }
-    if (key.downArrow) {
-      const currentResults = computeSearchResults(
-        state.shellState.searchQuery,
-        state.shellState.activeTab === 'skills'
-          ? getVisibleSkills(state.skills, state.skillsBrowserState.activeCategoryFilter)
-          : state.skills,
-        state.agents,
-        state.projects,
-        state.shellState.activeTab
-      );
-      const currentIdx = store.getState().shellState.searchResultIndex;
-      if (currentIdx < currentResults.length - 1) {
-        state.setSearchResultIndex(currentIdx + 1);
+      if (key.downArrow) {
+        const currentResults = computeSearchResults(
+          state.shellState.searchQuery,
+          state.shellState.activeTab === 'skills'
+            ? getVisibleSkills(state.skills, state.skillsBrowserState.activeCategoryFilter)
+            : state.skills,
+          state.agents,
+          state.projects,
+          state.shellState.activeTab
+        );
+        const currentIdx = store.getState().shellState.searchResultIndex;
+        if (currentIdx < currentResults.length - 1) {
+          state.setSearchResultIndex(currentIdx + 1);
+        }
+        return;
       }
-      return;
-    }
 
-    if (key.backspace || key.delete) {
-      state.setSearchResultIndex(0);
-      state.setSearchQuery(state.shellState.searchQuery.slice(0, -1));
-      return;
-    }
+      if (key.backspace || key.delete) {
+        state.setSearchResultIndex(0);
+        state.setSearchQuery(state.shellState.searchQuery.slice(0, -1));
+        return;
+      }
 
-    if (input && input.length === 1 && !key.ctrl && !key.meta) {
-      state.setSearchResultIndex(0);
-      state.setSearchQuery(state.shellState.searchQuery + input);
+      if (input && input.length === 1 && !key.ctrl && !key.meta) {
+        state.setSearchResultIndex(0);
+        state.setSearchQuery(state.shellState.searchQuery + input);
+      }
+    },
+    {
+      isActive: store.getState().shellState.showSearch,
     }
-  }, {
-    isActive: store.getState().shellState.showSearch,
-  });
+  );
 
   return (
     <Box flexDirection="column" marginTop={1}>
@@ -237,7 +245,9 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
           const actualIndex = scrollTop + i;
           const availableNameWidth = Math.max(resultWidth - result.tabLabel.length - 6, 8);
           const displayName = truncateText(result.name, availableNameWidth);
-          const displayMatchIndices = result.matchIndices.filter((index) => index < displayName.length);
+          const displayMatchIndices = result.matchIndices.filter(
+            (index) => index < displayName.length
+          );
           const isSelected = actualIndex === clampedIdx;
 
           return (

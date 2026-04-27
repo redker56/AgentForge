@@ -83,9 +83,7 @@ describe('ProjectTable', () => {
   it('renders project names', async () => {
     const { ProjectTable } = await import('../../../src/tui/components/ProjectTable.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(ProjectTable, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(ProjectTable, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('proj1');
@@ -95,9 +93,7 @@ describe('ProjectTable', () => {
   it('renders separator line based on dynamic width', async () => {
     const { ProjectTable } = await import('../../../src/tui/components/ProjectTable.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(ProjectTable, { store, columns: 80 })
-    );
+    const { lastFrame } = render(React.createElement(ProjectTable, { store, columns: 80 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // The separator character is U+2500
@@ -124,9 +120,7 @@ describe('ProjectTable', () => {
   it('focused row has the vertical bar indicator', async () => {
     const { ProjectTable } = await import('../../../src/tui/components/ProjectTable.js');
     const store = makeMockStore({ focusedProjectIndex: 0 });
-    const { lastFrame } = render(
-      React.createElement(ProjectTable, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(ProjectTable, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     // U+258E is the vertical bar indicator used for focus highlight
@@ -136,9 +130,7 @@ describe('ProjectTable', () => {
   it('renders header row', async () => {
     const { ProjectTable } = await import('../../../src/tui/components/ProjectTable.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(ProjectTable, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(ProjectTable, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('ID');
@@ -150,9 +142,7 @@ describe('ProjectTable', () => {
   it('shows resolved skill counts instead of placeholder question marks', async () => {
     const { ProjectTable } = await import('../../../src/tui/components/ProjectTable.js');
     const store = makeMockStore();
-    const { lastFrame } = render(
-      React.createElement(ProjectTable, { store, columns: 100 })
-    );
+    const { lastFrame } = render(React.createElement(ProjectTable, { store, columns: 100 }));
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).not.toContain('?');

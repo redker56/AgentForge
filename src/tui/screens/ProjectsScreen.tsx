@@ -30,10 +30,12 @@ export function ProjectsScreen({
   const projects = useStore(store, (s) => s.projects);
   const projectDetails = useStore(store, (s) => s.projectDetails);
   const projectViewMode = useStore(store, (s) => s.projectsBrowserState.viewMode) ?? 'master';
-  const focusedProjectSkillIndex = useStore(store, (s) => s.projectsBrowserState.focusedSkillIndex) ?? 0;
+  const focusedProjectSkillIndex =
+    useStore(store, (s) => s.projectsBrowserState.focusedSkillIndex) ?? 0;
   const selectedProjectSkillRowIds =
     useStore(store, (s) => s.projectsBrowserState.selectedSkillRowIds) ?? new Set<string>();
-  const activeProjectSkillFilter = useStore(store, (s) => s.projectsBrowserState.activeSkillFilter) ?? 'all';
+  const activeProjectSkillFilter =
+    useStore(store, (s) => s.projectsBrowserState.activeSkillFilter) ?? 'all';
   const detailOverlayVisible = useStore(store, (s) => s.shellState.detailOverlayVisible);
   const detailSkillName = useStore(store, (s) => s.shellState.detailSkillName);
 
@@ -155,7 +157,12 @@ export function ProjectsScreen({
       {detailOverlayVisible && detailSkillName && (
         <Box flexDirection="row">
           <Box flexGrow={1} />
-          <SkillDetail store={store} band="standard" columns={columns} skillName={detailSkillName} />
+          <SkillDetail
+            store={store}
+            band="standard"
+            columns={columns}
+            skillName={detailSkillName}
+          />
         </Box>
       )}
     </Box>

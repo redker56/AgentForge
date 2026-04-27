@@ -44,8 +44,12 @@ export function StepIndicator({
         if (isCurrent) {
           return (
             <Box key={i} flexDirection="row">
-              <Text bold color={inkColors.accent}>{prefix}</Text>
-              <Text bold color={inkColors.accent}>{label}</Text>
+              <Text bold color={inkColors.accent}>
+                {prefix}
+              </Text>
+              <Text bold color={inkColors.accent}>
+                {label}
+              </Text>
             </Box>
           );
         }

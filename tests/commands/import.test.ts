@@ -33,7 +33,7 @@ describe('import command', () => {
     consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     processExit = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit mocked');
+      throw new Error('Command exited with code 1');
     });
   });
 
@@ -142,7 +142,7 @@ describe('import command', () => {
 
       await expect(
         program.parseAsync(['import', 'projects', 'test-proj', 'fake-skill'], { from: 'user' })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));
     });
@@ -165,7 +165,7 @@ describe('import command', () => {
 
       await expect(
         program.parseAsync(['import', 'projects', 'nonexistent'], { from: 'user' })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Project not found'));
     });
@@ -189,7 +189,7 @@ describe('import command', () => {
         } as never);
 
         await expect(program.parseAsync(['import', 'projects'], { from: 'user' })).rejects.toThrow(
-          'process.exit mocked'
+          'Command exited with code 1'
         );
 
         expect(consoleError).toHaveBeenCalledWith(
@@ -457,7 +457,7 @@ describe('import command', () => {
 
       await expect(
         program.parseAsync(['import', 'agents', 'claude', 'unknown'], { from: 'user' })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Skill not found'));
     });
@@ -485,7 +485,7 @@ describe('import command', () => {
 
       await expect(
         program.parseAsync(['import', 'agents', 'unknown'], { from: 'user' })
-      ).rejects.toThrow('process.exit mocked');
+      ).rejects.toThrow('Command exited with code 1');
 
       expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Agent not found'));
     });
@@ -589,7 +589,7 @@ describe('import command', () => {
         } as never);
 
         await expect(program.parseAsync(['import', 'agents'], { from: 'user' })).rejects.toThrow(
-          'process.exit mocked'
+          'Command exited with code 1'
         );
 
         expect(consoleError).toHaveBeenCalledWith(
