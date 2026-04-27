@@ -8,25 +8,19 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ### Added
 
-- `verify:ci` now mirrors the GitHub Actions validation sequence locally, including build, tests, lint, architecture checks, formatting checks, runtime dependency audit, package dry-run, tarball creation, and packed CLI smoke testing
-- release notes extraction from `CHANGELOG.md` so GitHub Releases use the curated changelog body instead of generated release notes
-- display-width utilities and regression coverage for CJK truncation and padding in TUI components
-- `FixedText` TUI primitive for reusable display-width-safe labels and fixed cells
+- safer display handling for CJK and other wide-character text across fixed-width TUI rows, labels, and progress views
 
 ### Changed
 
-- expanded formatting checks to cover both `.ts` and `.tsx` files in `src/` and `tests/`
-- tightened architecture tests to parse TypeScript/TSX imports and re-exports through the TypeScript AST
-- moved interactive same-name skill conflict prompts out of the app layer and into the CLI composition layer
-- renamed the concrete JSON registry adapter to `JsonRegistryRepository` and kept services behind repository interfaces
+- command cancellation and failure handling now uses a consistent CLI exit path
+- registry and project-state persistence now writes through clearer repository boundaries
 
 ### Fixed
 
 - prevent CJK skill names, paths, and progress labels from overflowing fixed-width TUI rows after truncation
-- make registry and project-state writes use temporary files plus atomic rename boundaries
-- allow storage tests and future integrations to inject an isolated AgentForge root directory instead of relying on the default user home path
 - keep batch `af update` running after individual Git failures, then show a failed-skill summary with retry guidance
 - allow TUI update results with per-skill failures to retry only the failed items
+- reduce the risk of partially written registry or project-state files if an operation is interrupted
 
 ## [0.2.1] - 2026-04-19
 

@@ -26,6 +26,29 @@ function extractSection(changelog, version) {
   return changelog.slice(start, end).trim();
 }
 
+function omitMaintenanceSections(section) {
+  const lines = section.split(/\r?\n/);
+  const releaseLines = [];
+  let skipping = false;
+
+  for (const line of lines) {
+    if (/^###\s+(Internal|Maintenance|Testing|Tests?|CI|Workflow)\b/i.test(line)) {
+      skipping = true;
+      continue;
+    }
+
+    if (/^###\s+/.test(line)) {
+      skipping = false;
+    }
+
+    if (!skipping) {
+      releaseLines.push(line);
+    }
+  }
+
+  return releaseLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 function main() {
   const versionArg = process.argv[2];
   if (!versionArg) {
@@ -36,7 +59,7 @@ function main() {
   const changelog = fs.readFileSync(CHANGELOG_PATH, 'utf8');
   const section = extractSection(changelog, version);
 
-  process.stdout.write(`${section}\n`);
+  process.stdout.write(`${omitMaintenanceSections(section)}\n`);
 }
 
 main();
