@@ -1,6 +1,6 @@
 {
   "name": "@redker56/agentforge",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "A CLI for managing and syncing skills across Claude Code, Codex, Gemini CLI, OpenClaw, Cursor, OpenCode, Qoder, and project workspaces.",
   "type": "module",
   "bin": {

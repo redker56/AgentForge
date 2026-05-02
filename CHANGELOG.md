@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning as closely as practical during `0.x`.
 
+## [0.2.4] - 2026-05-02
+
+### Added
+
+- TUI category editing can now select existing categories with `Space` and add new categories from the same flow
+
+### Changed
+
+- category suggestions in the TUI now come from the full skill library for set/add flows, while remove flows only show categories that can actually be removed from the selected skills
+- category choices in the TUI show usage counts so existing categories are easier to reuse consistently
+
 ## [0.2.3] - 2026-04-27
 
 ### Added
