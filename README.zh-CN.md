@@ -220,6 +220,20 @@ af completion bash
 af update [skill-name]
 ```
 
+### TUI 分类快捷键
+
+- `[` / `]`：在 Skills 标签页切换分类筛选
+- `c`：为选中的技能打开分类编辑器
+- 分类编辑器：用 `Space` 选择已有分类，或按 `n` 输入新分类
+- Skills 标签页分类栏：浏览 `All`、`Uncategorized` 和所有已定义分类
+
+### TUI 上下文技能列表
+
+- 在 `Agents` 和 `Projects` 标签页中，按 `Enter` 为当前聚焦项打开真实技能列表
+- 上下文技能列表支持 `Space` 多选，并可用 `i`、`x`、`u`、`c` 执行导入、取消同步、更新和分类
+- `[` / `]` 会在 `All`、`Imported`、`Unimported` 上下文筛选之间切换
+- `Esc` 返回 Agent / Project 主列表；在已导入技能上按 `Enter` 会打开详情视图
+
 ## 技能层级
 
 AgentForge 区分两种技能层级：

@@ -9,9 +9,16 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import type { SkillCategoryUpdateMode } from '../../app/skill-service.js';
-import { normalizeSkillCategories, type SkillMeta } from '../../types.js';
+import {
+  ALL_SKILL_CATEGORY_FILTER,
+  getSkillCategoryCounts,
+  normalizeSkillCategories,
+  skillCategoryEquals,
+  UNCATEGORIZED_SKILL_CATEGORY_FILTER,
+  type SkillMeta,
+} from '../../types.js';
 import type { AppStore } from '../store/index.js';
-import { inkColors, renderFocusPrefix } from '../theme.js';
+import { inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
 import { truncateDisplayText } from '../utils/displayWidth.js';
 
 interface CategoryFormProps {
@@ -33,6 +40,11 @@ interface CategoryResult {
   error?: string;
 }
 
+interface CategoryOption {
+  name: string;
+  count: number;
+}
+
 const MODE_OPTIONS: CategoryModeOption[] = [
   { id: 'set', label: 'Set categories', description: 'Replace categories with the entered list' },
   { id: 'add', label: 'Add categories', description: 'Append entered categories to existing ones' },
@@ -49,6 +61,7 @@ const MODE_OPTIONS: CategoryModeOption[] = [
 ];
 
 const MAX_VISIBLE_RESULT_ROWS = 8;
+const MAX_VISIBLE_CATEGORY_ROWS = 7;
 const FORM_WIDTH = 76;
 const CONTENT_WIDTH = FORM_WIDTH - 4;
 
@@ -80,8 +93,58 @@ function formatCategories(categories: string[]): string {
   return categories.length > 0 ? categories.join(', ') : '(none)';
 }
 
+function formatCategoryOptions(categories: CategoryOption[]): string {
+  return formatCategories(categories.map((category) => category.name));
+}
+
 function truncateText(text: string, maxWidth = CONTENT_WIDTH): string {
   return truncateDisplayText(text, maxWidth);
+}
+
+function getCategoryOptions(skills: Array<Pick<SkillMeta, 'categories'>>): CategoryOption[] {
+  return getSkillCategoryCounts(skills)
+    .filter(
+      (entry) =>
+        entry.key !== ALL_SKILL_CATEGORY_FILTER &&
+        entry.key !== UNCATEGORIZED_SKILL_CATEGORY_FILTER &&
+        entry.count > 0
+    )
+    .map((entry) => ({
+      name: entry.label,
+      count: entry.count,
+    }));
+}
+
+function hasSelectedCategory(selectedCategories: Set<string>, categoryName: string): boolean {
+  return Array.from(selectedCategories).some((selected) =>
+    skillCategoryEquals(selected, categoryName)
+  );
+}
+
+function getCategoryViewport<T>(
+  items: T[],
+  focusedIndex: number,
+  maxVisible: number
+): { visibleItems: T[]; startIndex: number; hiddenAboveCount: number; hiddenBelowCount: number } {
+  if (items.length <= maxVisible) {
+    return {
+      visibleItems: items,
+      startIndex: 0,
+      hiddenAboveCount: 0,
+      hiddenBelowCount: 0,
+    };
+  }
+
+  const halfWindow = Math.floor(maxVisible / 2);
+  const maxStart = Math.max(items.length - maxVisible, 0);
+  const startIndex = Math.min(Math.max(focusedIndex - halfWindow, 0), maxStart);
+
+  return {
+    visibleItems: items.slice(startIndex, startIndex + maxVisible),
+    startIndex,
+    hiddenAboveCount: startIndex,
+    hiddenBelowCount: Math.max(items.length - startIndex - maxVisible, 0),
+  };
 }
 
 export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
@@ -91,7 +154,13 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
   const isVisible = formState?.formType === 'categorizeSkills';
   const [phase, setPhase] = useState<CategoryPhase>('select-mode');
   const [modeIndex, setModeIndex] = useState(0);
+  const [categoryFocusIndex, setCategoryFocusIndex] = useState(0);
+  const [selectedExistingCategories, setSelectedExistingCategories] = useState<Set<string>>(
+    new Set()
+  );
+  const [categoryInputFocused, setCategoryInputFocused] = useState(false);
   const [categoryInput, setCategoryInput] = useState('');
+  const [categoryWarning, setCategoryWarning] = useState('');
   const [results, setResults] = useState<CategoryResult[]>([]);
 
   const requestedSkillNames = useMemo(
@@ -113,26 +182,101 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
     [categoryInput]
   );
 
-  const knownCategories = useMemo(() => {
-    const categorySet = new Set<string>();
-    for (const skill of targetSkills) {
-      for (const category of skill.categories) {
-        categorySet.add(category);
-      }
-    }
-    return Array.from(categorySet).sort((left, right) =>
-      left.localeCompare(right, 'en', { sensitivity: 'base' })
-    );
-  }, [targetSkills]);
+  const globalCategoryOptions = useMemo(() => getCategoryOptions(skills), [skills]);
+  const targetCategoryOptions = useMemo(() => getCategoryOptions(targetSkills), [targetSkills]);
+  const categoryOptions =
+    activeMode.id === 'remove' ? targetCategoryOptions : globalCategoryOptions;
+  const selectedCategoryList = useMemo(
+    () => normalizeSkillCategories(Array.from(selectedExistingCategories)),
+    [selectedExistingCategories]
+  );
+  const combinedCategories = useMemo(
+    () => normalizeSkillCategories([...selectedCategoryList, ...normalizedInputCategories]),
+    [normalizedInputCategories, selectedCategoryList]
+  );
+  const canContinueCategoryEdit = combinedCategories.length > 0;
+  const categoryViewport = getCategoryViewport(
+    categoryOptions,
+    categoryFocusIndex,
+    MAX_VISIBLE_CATEGORY_ROWS
+  );
 
   useEffect(() => {
     if (!isVisible) return;
     setPhase('select-mode');
     setModeIndex(0);
+    setCategoryFocusIndex(0);
+    setSelectedExistingCategories(new Set());
+    setCategoryInputFocused(false);
     setCategoryInput('');
+    setCategoryWarning('');
     setResults([]);
     store.getState().setFormDirty(false);
   }, [isVisible, formState?.data.skillNames, store]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    setCategoryFocusIndex((current) => {
+      if (categoryOptions.length === 0) return 0;
+      return Math.min(current, categoryOptions.length - 1);
+    });
+
+    setSelectedExistingCategories((current) => {
+      const next = new Set(
+        Array.from(current).filter((selected) =>
+          categoryOptions.some((option) => skillCategoryEquals(option.name, selected))
+        )
+      );
+      return next.size === current.size ? current : next;
+    });
+  }, [categoryOptions, isVisible]);
+
+  function resetCategoryEditState(): void {
+    setCategoryFocusIndex(0);
+    setSelectedExistingCategories(new Set());
+    setCategoryInputFocused(false);
+    setCategoryInput('');
+    setCategoryWarning('');
+    store.getState().setFormDirty(false);
+  }
+
+  function toggleFocusedCategory(): void {
+    const focusedCategory = categoryOptions[categoryFocusIndex];
+    if (!focusedCategory) {
+      setCategoryWarning(
+        activeMode.id === 'remove'
+          ? 'No removable categories are available; press n to type one.'
+          : 'No existing categories yet; press n to type a new one.'
+      );
+      return;
+    }
+
+    setSelectedExistingCategories((current) => {
+      const next = new Set(current);
+      const existing = Array.from(next).find((selected) =>
+        skillCategoryEquals(selected, focusedCategory.name)
+      );
+      if (existing) {
+        next.delete(existing);
+      } else {
+        next.add(focusedCategory.name);
+      }
+      store.getState().setFormDirty(next.size > 0 || categoryInput.trim().length > 0);
+      return next;
+    });
+    setCategoryWarning('');
+  }
+
+  function continueFromCategoryEdit(): void {
+    if (!canContinueCategoryEdit) {
+      setCategoryWarning('Select an existing category or press n to type one.');
+      return;
+    }
+
+    setCategoryWarning('');
+    setPhase('confirm');
+  }
 
   useInput(
     (_input, key) => {
@@ -154,6 +298,7 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
           return;
         }
         if (key.return) {
+          resetCategoryEditState();
           if (activeMode.id === 'clear') {
             setPhase('confirm');
           } else {
@@ -164,7 +309,46 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
       }
 
       if (phase === 'edit-categories') {
+        if (categoryInputFocused) {
+          if (key.return) {
+            continueFromCategoryEdit();
+          }
+          return;
+        }
+
+        if (key.upArrow) {
+          setCategoryFocusIndex((current) =>
+            categoryOptions.length === 0
+              ? 0
+              : current > 0
+                ? current - 1
+                : categoryOptions.length - 1
+          );
+          setCategoryWarning('');
+          return;
+        }
+        if (key.downArrow) {
+          setCategoryFocusIndex((current) =>
+            categoryOptions.length === 0
+              ? 0
+              : current < categoryOptions.length - 1
+                ? current + 1
+                : 0
+          );
+          setCategoryWarning('');
+          return;
+        }
+        if (_input === ' ') {
+          toggleFocusedCategory();
+          return;
+        }
+        if (_input === 'n') {
+          setCategoryInputFocused(true);
+          setCategoryWarning('');
+          return;
+        }
         if (key.return) {
+          continueFromCategoryEdit();
           return;
         }
         return;
@@ -177,7 +361,7 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
           .categorizeSkills(
             requestedSkillNames,
             activeMode.id,
-            activeMode.id === 'clear' ? [] : normalizedInputCategories
+            activeMode.id === 'clear' ? [] : combinedCategories
           )
           .then((nextResults) => {
             setResults(nextResults);
@@ -208,6 +392,31 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
         </Text>
         <Text bold={isFocused}>{truncateText(option.label, 24)}</Text>
         <Text color={inkColors.muted}> - {truncateText(option.description, 44)}</Text>
+      </Text>
+    );
+  });
+
+  const categoryRows = categoryViewport.visibleItems.map((option, visibleIndex) => {
+    const absoluteIndex = categoryViewport.startIndex + visibleIndex;
+    const isFocused = absoluteIndex === categoryFocusIndex && !categoryInputFocused;
+    const isSelected = hasSelectedCategory(selectedExistingCategories, option.name);
+    const marker = isSelected ? selectionMarkers.selected : selectionMarkers.unselected;
+    const label = truncateText(`${marker} ${option.name} (${option.count})`, CONTENT_WIDTH - 4);
+
+    return (
+      <Text key={option.name}>
+        <Text color={isFocused ? inkColors.accent : inkColors.muted}>
+          {renderFocusPrefix(isFocused)}
+        </Text>
+        <Text
+          color={
+            isFocused ? inkColors.focusText : isSelected ? inkColors.accent : inkColors.primary
+          }
+          backgroundColor={isFocused ? inkColors.paper : undefined}
+          bold={isFocused || isSelected}
+        >
+          {label}
+        </Text>
       </Text>
     );
   });
@@ -248,7 +457,7 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
         {truncateText(`Selected: ${requestedSkillNames.join(', ')}`)}
       </Text>
       <Text color={inkColors.muted}>
-        {truncateText(`Existing categories: ${formatCategories(knownCategories)}`)}
+        {truncateText(`Available categories: ${formatCategoryOptions(categoryOptions)}`)}
       </Text>
       <Text> </Text>
 
@@ -266,27 +475,68 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
         <>
           <Text>
             <Text bold>{activeMode.label}</Text>
+            <Text color={inkColors.muted}> - select existing or add new</Text>
+          </Text>
+          <Text color={inkColors.muted}>
+            {activeMode.id === 'remove'
+              ? 'Showing categories currently used by the selected skill(s).'
+              : 'Showing categories from the full skill library.'}
+          </Text>
+          <Text> </Text>
+
+          {categoryViewport.hiddenAboveCount > 0 && (
+            <Text dimColor>^ {categoryViewport.hiddenAboveCount} more above</Text>
+          )}
+          {categoryRows.length > 0 ? (
+            categoryRows
+          ) : (
+            <Text dimColor>
+              {activeMode.id === 'remove'
+                ? 'No removable categories on the selected skill(s).'
+                : 'No existing categories yet.'}
+            </Text>
+          )}
+          {categoryViewport.hiddenBelowCount > 0 && (
+            <Text dimColor>v {categoryViewport.hiddenBelowCount} more below</Text>
+          )}
+          <Text> </Text>
+
+          <Text color={categoryInputFocused ? inkColors.accent : inkColors.muted}>
+            New categories
             <Text color={inkColors.muted}> - comma separated</Text>
           </Text>
-          <Box borderStyle="single" borderColor={inkColors.muted} paddingX={1}>
-            <TextInput
-              value={categoryInput}
-              onChange={(value): void => {
-                setCategoryInput(value);
-                store.getState().setFormDirty(value.trim().length > 0);
-              }}
-              onSubmit={(): void => {
-                setPhase('confirm');
-              }}
-              placeholder="research, docs, frontend"
-              focus={true}
-            />
+          <Box
+            borderStyle="single"
+            borderColor={categoryInputFocused ? inkColors.borderActive : inkColors.muted}
+            paddingX={1}
+          >
+            {categoryInputFocused ? (
+              <TextInput
+                value={categoryInput}
+                onChange={(value): void => {
+                  setCategoryInput(value);
+                  setCategoryWarning('');
+                  store
+                    .getState()
+                    .setFormDirty(value.trim().length > 0 || selectedExistingCategories.size > 0);
+                }}
+                onSubmit={continueFromCategoryEdit}
+                placeholder="research, docs, frontend"
+                focus={true}
+              />
+            ) : (
+              <Text color={categoryInput ? inkColors.primary : inkColors.muted}>
+                {truncateText(categoryInput || 'Press n to type new categories')}
+              </Text>
+            )}
           </Box>
-          <Text> </Text>
           <Text color={inkColors.muted}>
-            {truncateText(`Parsed: ${formatCategories(normalizedInputCategories)}`)}
+            {truncateText(`Selected: ${formatCategories(combinedCategories)}`)}
           </Text>
-          <Text dimColor>Enter:Continue Esc:Cancel</Text>
+          {categoryWarning && (
+            <Text color={inkColors.warning}>{truncateText(categoryWarning)}</Text>
+          )}
+          <Text dimColor>Up/Down:Move Space:Select n:New Enter:Continue Esc:Cancel</Text>
         </>
       )}
 
@@ -297,9 +547,7 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
           <Text color={inkColors.muted}>
             {truncateText(
               `Categories: ${
-                activeMode.id === 'clear'
-                  ? '(clear all)'
-                  : formatCategories(normalizedInputCategories)
+                activeMode.id === 'clear' ? '(clear all)' : formatCategories(combinedCategories)
               }`
             )}
           </Text>

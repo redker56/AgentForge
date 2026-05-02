@@ -249,6 +249,7 @@ af update [skill-name]
 
 - `[` / `]`: Switch category filter in the Skills tab
 - `c`: Open category editor for the selected skill(s)
+- Category editor: select existing categories with `Space`, or press `n` to type new categories
 - Skills tab category bar: browse `All`, `Uncategorized`, and every defined category
 
 ### TUI Context Skill Lists
