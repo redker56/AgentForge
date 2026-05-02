@@ -58,6 +58,15 @@ af list agents
 # 列出已注册项目
 af list projects
 
+# 列出技能分类和数量
+af list categories
+
+# 按分类筛选技能
+af list skills --category design
+
+# 只显示未分类技能
+af list skills --uncategorized
+
 # 查看技能详情
 af show skills <name>
 
@@ -108,6 +117,7 @@ af add projects my-project /path/to/project
 #### af add skills 特性
 
 - **单技能仓库**：自动识别并直接安装
+- **根目录技能仓库**：支持 `SKILL.md` 位于仓库根目录的仓库
 - **多技能仓库**：自动扫描所有包含 `SKILL.md` 的目录，并支持交互式多选安装
 - **指定子目录**：支持 `/tree/` URL 格式，可直接从指定子目录安装技能
 - **安装后检测**：如果 Agent 目录中已存在同名技能，会自动关联或提示你如何处理
@@ -210,13 +220,28 @@ af remove agents <agent-id>
 ### 其他命令
 
 ```bash
+# 设置技能分类
+af categorize skills <skill-name> design frontend
+
+# 批量为多个技能设置分类
+af categorize skills --skills docx xlsx pptx --categories office files
+
+# 在不替换现有分类的情况下追加分类
+af categorize skills <skill-name> docs --add
+
+# 移除指定分类
+af categorize skills <skill-name> docs --remove
+
+# 清空所有分类
+af categorize skills <skill-name> --clear
+
 # 启用 shell 自动补全
 af completion --install
 
 # 仅输出补全脚本，不安装
 af completion bash
 
-# 更新技能（从 Git 拉取）
+# 更新技能（从 Git 来源刷新并重新同步）
 af update [skill-name]
 ```
 
@@ -372,6 +397,12 @@ af completion --install
 `-- registry.json     # 注册信息
 ```
 
+## 架构说明
+
+- `cli.ts` 和 `tui.ts` 负责组装具体基础设施，并将其注入 app 层，而不是从全局单例读取。
+- TUI 通过 `WorkbenchQueries` 和 `WorkbenchCommands` 与 app 层交互，并把交互状态保存在 feature-local Zustand slices 中。
+- Registry 持久化通过 `RegistryRepository` 建模，项目级 `.agentforge.json` 状态通过 `ProjectStateRepository` 建模。
+
 ## 开发
 
 ```bash
@@ -384,8 +415,13 @@ npm run build
 # 测试
 npm test
 
+# 运行时依赖安全审计
+npm run audit:prod
+
 # 发布前完整校验
 npm run verify
+# 与 CI 完整校验同名的显式命令
+npm run verify:ci
 ```
 
 ## 许可证

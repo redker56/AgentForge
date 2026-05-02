@@ -37,15 +37,14 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ### Added
 
-- a formal workbench app facade with `WorkbenchQueries` and `WorkbenchCommands` so the TUI consumes stable view models and actions instead of reaching into service internals
-- repository interfaces for persisted state (`RegistryRepository` and `ProjectStateRepository`) to replace direct singleton-style storage coupling
-- feature-local TUI state and input routing modules for shell, browser, overlay, and workflow interactions, plus focused regression coverage for workflow transitions and input dispatch
+- more reliable TUI navigation across shell, browser, overlay, and multi-step screens
+- consistent workbench data views for skills, agents, projects, imports, updates, and sync previews
+- safer persisted-state handling for registry and project-local sync metadata
 
 ### Changed
 
-- reorganized the TUI around explicit shell, browser, and workflow responsibilities, reducing `useInput.ts` to a router instead of a monolithic interaction state machine
-- moved skill, agent, and project workbench row assembly plus import/update/sync orchestration into the app/store layers so presentation components stay state-driven
-- refreshed the contributor-facing docs and CI/release workflow wiring to match the new workbench architecture and packaging flow
+- TUI forms now keep form state outside presentation components, improving consistency when moving between steps
+- skill, agent, and project detail screens now use the same row, section, badge, and filter logic across tabs
 
 ### Fixed
 
@@ -57,9 +56,9 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ### Added
 
-- an Ink-based TUI for browsing and managing skills, agents, projects, sync workflows, and imports from a single interactive interface
+- an Ink-based TUI for browsing and managing skills, agents, projects, sync flows, and imports from a single interactive interface
 - local skill categories with CLI and TUI flows for assigning, filtering, and browsing categorized or uncategorized skills
-- structured TUI update workflows for selected skills and all Git-backed skills, including preview, execution, and result states
+- structured TUI update flows for selected skills and all Git-backed skills, including preview, execution, and result states
 - project-level unsync flows in the TUI with project and agent-type targeting instead of agent-only removal
 - contextual skill workbenches in the Agents and Projects tabs with `All`, `Imported`, and `Unimported` views plus direct import, unsync, update, and categorize actions
 - reconcile support that refreshes persisted AgentForge skill metadata from the managed library on startup and reload
@@ -69,8 +68,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 - redesigned the TUI around a cohesive Anthropic-inspired visual language with clearer hierarchy, stronger focus states, and more discoverable action hints
 - clarified and expanded TUI affordances for update, unsync, categorize, search, and contextual skill actions in the help overlay, status bar, and screen summaries
-- tightened architecture boundaries, linting, and test coverage across the CLI and TUI layers
-- raised the supported runtime to Node.js 20 and aligned CI and release automation with the actual dependency requirements
+- raised the supported runtime to Node.js 20 to match current dependency requirements
 
 ### Fixed
 
@@ -87,14 +85,11 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 - reuse the scanned temporary clone during `af add skills` so installing a discovered skill does not reclone the same repository
 - detect repositories with a root-level `SKILL.md` and install them correctly as single-skill repositories
-- make the packed CLI smoke test validate the tarball for the current package version instead of reusing an older archive
 
 ### Changed
 
 - clarify release wording and built-in agent naming copy in the docs
 - document root-level skill repository support in the installation guide
-- let the release workflow fall back to npm trusted publishing when `NPM_TOKEN` is not configured
-- align package repository metadata with the exact GitHub repository casing used for release provenance
 
 ## [0.1.0] - 2026-03-28
 
@@ -106,7 +101,3 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 - interactive add, import, list, show, sync, unsync, remove, update, and completion commands
 - JSON registry storage and project-local sync metadata
 - opt-in shell completion installation that does not auto-write shell config during npm install
-- clean-build release verification and tarball smoke testing
-- GitHub community health files: contributing guide, code of conduct, security policy, issue templates, and PR template
-- Windows package smoke testing in CI
-- tag-driven release workflow for npm and GitHub Releases
