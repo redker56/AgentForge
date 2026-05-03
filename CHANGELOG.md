@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning as closely as practical during `0.x`.
 
+## [0.2.5] - 2026-05-04
+
+### Added
+
+- TUI language preference with automatic system-language detection plus an in-app language selector
+- Chinese TUI copy across navigation, forms, help, sync, import, update, search, and destructive confirmation flows
+
+### Changed
+
+- command palette now focuses on language switching while the rest of the TUI keeps direct keyboard actions in context
+- Chinese TUI keeps `Skill` as the product term instead of translating it
+
+### Fixed
+
+- localize footer hints, help rows, update previews, progress messages, breadcrumbs, and sync or unsync result text in Chinese mode
+- make documented Home and End navigation work across TUI lists and context lists
+
 ## [0.2.4] - 2026-05-02
 
 ### Added
