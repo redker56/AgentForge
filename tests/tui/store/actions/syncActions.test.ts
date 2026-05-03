@@ -6,6 +6,7 @@ import path from 'path';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getTuiText } from '../../../../src/tui/i18n.js';
 import {
   createSyncActions,
   doImportFromProject,
@@ -236,6 +237,37 @@ describe('createSyncActions', () => {
       expect(store.getState().shellState.activeToast?.variant).toBe('success');
     });
 
+    it('uses localized copy for Chinese unsync progress, skipped reasons, and toast', async () => {
+      store.setState((state) => ({
+        shellState: {
+          ...state.shellState,
+          locale: 'zh',
+        },
+      }));
+      const actions = createSyncActions(store, mockCtx);
+      await loadSkillDetails([
+        createMockSkill({
+          name: 'skill1',
+          syncedTo: [{ agentId: 'claude', mode: 'copy' }],
+        }),
+      ]);
+
+      vi.mocked(mockCtx.syncService.unsync).mockResolvedValue();
+
+      await actions.unsyncFromAgents(['skill1'], ['claude', 'codex']);
+
+      expect(store.getState().shellState.updateProgressItems[0]?.label).toBe(
+        '从 claude 取消同步 skill1'
+      );
+      expect(store.getState().syncWorkflowState.results).toContainEqual({
+        target: 'skill1 -> codex',
+        success: false,
+        error: '未同步到此 Agent',
+        outcome: 'skipped',
+      });
+      expect(store.getState().shellState.activeToast?.message).toBe('1 个已取消同步，1 个已跳过');
+    });
+
     it('pushes error toast when unsync fails', async () => {
       const actions = createSyncActions(store, mockCtx);
       await loadSkillDetails([
@@ -429,6 +461,54 @@ describe('createSyncActions', () => {
       await promise;
 
       expect(store.getState().shellState.activeToast?.message).toContain('updated');
+    });
+
+    it('uses localized copy for Chinese update progress and toast', async () => {
+      const text = getTuiText('zh').updateForm;
+      store.setState((state) => ({
+        shellState: {
+          ...state.shellState,
+          locale: 'zh',
+        },
+      }));
+      const actions = createSyncActions(store, mockCtx);
+      const mockSkill = createMockSkill({
+        name: 'skill1',
+        source: { type: 'git', url: 'https://example.com/repo' },
+      });
+
+      vi.mocked(mockCtx.storage.getSkill).mockReturnValue(mockSkill);
+      await refreshSkills([mockSkill]);
+
+      let resolveUpdate:
+        | ((value: Array<{ skillName: string; sourceType: 'git'; outcome: 'updated' }>) => void)
+        | undefined;
+      vi.mocked(mockCtx.commands.updateSkills).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveUpdate = resolve;
+          })
+      );
+
+      const promise = actions.updateSkills(['skill1']);
+
+      expect(store.getState().shellState.updateProgressItems).toEqual([
+        expect.objectContaining({
+          id: 'update-skill1',
+          label: text.updatingProgress('skill1'),
+          status: 'running',
+          progress: 30,
+        }),
+      ]);
+      expect(store.getState().shellState.updateProgressItems[0]?.label).not.toBe('Updating skill1');
+
+      resolveUpdate?.([{ skillName: 'skill1', sourceType: 'git', outcome: 'updated' }]);
+      await promise;
+
+      expect(store.getState().shellState.updateProgressItems[0]?.label).toBe(
+        text.updatedProgress('skill1')
+      );
+      expect(store.getState().shellState.activeToast?.message).toBe(text.toastUpdated(1, 0));
     });
 
     it('pushes error toast on update failure', async () => {

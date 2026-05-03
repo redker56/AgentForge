@@ -268,4 +268,21 @@ describe('StatusBar', () => {
     expect(frame).not.toContain('projectsEsc:Back');
     expect(frame).toMatch(/projects +Esc/);
   });
+
+  it('localizes global search, help, and quit hints in Chinese mode', async () => {
+    const { StatusBar } = await import('../../../src/tui/components/StatusBar.js');
+    const store = createMockStore({ activeTab: 'sync', locale: 'zh' });
+
+    const { lastFrame } = render(
+      <StatusBar store={store as never} band="widescreen" columns={100} />
+    );
+    const frame = (lastFrame() ?? '').replace(/\s+/g, '');
+
+    expect(frame).toContain('/:搜索');
+    expect(frame).toContain('?:帮助');
+    expect(frame).toContain('q:退出');
+    expect(frame).not.toContain('/:Search');
+    expect(frame).not.toContain('?:Help');
+    expect(frame).not.toContain('q:Quit');
+  });
 });

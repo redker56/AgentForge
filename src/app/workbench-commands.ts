@@ -2,7 +2,7 @@ import os from 'os';
 import path from 'path';
 
 import type { RegistryRepository } from '../infra/registry-repository.js';
-import type { SyncMode, SkillMeta } from '../types.js';
+import type { SyncMode, SkillMeta, TuiLanguagePreference } from '../types.js';
 
 import type { FileOperationsService } from './file-operations.js';
 import type { ScanService } from './scan-service.js';
@@ -584,5 +584,9 @@ export class DefaultWorkbenchCommands implements WorkbenchCommands {
     const addedAt = snapshot.addedAt as string | undefined;
     if (!id || !projectPath) return;
     this.storage.addProject(id, projectPath, addedAt);
+  }
+
+  setTuiLanguagePreference(preference: TuiLanguagePreference): void {
+    this.storage.updateSettings({ tuiLanguage: preference });
   }
 }

@@ -176,6 +176,24 @@ describe('createSkillActions', () => {
       expect(state.shellState.activeToast?.message).toContain('success-skill');
       expect(state.shellState.activeToast?.variant).toBe('success');
     });
+
+    it('localizes install toast in Chinese mode', async () => {
+      store.setState((state) => ({
+        shellState: {
+          ...state.shellState,
+          locale: 'zh',
+        },
+      }));
+      const actions = createSkillActions(store, mockCtx);
+
+      vi.mocked(mockCtx.skillService.install).mockResolvedValue('success-skill');
+      vi.mocked(mockCtx.syncCheck.detectConflicts).mockReturnValue([]);
+      vi.mocked(mockCtx.skillService.list).mockReturnValue([]);
+
+      await actions.addSkillFromUrl('https://github.com/example/repo.git', 'success-skill');
+
+      expect(store.getState().shellState.activeToast?.message).toBe("Skill 'success-skill' 已安装");
+    });
   });
 
   describe('addSkillFromDiscovery', () => {

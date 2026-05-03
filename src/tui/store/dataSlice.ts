@@ -104,7 +104,7 @@ export function createDataSlice(
     agents: [],
     projects: [],
     skillDetails: {},
-    loading: { skills: false, agents: false, projects: false },
+    loading: { skills: true, agents: true, projects: true },
     error: null,
     agentDetails: {},
     projectDetails: {},

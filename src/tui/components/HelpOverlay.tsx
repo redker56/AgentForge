@@ -5,8 +5,10 @@
 
 import { Box, Text } from 'ink';
 import React from 'react';
+import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
 
@@ -14,7 +16,10 @@ interface HelpOverlayProps {
   store: StoreApi<AppStore>;
 }
 
-export function HelpOverlay({ store: _store }: HelpOverlayProps): React.ReactElement {
+export function HelpOverlay({ store }: HelpOverlayProps): React.ReactElement {
+  const locale = useStore(store, (s) => s.shellState.locale);
+  const text = getTuiText(locale);
+
   return (
     <Box flexDirection="column" alignItems="center" justifyContent="center" height="100%">
       <Box
@@ -25,44 +30,42 @@ export function HelpOverlay({ store: _store }: HelpOverlayProps): React.ReactEle
         borderColor={inkColors.borderActive}
       >
         <Text bold color={inkColors.accent}>
-          Keyboard Shortcuts
+          {text.help.title}
         </Text>
-        <Text color={inkColors.muted}>Warm desk controls for the full AgentForge TUI.</Text>
+        <Text color={inkColors.muted}>{text.help.subtitle}</Text>
 
         <Text> </Text>
         <Text bold color={inkColors.accent}>
-          Navigation
+          {text.help.navigation}
         </Text>
-        <Text color={inkColors.muted}> Left/Right Previous/next tab</Text>
-        <Text color={inkColors.muted}> 1-5 Jump to tab</Text>
-        <Text color={inkColors.muted}> Up/Down Move focus</Text>
-        <Text color={inkColors.muted}> Home/End Jump to start/end</Text>
+        {text.help.rows.slice(0, 4).map((row) => (
+          <Text color={inkColors.muted} key={row}>
+            {row}
+          </Text>
+        ))}
 
         <Text> </Text>
         <Text bold color={inkColors.accent}>
-          Selection
+          {text.help.selection}
         </Text>
-        <Text color={inkColors.muted}> Space Toggle selection</Text>
-        <Text color={inkColors.muted}> Enter Open list / detail / execute</Text>
-        <Text color={inkColors.muted}> Esc Back from detail or context list</Text>
+        {text.help.rows.slice(4, 7).map((row) => (
+          <Text color={inkColors.muted} key={row}>
+            {row}
+          </Text>
+        ))}
 
         <Text> </Text>
         <Text bold color={inkColors.accent}>
-          Actions
+          {text.help.actions}
         </Text>
-        <Text color={inkColors.muted}> / Open search</Text>
-        <Text color={inkColors.muted}> ? Toggle this help</Text>
-        <Text color={inkColors.muted}> i Import visible context skill(s)</Text>
-        <Text color={inkColors.muted}> c Categorize selected skill(s)</Text>
-        <Text color={inkColors.muted}> [ / ] Previous/next category or context filter</Text>
-        <Text color={inkColors.muted}> u Update selected skill(s)</Text>
-        <Text color={inkColors.muted}> U Update all git-backed skills</Text>
-        <Text color={inkColors.muted}> x Unsync selected skill(s)</Text>
-        <Text color={inkColors.muted}> R Refresh all data</Text>
-        <Text color={inkColors.muted}> q Quit</Text>
+        {text.help.rows.slice(7).map((row) => (
+          <Text color={inkColors.muted} key={row}>
+            {row}
+          </Text>
+        ))}
 
         <Text> </Text>
-        <Text color={inkColors.muted}>Press Esc or ? to close</Text>
+        <Text color={inkColors.muted}>{text.help.closeHint}</Text>
       </Box>
     </Box>
   );

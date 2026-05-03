@@ -13,6 +13,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
 import { truncateDisplayText } from '../utils/displayWidth.js';
@@ -24,7 +25,6 @@ interface SearchOverlayProps {
 }
 
 const MAX_VISIBLE_RESULTS = 8;
-const SEARCH_HINT = 'Type to search in the current tab';
 
 function truncateText(text: string, maxWidth: number): string {
   return truncateDisplayText(text, maxWidth);
@@ -81,6 +81,8 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
   const projects = useStore(store, (s) => s.projects);
   const searchResultIndex = useStore(store, (s) => s.shellState.searchResultIndex);
   const activeTab = useStore(store, (s) => s.shellState.activeTab);
+  const locale = useStore(store, (s) => s.shellState.locale);
+  const text = getTuiText(locale);
   const overlayWidth = Math.max((stdout?.columns ?? 100) - 4, 24);
   const resultWidth = Math.max(overlayWidth - 2, 20);
   const displayQuery = truncateText(searchQuery || '', Math.max(overlayWidth - 12, 8));
@@ -88,8 +90,8 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
   const searchableSkills =
     activeTab === 'skills' ? getVisibleSkills(skills, activeSkillCategoryFilter) : skills;
   const results = useMemo(
-    () => computeSearchResults(searchQuery, searchableSkills, agents, projects, activeTab),
-    [searchQuery, searchableSkills, agents, projects, activeTab]
+    () => computeSearchResults(searchQuery, searchableSkills, agents, projects, activeTab, locale),
+    [searchQuery, searchableSkills, agents, projects, activeTab, locale]
   );
 
   const clampedIdx = Math.min(searchResultIndex, Math.max(results.length - 1, 0));
@@ -112,17 +114,17 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
   }, [clampedIdx, scrollTop]);
 
   const visibleResults = results.slice(scrollTop, scrollTop + MAX_VISIBLE_RESULTS);
+  const overflowSummary =
+    hasMoreAbove || hasMoreBelow
+      ? ` (${hasMoreAbove ? `^${scrollTop}` : ''}${hasMoreAbove && hasMoreBelow ? ', ' : ''}${
+          hasMoreBelow ? `v${totalResults - scrollTop - visibleResults.length}` : ''
+        })`
+      : '';
   const summaryLine = !searchQuery.trim()
-    ? SEARCH_HINT
+    ? text.search.hint
     : results.length === 0
-      ? `No results for "${searchQuery}"`
-      : `${results.length} result${results.length !== 1 ? 's' : ''} for "${searchQuery}"${
-          hasMoreAbove || hasMoreBelow
-            ? ` (${hasMoreAbove ? `^${scrollTop}` : ''}${hasMoreAbove && hasMoreBelow ? ', ' : ''}${
-                hasMoreBelow ? `v${totalResults - scrollTop - visibleResults.length}` : ''
-              })`
-            : ''
-        }`;
+      ? text.search.noResults(searchQuery)
+      : text.search.summary(results.length, searchQuery, overflowSummary);
   const paddedResults = [
     ...visibleResults,
     ...Array.from({ length: MAX_VISIBLE_RESULTS - visibleResults.length }, () => null),
@@ -151,7 +153,8 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
             : state.skills,
           state.agents,
           state.projects,
-          state.shellState.activeTab
+          state.shellState.activeTab,
+          state.shellState.locale
         );
         const idx = Math.min(
           state.shellState.searchResultIndex,
@@ -193,7 +196,8 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
             : state.skills,
           state.agents,
           state.projects,
-          state.shellState.activeTab
+          state.shellState.activeTab,
+          state.shellState.locale
         );
         const currentIdx = store.getState().shellState.searchResultIndex;
         if (currentIdx < currentResults.length - 1) {
@@ -227,9 +231,9 @@ export function SearchOverlay({ store }: SearchOverlayProps): React.ReactElement
         paddingRight={1}
         borderColor={inkColors.borderActive}
       >
-        <Text color={inkColors.muted}>Search</Text>
+        <Text color={inkColors.muted}>{text.search.title}</Text>
         <Box>
-          <Text color={inkColors.accent}>Query</Text>
+          <Text color={inkColors.accent}>{text.search.query}</Text>
           <Text color={inkColors.muted}> / </Text>
           <Text color={inkColors.primary}>{displayQuery}</Text>
           <Text color={inkColors.accent}>{'\u2588'}</Text>

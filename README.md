@@ -247,6 +247,8 @@ af update [skill-name]
 
 ### TUI Category Shortcuts
 
+The TUI defaults to `Auto (system)`: Chinese locales use Simplified Chinese, and all other locales use English. To override it, open `Ctrl+P` and run `Change language`; the selected language is saved in `~/.agentforge/registry.json`.
+
 - `[` / `]`: Switch category filter in the Skills tab
 - `c`: Open category editor for the selected skill(s)
 - Category editor: select existing categories with `Space`, or press `n` to type new categories

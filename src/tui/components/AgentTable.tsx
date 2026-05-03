@@ -8,8 +8,9 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import { useNavigation } from '../hooks/useNavigation.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
-import { inkColors, renderFocusPrefix, emptyStateText } from '../theme.js';
+import { inkColors, renderFocusPrefix } from '../theme.js';
 import { padDisplayText, truncateDisplayText } from '../utils/displayWidth.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
@@ -25,8 +26,11 @@ function truncateText(text: string, maxWidth: number): string {
 
 export function AgentTable({ store, columns }: AgentTableProps): React.ReactElement {
   const agents = useStore(store, (s) => s.agents);
+  const isLoading = useStore(store, (s) => s.loading?.agents ?? false);
+  const locale = useStore(store, (s) => s.shellState.locale);
   const focusedAgentIndex = useStore(store, (s) => s.agentsBrowserState.focusedIndex);
   const agentSummaries = useStore(store, (s) => s.agentSummaries);
+  const text = getTuiText(locale);
 
   const { visibleItems, scrollTop, hiddenAbove, hiddenBelow } = useNavigation({
     items: agents,
@@ -42,14 +46,14 @@ export function AgentTable({ store, columns }: AgentTableProps): React.ReactElem
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Text bold color={inkColors.accent}>
-        Agents <Text color={inkColors.muted}>({agents.length})</Text>
+        {text.tables.agents} <Text color={inkColors.muted}>({agents.length})</Text>
       </Text>
       <Text color={inkColors.muted}>
-        {padDisplayText('ID', idWidth)}
-        {padDisplayText('Name', nameWidth)}
-        {padDisplayText('Path', pathWidth)}
-        {padDisplayText('Skls', 5)}
-        Proj
+        {padDisplayText(text.tables.id, idWidth)}
+        {padDisplayText(text.tables.name, nameWidth)}
+        {padDisplayText(text.tables.path, pathWidth)}
+        {padDisplayText(text.tables.skillsShort, 5)}
+        {text.tables.projectShort}
       </Text>
       <Text color={inkColors.muted}>{'\u2500'.repeat(Math.max(availableWidth, 10))}</Text>
 
@@ -89,7 +93,11 @@ export function AgentTable({ store, columns }: AgentTableProps): React.ReactElem
         );
       })}
 
-      {agents.length === 0 && <Text color={inkColors.muted}>{emptyStateText.agents}</Text>}
+      {agents.length === 0 && (
+        <Text color={inkColors.muted}>
+          {isLoading ? text.empty.loadingAgents : text.empty.agents}
+        </Text>
+      )}
 
       {hiddenBelow > 0 && visibleItems.length > 0 && (
         <ScrollIndicator

@@ -14,7 +14,7 @@ describe('BreadcrumbBar', () => {
 
   it('returns null when segments is empty', async () => {
     const { BreadcrumbBar } = await import('../../../src/tui/components/BreadcrumbBar.js');
-    const element = React.createElement(BreadcrumbBar, { segments: [] });
+    const element = React.createElement(BreadcrumbBar, { segments: [], label: 'Context' });
     expect(element).not.toBeNull();
     // The component itself returns null when segments are empty
   });
@@ -23,6 +23,7 @@ describe('BreadcrumbBar', () => {
     const { BreadcrumbBar } = await import('../../../src/tui/components/BreadcrumbBar.js');
     const element = React.createElement(BreadcrumbBar, {
       segments: ['Skills', 'Search'],
+      label: 'Context',
     });
     expect(element.type).toBe(BreadcrumbBar);
   });
@@ -31,15 +32,18 @@ describe('BreadcrumbBar', () => {
     const { BreadcrumbBar } = await import('../../../src/tui/components/BreadcrumbBar.js');
     const element = React.createElement(BreadcrumbBar, {
       segments: ['Skills'],
+      label: '上下文',
     });
     expect(element.type).toBe(BreadcrumbBar);
     expect(element.props.segments).toEqual(['Skills']);
+    expect(element.props.label).toBe('上下文');
   });
 
   it('renders with multiple segments joined by >', async () => {
     const { BreadcrumbBar } = await import('../../../src/tui/components/BreadcrumbBar.js');
     const element = React.createElement(BreadcrumbBar, {
       segments: ['Skills', 'Confirm Delete'],
+      label: 'Context',
     });
     expect(element.props.segments).toEqual(['Skills', 'Confirm Delete']);
   });

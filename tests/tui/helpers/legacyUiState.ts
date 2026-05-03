@@ -17,6 +17,10 @@ function defineAlias<T>(state: AnyState, key: string, getter: () => T): void {
 export function withLegacyUiState<T extends AnyState>(state: T): T {
   const shellState = (state.shellState as AnyState | undefined) ?? {
     activeTab: state.activeTab ?? 'skills',
+    locale: state.locale ?? 'en',
+    languagePreference: state.languagePreference ?? 'auto',
+    languageSelectorOpen: state.languageSelectorOpen ?? false,
+    languageSelectorFocusedIndex: state.languageSelectorFocusedIndex ?? 0,
     searchQuery: state.searchQuery ?? '',
     detailOverlayVisible: state.detailOverlayVisible ?? false,
     detailSkillName: state.detailSkillName ?? null,
@@ -97,6 +101,10 @@ export function withLegacyUiState<T extends AnyState>(state: T): T {
   state.importWorkflowState = importWorkflowState;
 
   defineAlias(state, 'activeTab', () => shellState.activeTab);
+  defineAlias(state, 'locale', () => shellState.locale);
+  defineAlias(state, 'languagePreference', () => shellState.languagePreference);
+  defineAlias(state, 'languageSelectorOpen', () => shellState.languageSelectorOpen);
+  defineAlias(state, 'languageSelectorFocusedIndex', () => shellState.languageSelectorFocusedIndex);
   defineAlias(state, 'showSearch', () => shellState.showSearch);
   defineAlias(state, 'showHelp', () => shellState.showHelp);
   defineAlias(state, 'showCommandPalette', () => shellState.showCommandPalette);

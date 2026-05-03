@@ -5,17 +5,10 @@
  * Returns results with match indices for character-level highlighting.
  */
 
+import { getTuiText, type TuiLocale } from '../i18n.js';
 import type { TabId } from '../store/uiSlice.js';
 
 import { fuzzyMatch } from './fuzzy.js';
-
-const TAB_LABELS: Record<TabId, string> = {
-  skills: 'Skills',
-  agents: 'Agents',
-  projects: 'Projects',
-  sync: 'Sync',
-  import: 'Import',
-};
 
 export interface SearchResult {
   name: string;
@@ -30,10 +23,12 @@ export function computeSearchResults(
   skills: Array<{ name: string }>,
   agents: Array<{ id: string; name: string }>,
   projects: Array<{ id: string; path: string }>,
-  activeTab?: TabId
+  activeTab?: TabId,
+  locale: TuiLocale = 'en'
 ): SearchResult[] {
   if (!query.trim()) return [];
 
+  const tabLabels = getTuiText(locale).tabs;
   const searchSkills = !activeTab || activeTab === 'skills';
   const searchAgents = !activeTab || activeTab === 'agents';
   const searchProjects = !activeTab || activeTab === 'projects';
@@ -43,7 +38,7 @@ export function computeSearchResults(
     ? fuzzyMatch(query, skills, (s) => s.name).map((r) => ({
         name: r.item.name,
         tabId: 'skills' as TabId,
-        tabLabel: TAB_LABELS.skills,
+        tabLabel: tabLabels.skills,
         itemId: r.item.name,
         matchIndices: r.matchIndices,
         score: r.score,
@@ -56,7 +51,7 @@ export function computeSearchResults(
         (r) => ({
           name: activeTab === 'agents' ? r.item.name : `${r.item.name} (${r.item.id})`,
           tabId: 'agents' as TabId,
-          tabLabel: TAB_LABELS.agents,
+          tabLabel: tabLabels.agents,
           itemId: r.item.id,
           matchIndices:
             activeTab === 'agents'
@@ -74,7 +69,7 @@ export function computeSearchResults(
       ).map((r) => ({
         name: activeTab === 'projects' ? r.item.id : `${r.item.id} (${r.item.path})`,
         tabId: 'projects' as TabId,
-        tabLabel: TAB_LABELS.projects,
+        tabLabel: tabLabels.projects,
         itemId: r.item.id,
         matchIndices:
           activeTab === 'projects'

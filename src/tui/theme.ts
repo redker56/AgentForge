@@ -87,12 +87,6 @@ export const selectionMarkers = {
   unselected: '[ ]',
 } as const;
 
-export const emptyStateText = {
-  skills: 'No skills installed. Press `a` to add one.',
-  agents: 'No agents registered. Press `a` to add a custom agent.',
-  projects: 'No projects registered. Press `a` to add a project.',
-} as const;
-
 export function renderFocusPrefix(isFocused: boolean): string {
   return isFocused ? '\u258E' : '  ';
 }

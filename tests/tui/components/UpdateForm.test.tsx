@@ -18,6 +18,7 @@ function createMockStore(overrides: Record<string, unknown> = {}) {
         },
       },
       updateProgressItems: [],
+      locale: 'en',
     },
     skills: [
       {
@@ -72,6 +73,41 @@ describe('UpdateForm', () => {
     expect(frame).toContain('Skipped: project-backed');
   });
 
+  it('localizes the update preview in Chinese mode', () => {
+    const store = createMockStore({
+      shellState: {
+        formState: {
+          formType: 'updateSelected' as const,
+          data: {
+            skillNames: JSON.stringify(['git-skill']),
+          },
+        },
+        updateProgressItems: [],
+        locale: 'zh',
+      },
+      skills: [
+        {
+          name: 'git-skill',
+          source: { type: 'git', url: 'https://example.com/repo' },
+          syncedTo: [],
+          createdAt: '2024-01-01T00:00:00.000Z',
+          exists: true,
+        },
+      ],
+    });
+    const { lastFrame } = render(<UpdateForm store={store as never} />);
+    const frame = lastFrame() || '';
+
+    expect(frame).toContain('更新选中 Skill');
+    expect(frame).toContain('1 个请求 | 1 个可更新');
+    expect(frame).toContain('运行更新前预览目标');
+    expect(frame).toContain('[更新] git-skill [git] 将更新并重新同步');
+    expect(frame).toContain('Enter:开始更新 Esc:取消');
+    expect(frame).not.toContain('Update Selected Skills');
+    expect(frame).not.toContain('Preview targets');
+    expect(frame).not.toContain('Will update and re-sync');
+  });
+
   it('shows empty-state close guidance when there are no git-backed skills', () => {
     const store = createMockStore({
       shellState: {
@@ -82,6 +118,7 @@ describe('UpdateForm', () => {
           },
         },
         updateProgressItems: [],
+        locale: 'en',
       },
       skills: [
         {

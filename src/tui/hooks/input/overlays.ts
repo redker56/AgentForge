@@ -76,6 +76,13 @@ export function handleBlockingShellInput(context: InputRouteContext): boolean {
     return true;
   }
 
+  if (state.shellState.languageSelectorOpen) {
+    if (key.escape) {
+      state.setLanguageSelectorOpen(false);
+    }
+    return true;
+  }
+
   if (state.shellState.confirmState) {
     if (key.return) {
       state.shellState.confirmState.onConfirm();

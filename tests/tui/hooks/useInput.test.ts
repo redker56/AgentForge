@@ -33,6 +33,7 @@ function createState(overrides: Record<string, unknown> = {}) {
       toastQueue: [],
       activeToast: null,
       updateProgressItems: [],
+      locale: 'en',
     },
     skillsBrowserState: {
       focusedIndex: 0,
@@ -189,6 +190,9 @@ function createState(overrides: Record<string, unknown> = {}) {
     }),
     moveFocusUp: vi.fn(),
     moveFocusDown: vi.fn(),
+    setFocusedSkillIndex: vi.fn((index: number) => {
+      state.skillsBrowserState.focusedIndex = index;
+    }),
     cycleSkillCategoryFilter: vi.fn(),
     toggleSkillSelection: vi.fn(),
     setFormState: vi.fn(),
@@ -290,6 +294,91 @@ describe('TUI input routing', () => {
 
     expect(handled).toBe(true);
     expect(state.setShowCommandPalette).toHaveBeenCalledWith(true);
+  });
+
+  it('skills tab Home and End jump to the first and last visible Skill', () => {
+    const state = createState();
+    state.skills = [
+      { name: 'first', categories: [], source: { type: 'git', url: 'https://example.com/a.git' } },
+      { name: 'second', categories: [], source: { type: 'git', url: 'https://example.com/b.git' } },
+      { name: 'third', categories: [], source: { type: 'git', url: 'https://example.com/c.git' } },
+    ];
+    state.skillsBrowserState.focusedIndex = 1;
+
+    expect(routeActiveTabInput(createContext(state, '', { home: true }))).toBe(true);
+    expect(state.setFocusedSkillIndex).toHaveBeenCalledWith(0);
+
+    expect(routeActiveTabInput(createContext(state, '', { end: true }))).toBe(true);
+    expect(state.setFocusedSkillIndex).toHaveBeenCalledWith(2);
+  });
+
+  it('localizes destructive confirmations in Chinese mode', () => {
+    const state = createState();
+    state.shellState.locale = 'zh';
+
+    expect(routeActiveTabInput(createContext(state, 'd'))).toBe(true);
+
+    expect(state.setConfirmState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '删除 1 个 Skill',
+        message: '将移除 1 个用户级同步和 1 个项目同步。磁盘上的文件也会被删除。',
+      })
+    );
+  });
+
+  it('agents tab Home and End jump within master and context Skill lists', () => {
+    const state = createState();
+    state.shellState.activeTab = 'agents';
+    state.agents = [
+      { id: 'codex', name: 'Codex', basePath: '/agents/codex', skillsDirName: 'agents' },
+      { id: 'custom', name: 'Custom', basePath: '/agents/custom', skillsDirName: 'custom' },
+    ];
+    state.agentsBrowserState.focusedIndex = 0;
+
+    expect(routeActiveTabInput(createContext(state, '', { end: true }))).toBe(true);
+    expect(state.setFocusedAgentIndex).toHaveBeenCalledWith(1);
+
+    state.agentsBrowserState.focusedIndex = 0;
+    state.agentsBrowserState.viewMode = 'skills';
+    state.agentDetails.codex.sections[0].rows.push({
+      rowId: 'row-agent-skill-2',
+      name: 'second-skill',
+      registrySkillName: 'second-skill',
+      syncMode: 'copy',
+      isImported: true,
+    });
+    state.agentsBrowserState.focusedSkillIndex = 1;
+
+    expect(routeActiveTabInput(createContext(state, '', { home: true }))).toBe(true);
+    expect(state.setFocusedAgentSkillIndex).toHaveBeenCalledWith(0);
+  });
+
+  it('projects tab Home and End jump within master and context Skill lists', () => {
+    const state = createState();
+    state.shellState.activeTab = 'projects';
+    state.projects = [
+      { id: 'proj-1', path: '/projects/one', addedAt: '2026-04-18' },
+      { id: 'proj-2', path: '/projects/two', addedAt: '2026-04-19' },
+    ];
+    state.projectsBrowserState.focusedIndex = 0;
+
+    expect(routeActiveTabInput(createContext(state, '', { end: true }))).toBe(true);
+    expect(state.setFocusedProjectIndex).toHaveBeenCalledWith(1);
+
+    state.projectsBrowserState.focusedIndex = 0;
+    state.projectsBrowserState.viewMode = 'skills';
+    state.projectDetails['proj-1'].sections[0].rows.push({
+      rowId: 'row-project-skill-2',
+      name: 'second-skill',
+      registrySkillName: 'second-skill',
+      projectId: 'proj-1',
+      agentId: 'codex',
+      isImported: true,
+    });
+    state.projectsBrowserState.focusedSkillIndex = 0;
+
+    expect(routeActiveTabInput(createContext(state, '', { end: true }))).toBe(true);
+    expect(state.setFocusedProjectSkillIndex).toHaveBeenCalledWith(1);
   });
 
   it('skills tab x routes unsync through scope selection instead of executing immediately', () => {

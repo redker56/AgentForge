@@ -5,6 +5,7 @@
 import type { StateCreator, StoreApi } from 'zustand';
 
 import type { SyncMode } from '../../../types.js';
+import { getTuiText } from '../../i18n.js';
 import type { AppStore } from '../index.js';
 import type { OperationResult, ProgressItem, UpdateResult } from '../uiSlice.js';
 import type { WorkbenchContext } from '../workbenchContext.js';
@@ -57,8 +58,11 @@ function queueProgressClear(store: StoreApi<AppStore>, delayMs = 2000): void {
 function pushOperationToast(
   store: StoreApi<AppStore>,
   results: OperationResult[],
-  successLabel: string
+  operation: 'synced' | 'unsynced'
 ): void {
+  const state = store.getState();
+  const text = getTuiText(state.shellState.locale);
+  const successLabel = operation === 'synced' ? text.sync.synced : text.sync.unsynced;
   const successCount = results.filter(
     (r) => (r.outcome ?? (r.success ? 'success' : 'error')) === 'success'
   ).length;
@@ -68,43 +72,42 @@ function pushOperationToast(
   ).length;
 
   if (errorCount > 0) {
-    const extra = skippedCount > 0 ? `, ${skippedCount} skipped` : '';
-    store
-      .getState()
-      .pushToast(`${errorCount} failed, ${successCount} ${successLabel}${extra}`, 'error');
+    state.pushToast(
+      text.sync.toastFailure(errorCount, successCount, successLabel, skippedCount),
+      'error'
+    );
     return;
   }
 
   if (successCount > 0) {
-    const extra = skippedCount > 0 ? `, ${skippedCount} skipped` : '';
-    store.getState().pushToast(`${successCount} ${successLabel}${extra}`, 'success');
+    state.pushToast(text.sync.toastOperation(successCount, successLabel, skippedCount), 'success');
     return;
   }
 
   if (skippedCount > 0) {
-    store.getState().pushToast(`${skippedCount} skipped`, 'info');
+    state.pushToast(`${skippedCount} ${text.common.skipped}`, 'info');
   }
 }
 
 function pushUpdateToast(store: StoreApi<AppStore>, results: UpdateResult[]): void {
+  const state = store.getState();
+  const text = getTuiText(state.shellState.locale);
   const updatedCount = results.filter((r) => r.outcome === 'updated').length;
   const skippedCount = results.filter((r) => r.outcome === 'skipped').length;
   const errorCount = results.filter((r) => r.outcome === 'error').length;
 
   if (errorCount > 0) {
-    const extra = skippedCount > 0 ? `, ${skippedCount} skipped` : '';
-    store.getState().pushToast(`${errorCount} failed, ${updatedCount} updated${extra}`, 'error');
+    state.pushToast(text.updateForm.toastFailed(errorCount, updatedCount, skippedCount), 'error');
     return;
   }
 
   if (updatedCount > 0) {
-    const extra = skippedCount > 0 ? `, ${skippedCount} skipped` : '';
-    store.getState().pushToast(`${updatedCount} updated${extra}`, 'success');
+    state.pushToast(text.updateForm.toastUpdated(updatedCount, skippedCount), 'success');
     return;
   }
 
   if (skippedCount > 0) {
-    store.getState().pushToast(`${skippedCount} skipped`, 'info');
+    state.pushToast(`${skippedCount} ${text.common.skipped}`, 'info');
   }
 }
 
@@ -287,6 +290,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
 
     unsyncFromAgents: async (skillNames, agentIds): Promise<void> => {
       const state = store.getState();
+      const text = getTuiText(state.shellState.locale).sync;
       const uniqueSkills = unique(skillNames);
       const uniqueAgents = unique(agentIds);
       state.setSyncFormStep('executing');
@@ -302,7 +306,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
 
       const items: ProgressItem[] = planned.map(({ skillName, agentId }) => ({
         id: `unsync-${skillName}-${agentId}`,
-        label: `unsync ${skillName} from ${agentId}`,
+        label: text.progressUnsync(skillName, agentId),
         progress: 0,
         status: 'pending' as const,
       }));
@@ -316,7 +320,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
         for (const agentId of uniqueAgents) {
           const label = `${skillName} -> ${agentId}`;
           if (!syncedAgents.has(agentId)) {
-            results.push(makeResult(label, 'skipped', 'Not synced to this agent'));
+            results.push(makeResult(label, 'skipped', text.notSyncedAgent));
             continue;
           }
 
@@ -343,6 +347,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
 
     unsyncFromProjects: async (skillNames, projectIds, options): Promise<void> => {
       const state = store.getState();
+      const text = getTuiText(state.shellState.locale).sync;
       const uniqueSkills = unique(skillNames);
       const uniqueProjects = unique(projectIds);
       const mode = options?.mode ?? 'all';
@@ -370,7 +375,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
             if (!availableTypes.has(target.agentType)) continue;
             plannedItems.push({
               id: `unsync-${skillName}-${target.projectId}-${target.agentType}`,
-              label: `unsync ${skillName} from ${target.projectId}:${target.agentType}`,
+              label: text.progressUnsync(skillName, `${target.projectId}:${target.agentType}`),
               progress: 0,
               status: 'pending',
             });
@@ -384,7 +389,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
             if (availableTypes.size > 0) {
               plannedItems.push({
                 id: `unsync-${skillName}-${projectId}`,
-                label: `unsync ${skillName} from ${projectId}`,
+                label: text.progressUnsync(skillName, projectId),
                 progress: 0,
                 status: 'pending',
               });
@@ -396,7 +401,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
             if (!availableTypes.has(agentType)) continue;
             plannedItems.push({
               id: `unsync-${skillName}-${projectId}-${agentType}`,
-              label: `unsync ${skillName} from ${projectId}:${agentType}`,
+              label: text.progressUnsync(skillName, `${projectId}:${agentType}`),
               progress: 0,
               status: 'pending',
             });
@@ -414,7 +419,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
             const availableTypes = availability.get(target.projectId) ?? new Set<string>();
             const label = `${skillName} -> ${target.projectId}:${target.agentType}`;
             if (!availableTypes.has(target.agentType)) {
-              results.push(makeResult(label, 'skipped', 'Not synced for this agent type'));
+              results.push(makeResult(label, 'skipped', text.notSyncedAgentType));
               continue;
             }
 
@@ -443,7 +448,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
 
           if (mode === 'all') {
             if (availableTypes.size === 0) {
-              results.push(makeResult(labelBase, 'skipped', 'Not synced to this project'));
+              results.push(makeResult(labelBase, 'skipped', text.notSyncedProject));
               continue;
             }
 
@@ -464,14 +469,14 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
           }
 
           if (agentTypes.length === 0) {
-            results.push(makeResult(labelBase, 'skipped', 'No agent types selected'));
+            results.push(makeResult(labelBase, 'skipped', text.noAgentTypesSelected));
             continue;
           }
 
           for (const agentType of agentTypes) {
             const label = `${labelBase}:${agentType}`;
             if (!availableTypes.has(agentType)) {
-              results.push(makeResult(label, 'skipped', 'Not synced for this agent type'));
+              results.push(makeResult(label, 'skipped', text.notSyncedAgentType));
               continue;
             }
 
@@ -505,6 +510,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
       if (uniqueSkills.length === 0) return [];
 
       const state = store.getState();
+      const text = getTuiText(state.shellState.locale).updateForm;
       const resultBySkillName = new Map<string, UpdateResult>();
       const gitBackedSkills: string[] = [];
 
@@ -517,7 +523,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
             skillName,
             sourceType,
             outcome: 'error',
-            detail: 'Skill not found',
+            detail: text.skillNotFound,
           });
           continue;
         }
@@ -527,7 +533,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
             skillName,
             sourceType,
             outcome: 'skipped',
-            detail: 'Not git-backed',
+            detail: text.notGitBacked,
           });
           continue;
         }
@@ -547,7 +553,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
 
       const progressItems: ProgressItem[] = gitBackedSkills.map((skillName) => ({
         id: `update-${skillName}`,
-        label: `Updating ${skillName}`,
+        label: text.updatingProgress(skillName),
         progress: 0,
         status: 'pending',
       }));
@@ -567,7 +573,7 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
             skillName,
             sourceType: getSkillSourceType(skillName, store),
             outcome: 'error',
-            detail: 'No update result returned',
+            detail: text.noUpdateResult,
           };
         } catch (error: unknown) {
           updateResult = {
@@ -582,8 +588,8 @@ function createSyncActionsImpl(store: StoreApi<AppStore>, ctx: WorkbenchContext)
         state.updateProgressItem(itemId, {
           status: updateResult.outcome === 'error' ? 'error' : 'success',
           progress: 100,
-          ...(updateResult.outcome === 'updated' ? { label: `${skillName} updated` } : {}),
-          ...(updateResult.outcome === 'skipped' ? { label: `${skillName} skipped` } : {}),
+          ...(updateResult.outcome === 'updated' ? { label: text.updatedProgress(skillName) } : {}),
+          ...(updateResult.outcome === 'skipped' ? { label: text.skippedProgress(skillName) } : {}),
           ...(updateResult.detail ? { error: updateResult.detail } : {}),
         });
       }

@@ -7,6 +7,7 @@ import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
 
@@ -25,6 +26,8 @@ const SHELLS = [
 
 export function CompletionModal({ store }: CompletionModalProps): React.ReactElement {
   const setCompletionModalOpen = useStore(store, (s) => s.setCompletionModalOpen);
+  const locale = useStore(store, (s) => s.shellState.locale);
+  const text = getTuiText(locale);
 
   return (
     <Box flexDirection="column" alignItems="center" justifyContent="center" flexGrow={1}>
@@ -36,11 +39,11 @@ export function CompletionModal({ store }: CompletionModalProps): React.ReactEle
         borderColor={inkColors.border}
       >
         <Text bold color={inkColors.accent}>
-          Shell Completion Setup
+          {text.modal.completionTitle}
         </Text>
         <Text> </Text>
-        <Text>Run one of the following commands to enable tab</Text>
-        <Text>auto-completion for your shell:</Text>
+        <Text>{text.modal.completionIntro1}</Text>
+        <Text>{text.modal.completionIntro2}</Text>
         <Text> </Text>
         {SHELLS.map((shell) => (
           <Box key={shell.name} flexDirection="row" marginBottom={0}>
@@ -51,7 +54,7 @@ export function CompletionModal({ store }: CompletionModalProps): React.ReactEle
           </Box>
         ))}
         <Text> </Text>
-        <Text dimColor>[Esc] Close</Text>
+        <Text dimColor>{text.modal.escClose}</Text>
       </Box>
       <HandleEsc store={store} setCompletionModalOpen={setCompletionModalOpen} />
     </Box>

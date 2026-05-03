@@ -31,7 +31,7 @@ describe('CommandPalette', () => {
     expect(element.type).toBe(CommandPalette);
   });
 
-  it('has 13 command entries in COMMANDS constant', async () => {
+  it('only exposes the language command for now', async () => {
     // Read the source to verify command count
     const fs = await import('fs');
     const path = await import('path');
@@ -43,10 +43,10 @@ describe('CommandPalette', () => {
     // Count the entries in COMMANDS array
     const commandMatches = source.match(/{ id: '/g);
     expect(commandMatches).not.toBeNull();
-    expect(commandMatches?.length).toBe(13);
+    expect(commandMatches?.length).toBe(1);
   });
 
-  it('command list includes all expected commands', async () => {
+  it('command list includes only change language', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const source = fs.readFileSync(
@@ -54,7 +54,7 @@ describe('CommandPalette', () => {
       'utf-8'
     );
 
-    const expectedCommands = [
+    const removedCommands = [
       'add-skill',
       'add-agent',
       'add-project',
@@ -70,12 +70,13 @@ describe('CommandPalette', () => {
       'import-skills',
     ];
 
-    for (const cmd of expectedCommands) {
-      expect(source).toContain(`'${cmd}'`);
+    expect(source).toContain("'change-language'");
+    for (const cmd of removedCommands) {
+      expect(source).not.toContain(`'${cmd}'`);
     }
   });
 
-  it('routes update and unsync commands through the new TUI flows', async () => {
+  it('routes the language command to the language selector', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const source = fs.readFileSync(
@@ -83,10 +84,7 @@ describe('CommandPalette', () => {
       'utf-8'
     );
 
-    expect(source).toContain("openUpdateForm(state, names, 'updateSelected')");
-    expect(source).toContain("openUpdateForm(state, names, 'updateAllGit')");
-    expect(source).toContain("setSyncFormStep('select-unsync-scope')");
-    expect(source).toContain("formType: 'categorizeSkills'");
-    expect(source).toContain('setSyncFormSelectedTargetIds(new Set(targetPairs))');
+    expect(source).toContain('getLanguagePreferenceIndex');
+    expect(source).toContain('state.setLanguageSelectorOpen(true)');
   });
 });

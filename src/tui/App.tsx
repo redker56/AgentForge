@@ -18,14 +18,16 @@ import { ConflictPanel } from './components/ConflictPanel.js';
 import { ContextImportForm } from './components/ContextImportForm.js';
 import { HelpOverlay } from './components/HelpOverlay.js';
 import { ImportForm } from './components/ImportForm.js';
+import { LanguageSelector } from './components/LanguageSelector.js';
 import { ProgressBarStack } from './components/ProgressBar.js';
 import { SearchOverlay } from './components/SearchOverlay.js';
 import { StatusBar } from './components/StatusBar.js';
 import { TabBar } from './components/TabBar.js';
 import { UpdateForm } from './components/UpdateForm.js';
 import { useInputHandler } from './hooks/useInput.js';
-import type { WidthBand } from './hooks/useTerminalDimensions.js';
 import { useTerminalDimensions } from './hooks/useTerminalDimensions.js';
+import type { WidthBand } from './hooks/useTerminalDimensions.js';
+import { getTuiText } from './i18n.js';
 import { AgentsScreen } from './screens/AgentsScreen.js';
 import { ImportScreen } from './screens/ImportScreen.js';
 import { ProjectsScreen } from './screens/ProjectsScreen.js';
@@ -41,6 +43,7 @@ interface AppProps {
 
 export function App({ store }: AppProps): React.ReactElement {
   const activeTab = useStore(store, (s) => s.shellState.activeTab);
+  const locale = useStore(store, (s) => s.shellState.locale);
   const showSearch = useStore(store, (s) => s.shellState.showSearch);
   const showHelp = useStore(store, (s) => s.shellState.showHelp);
   const formState = useStore(store, (s) => s.shellState.formState);
@@ -50,6 +53,7 @@ export function App({ store }: AppProps): React.ReactElement {
   const updateProgressItems = useStore(store, (s) => s.shellState.updateProgressItems);
   const showCommandPalette = useStore(store, (s) => s.shellState.showCommandPalette);
   const dirtyConfirmActive = useStore(store, (s) => s.shellState.dirtyConfirmActive);
+  const languageSelectorOpen = useStore(store, (s) => s.shellState.languageSelectorOpen);
   const setWidthBand = useStore(store, (s) => s.setWidthBand);
   useInputHandler(store);
 
@@ -78,19 +82,17 @@ export function App({ store }: AppProps): React.ReactElement {
       importTabStep: s.importWorkflowState.step,
       detailOverlayVisible: s.shellState.detailOverlayVisible,
       widthBand: s.shellState.widthBand,
+      locale: s.shellState.locale,
     }))
   );
   const breadcrumbSegments = deriveBreadcrumbs(breadcrumbState);
+  const text = getTuiText(locale);
 
   return (
     <Box flexDirection="column" height="100%">
       <TabBar store={store} band={band} columns={columns} />
-      <BreadcrumbBar segments={breadcrumbSegments} />
-      {isCompact && (
-        <Text color={inkColors.warning}>
-          {'\u26A0'} Compact terminal layout active -- widen to 80+ columns for the full detail view
-        </Text>
-      )}
+      <BreadcrumbBar segments={breadcrumbSegments} label={text.breadcrumb.context} />
+      {isCompact && <Text color={inkColors.warning}>{text.app.compactWarning}</Text>}
       <Box flexGrow={1}>
         <>
           {activeTab === 'skills' && <SkillsScreen store={store} band={band} columns={columns} />}
@@ -102,9 +104,7 @@ export function App({ store }: AppProps): React.ReactElement {
           {activeTab === 'import' && <ImportScreen store={store} />}
         </>
       </Box>
-      {dirtyConfirmActive && (
-        <Text color={inkColors.warning}>Unsaved changes -- Discard? [y/N]</Text>
-      )}
+      {dirtyConfirmActive && <Text color={inkColors.warning}>{text.app.unsavedDiscard}</Text>}
       <StatusBar store={store} band={band} columns={columns} />
       {updateProgressItems.length > 0 && activeTab === 'skills' && !updateFormOpen && (
         <Box paddingX={1}>
@@ -112,6 +112,7 @@ export function App({ store }: AppProps): React.ReactElement {
         </Box>
       )}
       {showCommandPalette && <CommandPalette store={store} />}
+      {languageSelectorOpen && <LanguageSelector store={store} />}
       {showSearch && <SearchOverlay store={store} />}
       {showHelp && <HelpOverlay store={store} />}
       {formState && formState.formType.startsWith('add') && <AddForm store={store} />}

@@ -9,6 +9,7 @@ import type { StoreApi } from 'zustand';
 
 import { ImportFormTab } from '../components/ImportFormTab.js';
 import { ProgressBarStack } from '../components/ProgressBar.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
 
@@ -18,12 +19,14 @@ interface ImportScreenProps {
 
 export function ImportScreen({ store }: ImportScreenProps): React.ReactElement {
   const updateProgressItems = useStore(store, (s) => s.shellState.updateProgressItems);
+  const locale = useStore(store, (s) => s.shellState.locale);
+  const text = getTuiText(locale);
 
   return (
     <Box flexDirection="column" height="100%">
       <Box paddingX={1}>
         <Text bold color={inkColors.accent}>
-          Import Skills
+          {text.importFlow.screenTitle}
         </Text>
       </Box>
       <Box flexGrow={1}>

@@ -8,7 +8,8 @@ import type {
 } from '../contextTypes.js';
 import { getVisibleContextSkillRows } from '../contextTypes.js';
 import { useNavigation } from '../hooks/useNavigation.js';
-import { emptyStateText, inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
+import { getTuiText, type TuiLocale } from '../i18n.js';
+import { inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
 import { truncateDisplayText } from '../utils/displayWidth.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
@@ -21,16 +22,17 @@ interface ContextSkillListProps {
   selectedRowIds: Set<string>;
   columns: number;
   emptyText?: string;
+  locale?: TuiLocale;
 }
 
 function truncateText(text: string, maxWidth: number): string {
   return truncateDisplayText(text, maxWidth);
 }
 
-function getStatusText(row: VisibleContextSkillRow): string {
-  if (row.isDifferentVersion) return '[different]';
-  if (row.isImported) return '[imported]';
-  return '[unimported]';
+function getStatusText(row: VisibleContextSkillRow, text: ReturnType<typeof getTuiText>): string {
+  if (row.isDifferentVersion) return text.context.different;
+  if (row.isImported) return text.context.imported;
+  return text.context.unimported;
 }
 
 function getStatusColor(row: VisibleContextSkillRow): string {
@@ -46,9 +48,11 @@ export function ContextSkillList({
   focusedIndex,
   selectedRowIds,
   columns,
-  emptyText = emptyStateText.skills,
+  emptyText,
+  locale = 'en',
 }: ContextSkillListProps): React.ReactElement {
   const visibleRows = getVisibleContextSkillRows(sections, filter);
+  const text = getTuiText(locale);
   const { visibleItems, scrollTop, hiddenAbove, hiddenBelow } = useNavigation({
     items: visibleRows,
     focusedIndex: Math.min(focusedIndex, Math.max(visibleRows.length - 1, 0)),
@@ -77,7 +81,7 @@ export function ContextSkillList({
         const isSelected = selectedRowIds.has(row.rowId);
         const prefix = renderFocusPrefix(isFocused);
         const marker = isSelected ? selectionMarkers.selected : '';
-        const statusText = getStatusText(row);
+        const statusText = getStatusText(row, text);
         const syncText = row.syncMode ? `[${row.syncMode}]` : '';
         const reservedWidth =
           prefix.length +
@@ -136,7 +140,9 @@ export function ContextSkillList({
         );
       })}
 
-      {visibleRows.length === 0 && <Text color={inkColors.muted}>{emptyText}</Text>}
+      {visibleRows.length === 0 && (
+        <Text color={inkColors.muted}>{emptyText ?? text.empty.skills}</Text>
+      )}
 
       {hiddenBelow > 0 && visibleRows.length > 0 && (
         <ScrollIndicator

@@ -5,11 +5,13 @@
 import { create } from 'zustand';
 import type { StoreApi } from 'zustand';
 
-import type { SkillMeta } from '../../types.js';
+import type { SkillMeta, TuiLanguagePreference } from '../../types.js';
+import type { TuiLocale } from '../i18n.js';
 
 import { createAgentActionsSlice, type AgentActions } from './actions/agentActions.js';
 import { createImportActionsSlice, type ImportActions } from './actions/importActions.js';
 import { createProjectActionsSlice, type ProjectActions } from './actions/projectActions.js';
+import { createSettingsActionsSlice, type SettingsActions } from './actions/settingsActions.js';
 import { createSkillActionsSlice, type SkillActions } from './actions/skillActions.js';
 import { createSyncActionsSlice, type SyncActions } from './actions/syncActions.js';
 import { createDataSlice, type DataSlice } from './dataSlice.js';
@@ -28,6 +30,7 @@ export type AppStore = UISlice &
   ImportActions &
   AgentActions &
   ProjectActions &
+  SettingsActions &
   SyncActions;
 
 // Re-export for use in slice files that need a placeholder for the full store type
@@ -38,14 +41,29 @@ export const TAB_IDS: TabId[] = ['skills', 'agents', 'projects', 'sync', 'import
 
 export type { TabId } from './uiSlice.js';
 
-export function createAppStore(ctx: WorkbenchContext): StoreApi<AppStore> {
-  return create<AppStore>()((...a) => ({
+export function createAppStore(
+  ctx: WorkbenchContext,
+  locale: TuiLocale = 'en',
+  languagePreference: TuiLanguagePreference = 'auto'
+): StoreApi<AppStore> {
+  const store = create<AppStore>()((...a) => ({
     ...createUISlice(...a),
     ...createDataSlice(ctx)(...a),
     ...createSkillActionsSlice(ctx)(...a),
     ...createImportActionsSlice(ctx)(...a),
     ...createAgentActionsSlice(ctx)(...a),
     ...createProjectActionsSlice(ctx)(...a),
+    ...createSettingsActionsSlice(ctx)(...a),
     ...createSyncActionsSlice(ctx)(...a),
   }));
+
+  store.setState((state) => ({
+    shellState: {
+      ...state.shellState,
+      locale,
+      languagePreference,
+    },
+  }));
+
+  return store;
 }

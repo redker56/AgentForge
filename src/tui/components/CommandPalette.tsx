@@ -10,349 +10,37 @@ import { Box, Text, useInput } from 'ink';
 import React, { useMemo, useState } from 'react';
 import type { StoreApi } from 'zustand';
 
-import { getVisibleContextSkillRows, type ContextSkillRow } from '../contextTypes.js';
+import { getTuiText, type TuiLocale } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, renderFocusPrefix } from '../theme.js';
 import { fuzzyMatch } from '../utils/fuzzy.js';
-import { getFocusedVisibleSkill } from '../utils/skillsView.js';
+
+import { getLanguagePreferenceIndex } from './LanguageSelector.js';
 
 interface CommandEntry {
   id: string;
-  label: string;
+  labelKey: keyof ReturnType<typeof getTuiText>['commands']['entries'];
 }
 
-const COMMANDS: CommandEntry[] = [
-  { id: 'add-skill', label: 'Add skill' },
-  { id: 'add-agent', label: 'Add agent' },
-  { id: 'add-project', label: 'Add project' },
-  { id: 'remove-skill', label: 'Remove skill' },
-  { id: 'remove-agent', label: 'Remove agent' },
-  { id: 'remove-project', label: 'Remove project' },
-  { id: 'sync-agents', label: 'Sync skill to agents' },
-  { id: 'sync-projects', label: 'Sync skill to projects' },
-  { id: 'unsync', label: 'Unsync skill' },
-  { id: 'update-skill', label: 'Update skill' },
-  { id: 'update-all', label: 'Update all skills' },
-  { id: 'categorize-skill', label: 'Categorize skill(s)' },
-  { id: 'import-skills', label: 'Import skills' },
-];
+const COMMANDS: CommandEntry[] = [{ id: 'change-language', labelKey: 'changeLanguage' }];
+
+function getCommandLabel(command: CommandEntry, locale: TuiLocale): string {
+  return getTuiText(locale).commands.entries[command.labelKey];
+}
 
 interface CommandPaletteProps {
   store: StoreApi<AppStore>;
 }
 
-function openUpdateForm(
-  state: AppStore,
-  skillNames: string[],
-  formType: 'updateSelected' | 'updateAllGit'
-): void {
-  if (skillNames.length === 0) return;
-  state.setFormState({
-    formType,
-    data: {
-      skillNames: JSON.stringify(skillNames),
-    },
-  });
-}
-
-function getSelectedContextSkillNames(state: AppStore): string[] {
-  if (state.shellState.activeTab === 'agents' && state.agentsBrowserState.viewMode === 'skills') {
-    const focusedAgent = state.agents[state.agentsBrowserState.focusedIndex];
-    const sections = focusedAgent ? (state.agentDetails[focusedAgent.id]?.sections ?? []) : [];
-    const visibleRows = getVisibleContextSkillRows(
-      sections,
-      state.agentsBrowserState.activeSkillFilter
-    );
-    const rows =
-      state.agentsBrowserState.selectedSkillRowIds.size > 0
-        ? visibleRows.filter((row) => state.agentsBrowserState.selectedSkillRowIds.has(row.rowId))
-        : [
-            visibleRows[
-              Math.min(state.agentsBrowserState.focusedSkillIndex, visibleRows.length - 1)
-            ],
-          ].filter(Boolean);
-    return Array.from(
-      new Set(
-        rows.map((row) => row?.registrySkillName).filter((name): name is string => Boolean(name))
-      )
-    );
-  }
-
-  if (
-    state.shellState.activeTab === 'projects' &&
-    state.projectsBrowserState.viewMode === 'skills'
-  ) {
-    const focusedProject = state.projects[state.projectsBrowserState.focusedIndex];
-    const sections = focusedProject
-      ? (state.projectDetails[focusedProject.id]?.sections ?? [])
-      : [];
-    const visibleRows = getVisibleContextSkillRows(
-      sections,
-      state.projectsBrowserState.activeSkillFilter
-    );
-    const rows =
-      state.projectsBrowserState.selectedSkillRowIds.size > 0
-        ? visibleRows.filter((row) => state.projectsBrowserState.selectedSkillRowIds.has(row.rowId))
-        : [
-            visibleRows[
-              Math.min(state.projectsBrowserState.focusedSkillIndex, visibleRows.length - 1)
-            ],
-          ].filter(Boolean);
-    return Array.from(
-      new Set(
-        rows.map((row) => row?.registrySkillName).filter((name): name is string => Boolean(name))
-      )
-    );
-  }
-
-  return [];
-}
-
-function getSelectedContextRows(state: AppStore): ContextSkillRow[] {
-  if (state.shellState.activeTab === 'agents' && state.agentsBrowserState.viewMode === 'skills') {
-    const focusedAgent = state.agents[state.agentsBrowserState.focusedIndex];
-    const sections = focusedAgent ? (state.agentDetails[focusedAgent.id]?.sections ?? []) : [];
-    const visibleRows = getVisibleContextSkillRows(
-      sections,
-      state.agentsBrowserState.activeSkillFilter
-    );
-    return state.agentsBrowserState.selectedSkillRowIds.size > 0
-      ? visibleRows.filter((row) => state.agentsBrowserState.selectedSkillRowIds.has(row.rowId))
-      : [
-          visibleRows[Math.min(state.agentsBrowserState.focusedSkillIndex, visibleRows.length - 1)],
-        ].filter(Boolean);
-  }
-
-  if (
-    state.shellState.activeTab === 'projects' &&
-    state.projectsBrowserState.viewMode === 'skills'
-  ) {
-    const focusedProject = state.projects[state.projectsBrowserState.focusedIndex];
-    const sections = focusedProject
-      ? (state.projectDetails[focusedProject.id]?.sections ?? [])
-      : [];
-    const visibleRows = getVisibleContextSkillRows(
-      sections,
-      state.projectsBrowserState.activeSkillFilter
-    );
-    return state.projectsBrowserState.selectedSkillRowIds.size > 0
-      ? visibleRows.filter((row) => state.projectsBrowserState.selectedSkillRowIds.has(row.rowId))
-      : [
-          visibleRows[
-            Math.min(state.projectsBrowserState.focusedSkillIndex, visibleRows.length - 1)
-          ],
-        ].filter(Boolean);
-  }
-
-  return [];
-}
-
 function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
   const state = store.getState();
-  const focusedVisibleSkill = getFocusedVisibleSkill(
-    state.skills,
-    state.skillsBrowserState.activeCategoryFilter,
-    state.skillsBrowserState.focusedIndex
-  );
 
   switch (commandId) {
-    case 'add-skill':
-      state.setFormState({ formType: 'addSkill', data: {} });
-      state.setShowCommandPalette(false);
-      break;
-    case 'add-agent':
-      state.setFormState({ formType: 'addAgent', data: {} });
-      state.setShowCommandPalette(false);
-      break;
-    case 'add-project':
-      state.setFormState({ formType: 'addProject', data: {} });
-      state.setShowCommandPalette(false);
-      break;
-    case 'remove-skill': {
-      const name = focusedVisibleSkill?.name;
-      if (name) {
-        state.setConfirmState({
-          title: `Delete ${name}`,
-          message: 'This will remove all sync references. Files on disk will be deleted.',
-          onConfirm: () => {
-            void store.getState().removeSkill(name);
-            store.getState().setConfirmState(null);
-            store.getState().clearSelection();
-            void store.getState().refreshSkills();
-          },
-        });
-      }
-      state.setShowCommandPalette(false);
-      break;
-    }
-    case 'remove-agent': {
-      const agent = state.agents[state.agentsBrowserState.focusedIndex];
-      if (agent) {
-        state.setConfirmState({
-          title: `Remove Agent "${agent.name}"`,
-          message: 'Files stay on disk. AgentForge will forget sync references tied to this Agent.',
-          onConfirm: () => {
-            void store.getState().removeAgent(agent.id);
-            store.getState().setConfirmState(null);
-          },
-        });
-      }
-      state.setShowCommandPalette(false);
-      break;
-    }
-    case 'remove-project': {
-      const project = state.projects[state.projectsBrowserState.focusedIndex];
-      if (project) {
-        state.setConfirmState({
-          title: `Remove Project "${project.id}"`,
-          message:
-            'Files stay on disk. AgentForge will forget the project and its recorded sync references.',
-          onConfirm: () => {
-            void store.getState().removeProject(project.id);
-            store.getState().setConfirmState(null);
-          },
-        });
-      }
-      state.setShowCommandPalette(false);
-      break;
-    }
-    case 'sync-agents': {
-      const names =
-        state.skillsBrowserState.selectedNames.size > 0
-          ? [...state.skillsBrowserState.selectedNames]
-          : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
-      if (names.length > 0) {
-        state.setSyncFormSelectedSkillNames(new Set(names));
-        state.setSyncFormOperation('sync-agents');
-        state.setSyncFormStep('select-targets');
-        state.setActiveTab('sync');
-      } else {
-        state.setActiveTab('skills');
-      }
-      state.setShowCommandPalette(false);
-      break;
-    }
-    case 'sync-projects': {
-      const names =
-        state.skillsBrowserState.selectedNames.size > 0
-          ? [...state.skillsBrowserState.selectedNames]
-          : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
-      if (names.length > 0) {
-        state.setSyncFormSelectedSkillNames(new Set(names));
-        state.setSyncFormOperation('sync-projects');
-        state.setSyncFormStep('select-targets');
-        state.setActiveTab('sync');
-      } else {
-        state.setActiveTab('skills');
-      }
-      state.setShowCommandPalette(false);
-      break;
-    }
-    case 'unsync': {
-      const contextRows = getSelectedContextRows(state);
-      const contextNames = getSelectedContextSkillNames(state);
-      const names =
-        contextNames.length > 0
-          ? contextNames
-          : state.skillsBrowserState.selectedNames.size > 0
-            ? [...state.skillsBrowserState.selectedNames]
-            : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
-      if (names.length > 0) {
-        state.setSyncFormSelectedSkillNames(new Set(names));
-        state.setSyncFormOperation('unsync');
-        if (
-          state.shellState.activeTab === 'agents' &&
-          state.agentsBrowserState.viewMode === 'skills'
-        ) {
-          const agent = state.agents[state.agentsBrowserState.focusedIndex];
-          if (agent) {
-            state.setSyncFormUnsyncScope('agents');
-            state.setSyncFormProjectUnsyncMode(null);
-            state.setSyncFormSelectedTargetIds(new Set([agent.id]));
-            state.setSyncFormSelectedAgentTypes(new Set());
-            state.setSyncFormStep('confirm');
-          }
-        } else if (
-          state.shellState.activeTab === 'projects' &&
-          state.projectsBrowserState.viewMode === 'skills'
-        ) {
-          const targetPairs = contextRows
-            .filter((row) => row.projectId && row.agentId && row.registrySkillName)
-            .map((row) => `${row.projectId}:${row.agentId}`);
-          state.setSyncFormUnsyncScope('projects');
-          state.setSyncFormProjectUnsyncMode('specific');
-          state.setSyncFormSelectedTargetIds(new Set(targetPairs));
-          state.setSyncFormSelectedAgentTypes(new Set());
-          state.setSyncFormStep('confirm');
-        } else {
-          state.setSyncFormUnsyncScope(null);
-          state.setSyncFormProjectUnsyncMode(null);
-          state.setSyncFormSelectedTargetIds(new Set());
-          state.setSyncFormSelectedAgentTypes(new Set());
-          state.setSyncFormStep('select-unsync-scope');
-        }
-        state.setActiveTab('sync');
-      } else {
-        state.setActiveTab('skills');
-      }
-      state.setShowCommandPalette(false);
-      break;
-    }
-    case 'update-skill': {
-      const contextNames = getSelectedContextSkillNames(state);
-      const names =
-        contextNames.length > 0
-          ? contextNames
-          : state.skillsBrowserState.selectedNames.size > 0
-            ? [...state.skillsBrowserState.selectedNames]
-            : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
-      openUpdateForm(state, names, 'updateSelected');
-      state.setShowCommandPalette(false);
-      break;
-    }
-    case 'update-all': {
-      const names = state.skills
-        .filter((skill) => skill.source.type === 'git')
-        .map((skill) => skill.name);
-      openUpdateForm(state, names, 'updateAllGit');
-      state.setShowCommandPalette(false);
-      break;
-    }
-    case 'categorize-skill': {
-      const contextNames = getSelectedContextSkillNames(state);
-      const names =
-        contextNames.length > 0
-          ? contextNames
-          : state.skillsBrowserState.selectedNames.size > 0
-            ? [...state.skillsBrowserState.selectedNames]
-            : ([focusedVisibleSkill?.name].filter(Boolean) as string[]);
-      if (names.length > 0) {
-        state.setFormState({
-          formType: 'categorizeSkills',
-          data: {
-            skillNames: JSON.stringify(names),
-          },
-        });
-      } else {
-        state.setActiveTab('skills');
-      }
-      state.setShowCommandPalette(false);
-      break;
-    }
-    case 'import-skills': {
-      const contextRows = getSelectedContextRows(state);
-      if (contextRows.length > 0) {
-        state.setFormState({
-          formType: 'importContextSkills',
-          data: { rows: JSON.stringify(contextRows) },
-        });
-      } else {
-        state.setFormState({
-          formType: state.shellState.activeTab === 'agents' ? 'importAgent' : 'importProject',
-          data: {},
-        });
-      }
-      state.setShowCommandPalette(false);
+    case 'change-language': {
+      state.setLanguageSelectorFocusedIndex(
+        getLanguagePreferenceIndex(state.shellState.languagePreference)
+      );
+      state.setLanguageSelectorOpen(true);
       break;
     }
   }
@@ -361,13 +49,15 @@ function executeCommand(commandId: string, store: StoreApi<AppStore>): void {
 export function CommandPalette({ store }: CommandPaletteProps): React.ReactElement {
   const [query, setQuery] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(0);
+  const locale = store.getState().shellState.locale;
+  const text = getTuiText(locale);
 
   const filteredCommands = useMemo(() => {
     if (!query.trim()) {
       return COMMANDS.map((cmd) => ({ item: cmd, score: 0, matchIndices: [] }));
     }
-    return fuzzyMatch(query, COMMANDS, (cmd) => cmd.label);
-  }, [query]);
+    return fuzzyMatch(query, COMMANDS, (cmd) => getCommandLabel(cmd, locale));
+  }, [query, locale]);
 
   const clampedIndex = Math.min(focusedIndex, Math.max(filteredCommands.length - 1, 0));
 
@@ -424,9 +114,9 @@ export function CommandPalette({ store }: CommandPaletteProps): React.ReactEleme
         paddingRight={1}
         borderColor={inkColors.borderActive}
       >
-        <Text color={inkColors.muted}>Command palette</Text>
+        <Text color={inkColors.muted}>{text.commands.title}</Text>
         <Box>
-          <Text color={inkColors.accent}>Command</Text>
+          <Text color={inkColors.accent}>{text.commands.command}</Text>
           <Text color={inkColors.muted}> / </Text>
           <Text color={inkColors.primary}>{query}</Text>
           <Text color={inkColors.accent}>|</Text>
@@ -449,13 +139,13 @@ export function CommandPalette({ store }: CommandPaletteProps): React.ReactEleme
               bold={i === clampedIndex}
             >
               {renderFocusPrefix(i === clampedIndex)}
-              {result.item.label}
+              {getCommandLabel(result.item, locale)}
             </Text>
           ))}
         </Box>
       )}
       {query.trim() && filteredCommands.length === 0 && (
-        <Text color={inkColors.muted}> No commands found</Text>
+        <Text color={inkColors.muted}> {text.common.noCommandsFound}</Text>
       )}
     </Box>
   );

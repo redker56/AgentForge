@@ -138,7 +138,13 @@ export function createMockServiceContext(): MockWorkbenchContext {
       deleteSkill: vi.fn(),
       saveSkillMeta: vi.fn(),
       runBatch: vi.fn((mutator: (repo: unknown) => unknown) => mutator(legacy.storage)),
-      snapshot: vi.fn(() => ({ version: '1.0', skills: {}, agents: {}, projects: {} })),
+      snapshot: vi.fn(() => ({
+        version: '1.0',
+        skills: {},
+        agents: {},
+        projects: {},
+        settings: { tuiLanguage: 'auto' as const },
+      })),
     },
     syncService: {
       unsync: vi.fn(),
@@ -648,6 +654,7 @@ export function createMockServiceContext(): MockWorkbenchContext {
       if (!id || !projectPath) return;
       legacy.storage.addProject(id, projectPath, addedAt);
     }),
+    setTuiLanguagePreference: vi.fn(),
   };
 
   return {

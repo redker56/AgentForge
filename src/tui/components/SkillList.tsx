@@ -9,14 +9,9 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import { useNavigation } from '../hooks/useNavigation.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
-import {
-  emptyStateText,
-  inkColors,
-  renderFocusPrefix,
-  selectionMarkers,
-  statusDots,
-} from '../theme.js';
+import { inkColors, renderFocusPrefix, selectionMarkers, statusDots } from '../theme.js';
 import { truncateDisplayText } from '../utils/displayWidth.js';
 import { getVisibleFocusedSkillIndex, getVisibleSkills } from '../utils/skillsView.js';
 
@@ -33,12 +28,15 @@ function truncateText(text: string, maxWidth: number): string {
 
 export function SkillList({ store, columns }: SkillListProps): React.ReactElement {
   const skills = useStore(store, (s) => s.skills);
+  const isLoading = useStore(store, (s) => s.loading?.skills ?? false);
+  const locale = useStore(store, (s) => s.shellState.locale);
   const focusedIndex = useStore(store, (s) => s.skillsBrowserState.focusedIndex);
   const activeSkillCategoryFilter = useStore(
     store,
     (s) => s.skillsBrowserState.activeCategoryFilter
   );
   const selectedNames = useStore(store, (s) => s.skillsBrowserState.selectedNames);
+  const text = getTuiText(locale);
   const visibleSkills = getVisibleSkills(skills, activeSkillCategoryFilter);
   const visibleFocusedIndex = getVisibleFocusedSkillIndex(
     skills,
@@ -54,7 +52,7 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Text bold color={inkColors.accent}>
-        Skill Library <Text color={inkColors.muted}>({visibleSkills.length})</Text>
+        {text.tables.skillLibrary} <Text color={inkColors.muted}>({visibleSkills.length})</Text>
       </Text>
 
       {hiddenAbove > 0 && (
@@ -166,7 +164,11 @@ export function SkillList({ store, columns }: SkillListProps): React.ReactElemen
         );
       })}
 
-      {visibleSkills.length === 0 && <Text color={inkColors.muted}>{emptyStateText.skills}</Text>}
+      {visibleSkills.length === 0 && (
+        <Text color={inkColors.muted}>
+          {isLoading && skills.length === 0 ? text.empty.loadingSkills : text.empty.skills}
+        </Text>
+      )}
 
       {hiddenBelow > 0 && (
         <ScrollIndicator

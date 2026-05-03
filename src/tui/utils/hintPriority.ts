@@ -7,6 +7,8 @@
 
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
 
+import { getDisplayWidth } from './displayWidth.js';
+
 export interface HintSpec {
   key: string;
   label: string;
@@ -58,7 +60,8 @@ function defaultSegmentColor(hint: HintSpec): string {
 export function rankAndTruncateHints(
   contextHints: HintSpec[],
   band: WidthBand,
-  availableWidth: number
+  availableWidth: number,
+  globalHints: HintSpec[] = GLOBAL_CONTEXT_HINTS
 ): HintResult {
   // Sort context hints by priority (lower = more important)
   const sortedContext = dedupeHints(contextHints).sort((a, b) => a.priority - b.priority);
@@ -89,14 +92,14 @@ export function rankAndTruncateHints(
   // Build global hints
   const selectedGlobal: HintSpec[] = [];
   if (includeSearch) {
-    const searchHint = GLOBAL_CONTEXT_HINTS.find((h) => h.key === '/');
+    const searchHint = globalHints.find((h) => h.key === '/');
     if (searchHint) selectedGlobal.push(searchHint);
   }
   if (includeHelp) {
-    const helpHint = GLOBAL_CONTEXT_HINTS.find((h) => h.key === '?');
+    const helpHint = globalHints.find((h) => h.key === '?');
     if (helpHint) selectedGlobal.push(helpHint);
   }
-  const quitHint = GLOBAL_CONTEXT_HINTS.find((h) => h.key === 'q');
+  const quitHint = globalHints.find((h) => h.key === 'q');
   if (quitHint) selectedGlobal.push(quitHint);
 
   // Combine: context hints first, then global hints
@@ -110,7 +113,7 @@ export function rankAndTruncateHints(
   const finalHints: HintSpec[] = [];
   const ordered = [...allHints].sort((a, b) => a.priority - b.priority);
   for (const hint of ordered) {
-    const baseWidth = hint.key.length + 1 + hint.label.length; // "k:label"
+    const baseWidth = getDisplayWidth(hint.key) + 1 + getDisplayWidth(hint.label); // "k:label"
     const separatorWidth = finalHints.length === 0 ? 0 : 4; // " / "
     if (totalWidth + separatorWidth + baseWidth <= availableWidth) {
       totalWidth += separatorWidth + baseWidth;

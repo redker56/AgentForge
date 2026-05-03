@@ -10,6 +10,8 @@ export interface InputKey {
   rightArrow?: boolean;
   return?: boolean;
   escape?: boolean;
+  home?: boolean;
+  end?: boolean;
 }
 
 export interface InputRouteContext {

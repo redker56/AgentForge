@@ -46,6 +46,9 @@ describe('createUISlice', () => {
 
     expect(state.shellState.activeTab).toBe('skills');
     expect(state.shellState.searchQuery).toBe('');
+    expect(state.shellState.languagePreference).toBe('auto');
+    expect(state.shellState.languageSelectorOpen).toBe(false);
+    expect(state.shellState.languageSelectorFocusedIndex).toBe(0);
     expect(state.shellState.showSearch).toBe(false);
     expect(state.shellState.showHelp).toBe(false);
     expect(state.shellState.showCommandPalette).toBe(false);
@@ -117,6 +120,21 @@ describe('createUISlice', () => {
     expect(getState().shellState.formState).toBeNull();
     expect(getState().shellState.confirmState).toBeNull();
     expect(getState().shellState.conflictState).toBeNull();
+  });
+
+  it('opens, focuses, and applies language selector state', () => {
+    const { getState } = createHarness();
+
+    getState().setLanguageSelectorOpen(true);
+    getState().setLanguageSelectorFocusedIndex(2);
+    expect(getState().shellState.languageSelectorOpen).toBe(true);
+    expect(getState().shellState.languageSelectorFocusedIndex).toBe(2);
+
+    getState().setTuiLanguageState('en', 'en');
+    expect(getState().shellState.languagePreference).toBe('en');
+    expect(getState().shellState.locale).toBe('en');
+    expect(getState().shellState.languageSelectorOpen).toBe(false);
+    expect(getState().shellState.languageSelectorFocusedIndex).toBe(0);
   });
 
   it('tracks browser selection state independently per surface', () => {
@@ -239,6 +257,17 @@ describe('createUISlice', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('localizes restore toast when executing undo', () => {
+    const { getState } = createHarness();
+
+    getState().setTuiLanguageState('zh', 'zh');
+    getState().pushUndo('delete-skill', { name: 'test-skill' });
+    getState().executeUndo();
+
+    expect(getState().restoreSkill).toHaveBeenCalledWith({ name: 'test-skill' });
+    expect(getState().shellState.activeToast?.message).toBe("已恢复 'test-skill'");
   });
 
   it('pushToast activates the first toast and queues later ones', () => {

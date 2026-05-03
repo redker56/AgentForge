@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import type { UpdateResult } from '../store/uiSlice.js';
 import { inkColors } from '../theme.js';
@@ -50,16 +51,19 @@ function parseSkillNames(encoded: string | undefined): string[] {
   }
 }
 
-function formatSourceLabel(sourceType: PreviewItem['sourceType']): string {
+function formatSourceLabel(
+  sourceType: PreviewItem['sourceType'],
+  text: ReturnType<typeof getTuiText>
+): string {
   switch (sourceType) {
     case 'git':
-      return 'git';
+      return text.common.git;
     case 'local':
-      return 'local';
+      return text.common.local;
     case 'project':
-      return 'project';
+      return text.common.project;
     default:
-      return 'unknown';
+      return text.common.unknown.toLowerCase();
   }
 }
 
@@ -128,6 +132,9 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
   const formState = useStore(store, (s) => s.shellState.formState);
   const skills = useStore(store, (s) => s.skills);
   const updateProgressItems = useStore(store, (s) => s.shellState.updateProgressItems);
+  const locale = useStore(store, (s) => s.shellState.locale);
+  const text = getTuiText(locale);
+  const updateText = text.updateForm;
 
   const [phase, setPhase] = useState<UpdatePhase>('preview');
   const [results, setResults] = useState<UpdateResult[]>([]);
@@ -147,7 +154,7 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
           skillName,
           sourceType: 'unknown',
           willUpdate: false,
-          detail: 'Missing from registry',
+          detail: updateText.missing,
         };
       }
 
@@ -156,7 +163,7 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
           skillName,
           sourceType: 'git',
           willUpdate: true,
-          detail: 'Will update and re-sync',
+          detail: updateText.willUpdate,
         };
       }
 
@@ -165,7 +172,7 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
           skillName,
           sourceType: 'project',
           willUpdate: false,
-          detail: 'Skipped: project-backed',
+          detail: updateText.skippedProject,
         };
       }
 
@@ -173,10 +180,10 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
         skillName,
         sourceType: 'local',
         willUpdate: false,
-        detail: 'Skipped: not git-backed',
+        detail: updateText.skippedNotGit,
       };
     });
-  }, [requestedSkillNames, skills]);
+  }, [requestedSkillNames, skills, updateText]);
 
   const updatableCount = previewItems.filter((item) => item.willUpdate).length;
   const skippedPreviewCount = previewItems.length - updatableCount;
@@ -250,11 +257,11 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
   }
 
   const title =
-    formState.formType === 'updateAllGit' ? 'Update All Git Skills' : 'Update Selected Skills';
+    formState.formType === 'updateAllGit' ? updateText.titleAll : updateText.titleSelected;
   const previewRows = previewItems.map((item) => (
     <Text key={item.skillName}>
       {truncateText(
-        `${item.willUpdate ? '[update]' : '[skip]  '} ${item.skillName} [${formatSourceLabel(item.sourceType)}] ${item.detail}`
+        `${item.willUpdate ? updateText.badges.update : updateText.badges.skip} ${item.skillName} [${formatSourceLabel(item.sourceType, text)}] ${item.detail}`
       )}
     </Text>
   ));
@@ -271,15 +278,16 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
   } = getProgressViewport(updateProgressItems, MAX_VISIBLE_PROGRESS);
   const progressOverflowSummary =
     hiddenAboveCount > 0 && hiddenBelowCount > 0
-      ? `... ${hiddenAboveCount} earlier | ${hiddenBelowCount} more task(s)`
+      ? updateText.progressBoth(hiddenAboveCount, hiddenBelowCount)
       : hiddenAboveCount > 0
-        ? `... ${hiddenAboveCount} earlier task(s)`
+        ? updateText.progressEarlier(hiddenAboveCount)
         : hiddenBelowCount > 0
-          ? `... ${hiddenBelowCount} more task(s)`
+          ? updateText.progressLater(hiddenBelowCount)
           : '';
   const updatedCount = results.filter((item) => item.outcome === 'updated').length;
   const skippedCount = results.filter((item) => item.outcome === 'skipped').length;
   const errorCount = results.filter((item) => item.outcome === 'error').length;
+  const errorLabel = locale === 'en' && errorCount !== 1 ? 'errors' : text.common.error;
   const resultRows = results.map((item) => {
     const color =
       item.outcome === 'updated'
@@ -289,10 +297,10 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
           : inkColors.muted;
     const badge =
       item.outcome === 'updated'
-        ? '[updated]'
+        ? updateText.badges.updated
         : item.outcome === 'error'
-          ? '[error]  '
-          : '[skipped]';
+          ? updateText.badges.error
+          : updateText.badges.skipped;
     return (
       <Text key={`${item.skillName}-${item.outcome}`} color={color}>
         {truncateText(`${badge} ${item.skillName}${item.detail ? ` - ${item.detail}` : ''}`)}
@@ -318,41 +326,40 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
         {title}
       </Text>
       <Text color={inkColors.muted}>
-        {requestedSkillNames.length} requested | {updatableCount} updatable
-        {skippedPreviewCount > 0 ? ` | ${skippedPreviewCount} skipped` : ''}
+        {updateText.requestedSummary(
+          requestedSkillNames.length,
+          updatableCount,
+          skippedPreviewCount
+        )}
       </Text>
       <Text> </Text>
 
       {phase === 'preview' && (
         <>
-          <Text dimColor>{truncateText('Preview targets before running the update:')}</Text>
+          <Text dimColor>{truncateText(updateText.preview)}</Text>
           <Text> </Text>
           {fixedPreviewRows}
           {previewItems.length > MAX_VISIBLE_ROWS && (
-            <Text dimColor>... {previewItems.length - MAX_VISIBLE_ROWS} more target(s)</Text>
+            <Text dimColor>{updateText.moreTargets(previewItems.length - MAX_VISIBLE_ROWS)}</Text>
           )}
           {previewItems.length <= MAX_VISIBLE_ROWS && <Text dimColor> </Text>}
           <Text> </Text>
           {updatableCount > 0 ? (
-            <Text dimColor>Enter:Start update Esc:Cancel</Text>
+            <Text dimColor>{updateText.startHint}</Text>
           ) : (
-            <Text dimColor>
-              {truncateText('No git-backed skills to update. Enter or Esc to close.')}
-            </Text>
+            <Text dimColor>{truncateText(updateText.noGit)}</Text>
           )}
         </>
       )}
 
       {phase === 'executing' && (
         <>
-          <Text dimColor>
-            {truncateText('Updating git-backed skills and re-syncing managed copies...')}
-          </Text>
+          <Text dimColor>{truncateText(updateText.executing)}</Text>
           <Text> </Text>
           {visibleProgressItems.length > 0 ? (
             <ProgressBarStack items={visibleProgressItems} />
           ) : (
-            <Text dimColor>Preparing update tasks...</Text>
+            <Text dimColor>{updateText.preparing}</Text>
           )}
           {progressOverflowSummary ? (
             <Text dimColor>{progressOverflowSummary}</Text>
@@ -360,32 +367,36 @@ export function UpdateForm({ store }: UpdateFormProps): React.ReactElement {
             <Text dimColor> </Text>
           )}
           <Text> </Text>
-          <Text dimColor>Please wait...</Text>
+          <Text dimColor>{text.common.pleaseWait}</Text>
         </>
       )}
 
       {phase === 'results' && (
         <>
           <Text>
-            <Text color={inkColors.success}>{updatedCount} updated</Text>
+            <Text color={inkColors.success}>
+              {updatedCount} {text.common.updated}
+            </Text>
             <Text color={inkColors.muted}> | </Text>
-            <Text color={inkColors.muted}>{skippedCount} skipped</Text>
+            <Text color={inkColors.muted}>
+              {skippedCount} {text.common.skipped}
+            </Text>
             <Text color={inkColors.muted}> | </Text>
             <Text color={errorCount > 0 ? inkColors.error : inkColors.muted}>
-              {errorCount} errors
+              {errorCount} {errorLabel}
             </Text>
           </Text>
           <Text> </Text>
           {fixedResultRows}
           {results.length > MAX_VISIBLE_ROWS && (
-            <Text dimColor>... {results.length - MAX_VISIBLE_ROWS} more result(s)</Text>
+            <Text dimColor>{updateText.moreTargets(results.length - MAX_VISIBLE_ROWS)}</Text>
           )}
           {results.length <= MAX_VISIBLE_ROWS && <Text dimColor> </Text>}
           <Text> </Text>
           {errorCount > 0 && failedSkillNames.length > 0 ? (
-            <Text dimColor>R:Retry failed Enter:Close Esc:Close</Text>
+            <Text dimColor>{updateText.retryHint}</Text>
           ) : (
-            <Text dimColor>Enter:Close Esc:Close</Text>
+            <Text dimColor>{text.common.enterCloseEscClose}</Text>
           )}
         </>
       )}

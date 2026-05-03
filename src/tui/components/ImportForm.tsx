@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
 import { truncateDisplayText } from '../utils/displayWidth.js';
@@ -31,8 +32,10 @@ function truncateText(text: string, maxWidth = 54): string {
 
 export function ImportForm({ store }: ImportFormProps): React.ReactElement {
   const formState = useStore(store, (s) => s.shellState.formState);
+  const locale = useStore(store, (s) => s.shellState.locale);
   const projects = useStore(store, (s) => s.projects);
   const agents = useStore(store, (s) => s.agents);
+  const text = getTuiText(locale);
 
   const [phase, setPhase] = useState<ImportPhase>('select-source');
   const [sourceIndex, setSourceIndex] = useState(0);
@@ -134,7 +137,11 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
             })
             .catch((e: unknown) => {
               setResultMessages([
-                { name: 'import', ok: false, error: e instanceof Error ? e.message : String(e) },
+                {
+                  name: text.context.import,
+                  ok: false,
+                  error: e instanceof Error ? e.message : String(e),
+                },
               ]);
               setPhase('result');
             });
@@ -147,7 +154,7 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
     }
   );
 
-  const title = isProject ? 'Import from Project' : 'Import from Agent';
+  const title = isProject ? text.importFlow.importFromProject : text.importFlow.importFromAgent;
 
   return (
     <Box
@@ -165,7 +172,9 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
 
       {phase === 'select-source' && !formState.data.projectId && (
         <>
-          <Text dimColor>Select a {isProject ? 'project' : 'agent'}:</Text>
+          <Text dimColor>
+            {text.importOverlay.selectA(isProject ? text.common.project : text.context.agent)}
+          </Text>
           <Text> </Text>
           {(isProject ? projects : agents).map((item, i) => {
             const id = 'id' in item ? (item as { id: string }).id : '';
@@ -185,13 +194,13 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
             );
           })}
           <Text> </Text>
-          <Text dimColor>Up/Down:Navigate Enter:Select Esc:Cancel</Text>
+          <Text dimColor>{text.importOverlay.navHint}</Text>
         </>
       )}
 
       {phase === 'select-skills' && (
         <>
-          <Text dimColor>Select skills to import:</Text>
+          <Text dimColor>{text.importOverlay.selectSkills}</Text>
           <Text> </Text>
           {scannedSkills.map((skill, i) => {
             const isFocused = i === skillFocusIndex;
@@ -219,14 +228,16 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
                 </Text>
                 <Text color={rowColor}>
                   {truncateText(
-                    `${checkbox} ${skill.name}${skill.alreadyExists ? ' (already imported)' : ''}`
+                    `${checkbox} ${skill.name}${
+                      skill.alreadyExists ? ` ${text.common.alreadyImportedSuffix}` : ''
+                    }`
                   )}
                 </Text>
               </Text>
             );
           })}
           <Text> </Text>
-          <Text dimColor>Space:Toggle Enter:Import Esc:Cancel</Text>
+          <Text dimColor>{text.common.spaceToggleEnterConfirmEscCancel}</Text>
         </>
       )}
 
@@ -235,7 +246,7 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
           <Text color={inkColors.accent}>
             <Spinner type="dots" />
           </Text>
-          <Text> Importing...</Text>
+          <Text> {text.importOverlay.importing}</Text>
         </Box>
       )}
 
@@ -243,11 +254,15 @@ export function ImportForm({ store }: ImportFormProps): React.ReactElement {
         <>
           {resultMessages.map((msg) => (
             <Text key={msg.name} color={msg.ok ? inkColors.success : inkColors.error}>
-              {truncateText(msg.ok ? `[OK] ${msg.name}` : `[FAIL] ${msg.name}: ${msg.error}`)}
+              {truncateText(
+                msg.ok
+                  ? `[${text.common.ok}] ${msg.name}`
+                  : `[${text.common.fail}] ${msg.name}: ${msg.error}`
+              )}
             </Text>
           ))}
           <Text> </Text>
-          <Text dimColor>Press Esc to close</Text>
+          <Text dimColor>{text.common.pressEscToClose}</Text>
         </>
       )}
     </Box>

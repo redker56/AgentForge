@@ -1,4 +1,5 @@
 import { cycleContextSkillFilter, getVisibleContextSkillRows } from '../../contextTypes.js';
+import { getTuiText } from '../../i18n.js';
 
 import {
   getAgentContextSections,
@@ -11,6 +12,7 @@ import {
 import type { InputRouteContext } from './types.js';
 
 export function handleAgentsTabInput({ store, input, key, state }: InputRouteContext): boolean {
+  const text = getTuiText(state.shellState.locale);
   const sections = getAgentContextSections(state);
   const visibleRows = getVisibleContextSkillRows(
     sections,
@@ -26,6 +28,12 @@ export function handleAgentsTabInput({ store, input, key, state }: InputRouteCon
     if (key.downArrow) {
       const index = state.agentsBrowserState.focusedSkillIndex;
       if (index < visibleRows.length - 1) state.setFocusedAgentSkillIndex(index + 1);
+      return true;
+    }
+    if (key.home || key.end) {
+      if (visibleRows.length > 0) {
+        state.setFocusedAgentSkillIndex(key.home ? 0 : visibleRows.length - 1);
+      }
       return true;
     }
     if (input === '[') {
@@ -154,6 +162,12 @@ export function handleAgentsTabInput({ store, input, key, state }: InputRouteCon
     if (index < state.agents.length - 1) state.setFocusedAgentIndex(index + 1);
     return true;
   }
+  if (key.home || key.end) {
+    if (state.agents.length > 0) {
+      state.setFocusedAgentIndex(key.home ? 0 : state.agents.length - 1);
+    }
+    return true;
+  }
   if (key.return) {
     const focusedAgent = state.agents[state.agentsBrowserState.focusedIndex];
     if (focusedAgent) {
@@ -174,8 +188,8 @@ export function handleAgentsTabInput({ store, input, key, state }: InputRouteCon
     const agent = state.agents[state.agentsBrowserState.focusedIndex];
     if (!agent || isBuiltinAgent(agent.id)) return true;
     state.setConfirmState({
-      title: `Remove Agent "${agent.name}"`,
-      message: 'Files stay on disk. AgentForge will forget sync references tied to this Agent.',
+      title: text.mutations.removeAgentTitle(agent.name),
+      message: text.mutations.removeAgentMessage,
       onConfirm: () => {
         const agentSnapshot = {
           id: agent.id,
@@ -186,7 +200,7 @@ export function handleAgentsTabInput({ store, input, key, state }: InputRouteCon
         void store.getState().removeAgent(agent.id);
         store.getState().setConfirmState(null);
         store.getState().pushUndo('remove-agent', agentSnapshot);
-        store.getState().pushToast(`Removed agent '${agent.name}'`, 'success');
+        store.getState().pushToast(text.mutations.removedAgent(agent.name), 'success');
       },
     });
     return true;

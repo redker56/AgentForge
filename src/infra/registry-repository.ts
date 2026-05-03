@@ -3,6 +3,7 @@ import type {
   ProjectConfig,
   ProjectSyncRecord,
   RegistryData,
+  RegistrySettings,
   SkillMeta,
   SkillSource,
   StorageInterface,
@@ -22,6 +23,8 @@ export interface RegistryRepository extends StorageInterface {
   deleteSkill(name: string): void;
   updateSkillSync(name: string, records: SyncRecord[]): void;
   updateSkillProjectSync(name: string, records: ProjectSyncRecord[]): void;
+  getSettings(): RegistrySettings;
+  updateSettings(settings: Partial<RegistrySettings>): void;
   runBatch<T>(mutator: (repo: RegistryRepository) => T): T;
   snapshot(): RegistryData;
 }

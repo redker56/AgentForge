@@ -10,8 +10,10 @@ import {
   getSkillCategoryCounts,
   type SkillCategoryFilter,
   type SyncMode,
+  type TuiLanguagePreference,
 } from '../../types.js';
 import type { ContextSkillFilter } from '../contextTypes.js';
+import { getTuiText, type TuiLocale } from '../i18n.js';
 import {
   getClampedFocusedSkillIndex,
   getVisibleSkillIndices,
@@ -113,6 +115,10 @@ export interface UndoSnapshot {
 }
 
 export interface UiShellState {
+  locale: TuiLocale;
+  languagePreference: TuiLanguagePreference;
+  languageSelectorOpen: boolean;
+  languageSelectorFocusedIndex: number;
   activeTab: TabId;
   searchQuery: string;
   detailOverlayVisible: boolean;
@@ -250,6 +256,9 @@ export interface UISlice {
   updateProgressItem: (id: string, update: Partial<ProgressItem>) => void;
   setCompletionModalOpen: (open: boolean | null) => void;
   setShowCommandPalette: (show: boolean) => void;
+  setLanguageSelectorOpen: (open: boolean) => void;
+  setLanguageSelectorFocusedIndex: (index: number) => void;
+  setTuiLanguageState: (preference: TuiLanguagePreference, locale: TuiLocale) => void;
   setSearchResultIndex: (index: number) => void;
   setTabSwitchPending: (tab: TabId | null) => void;
   setDirtyConfirmActive: (active: boolean) => void;
@@ -309,6 +318,10 @@ function createInitialImportWorkflowState(): ImportWorkflowState {
 export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, get) => ({
   shellState: {
     activeTab: 'skills',
+    locale: 'en',
+    languagePreference: 'auto',
+    languageSelectorOpen: false,
+    languageSelectorFocusedIndex: 0,
     searchQuery: '',
     detailOverlayVisible: false,
     detailSkillName: null,
@@ -363,6 +376,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
         conflictState: null,
         detailOverlayVisible: false,
         detailSkillName: null,
+        languageSelectorOpen: false,
       },
       skillsBrowserState: {
         ...state.skillsBrowserState,
@@ -498,7 +512,6 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
         },
       };
     }),
-
   setFocusedAgentIndex: (index) =>
     set((state) => ({
       agentsBrowserState: { ...state.agentsBrowserState, focusedIndex: index },
@@ -588,6 +601,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
         showSearch: show,
         showHelp: false,
         showCommandPalette: false,
+        languageSelectorOpen: false,
         searchQuery: show ? '' : state.shellState.searchQuery,
         searchResultIndex: show ? 0 : state.shellState.searchResultIndex,
       },
@@ -599,6 +613,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
         showHelp: show,
         showSearch: false,
         showCommandPalette: false,
+        languageSelectorOpen: false,
       },
     })),
   setConfirmState: (confirmState) =>
@@ -608,6 +623,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
         confirmState,
         formState: null,
         conflictState: null,
+        languageSelectorOpen: false,
       },
     })),
   setFormState: (formState) =>
@@ -617,6 +633,7 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
         formState,
         confirmState: null,
         conflictState: null,
+        languageSelectorOpen: false,
       },
     })),
   setConflictState: (conflictState) =>
@@ -790,6 +807,40 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
         confirmState: null,
         formState: null,
         conflictState: null,
+        languageSelectorOpen: false,
+      },
+    })),
+  setLanguageSelectorOpen: (languageSelectorOpen) =>
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        languageSelectorOpen,
+        languageSelectorFocusedIndex: languageSelectorOpen
+          ? state.shellState.languageSelectorFocusedIndex
+          : 0,
+        showCommandPalette: false,
+        showSearch: false,
+        showHelp: false,
+        confirmState: languageSelectorOpen ? null : state.shellState.confirmState,
+        formState: languageSelectorOpen ? null : state.shellState.formState,
+        conflictState: languageSelectorOpen ? null : state.shellState.conflictState,
+      },
+    })),
+  setLanguageSelectorFocusedIndex: (languageSelectorFocusedIndex) =>
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        languageSelectorFocusedIndex,
+      },
+    })),
+  setTuiLanguageState: (languagePreference, locale) =>
+    set((state) => ({
+      shellState: {
+        ...state.shellState,
+        languagePreference,
+        locale,
+        languageSelectorOpen: false,
+        languageSelectorFocusedIndex: 0,
       },
     })),
   setSearchResultIndex: (searchResultIndex) =>
@@ -910,7 +961,8 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (set, ge
     }
 
     const name = snapshot.name || snapshot.id || 'item';
-    state.pushToast(`Restored '${String(name)}'`, 'success');
+    const text = getTuiText(state.shellState.locale);
+    state.pushToast(text.status.restored(String(name)), 'success');
     set((current) => ({
       shellState: {
         ...current.shellState,

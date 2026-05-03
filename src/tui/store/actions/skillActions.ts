@@ -5,6 +5,7 @@
 import type { StateCreator, StoreApi } from 'zustand';
 
 import type { SkillCategoryUpdateMode } from '../../../app/skill-service.js';
+import { getTuiText } from '../../i18n.js';
 import type { AppStore } from '../index.js';
 import type { ConflictEntry } from '../uiSlice.js';
 import type { WorkbenchContext } from '../workbenchContext.js';
@@ -72,11 +73,12 @@ function createSkillActionsImpl(
   return {
     addSkillFromUrl: async (url, name): Promise<void> => {
       try {
+        const text = getTuiText(get().shellState.locale);
         if (name) {
           const skillName = await ctx.commands.installSkillFromUrl(url, name);
           setupConflictDetection(skillName);
           await get().refreshSkills();
-          get().pushToast(`Skill '${skillName}' installed`, 'success');
+          get().pushToast(text.mutations.skillInstalled(skillName), 'success');
           return;
         }
 
@@ -84,14 +86,14 @@ function createSkillActionsImpl(
           const skillName = await ctx.commands.installSkillFromUrl(url);
           setupConflictDetection(skillName);
           await get().refreshSkills();
-          get().pushToast(`Skill '${skillName}' installed`, 'success');
+          get().pushToast(text.mutations.skillInstalled(skillName), 'success');
           return;
         }
 
         const discovered = await ctx.commands.discoverSkillsInRepo(url);
         if (discovered.skills.length === 0) {
           await ctx.commands.cleanupDiscoveredRepo(discovered.tempRepoPath);
-          throw new Error('No skills found in repository');
+          throw new Error(text.addForm.noSkillsFound);
         }
 
         if (discovered.skills.length === 1) {
@@ -102,7 +104,7 @@ function createSkillActionsImpl(
           );
           setupConflictDetection(skillName);
           await get().refreshSkills();
-          get().pushToast(`Skill '${skillName}' installed`, 'success');
+          get().pushToast(text.mutations.skillInstalled(skillName), 'success');
           return;
         }
 

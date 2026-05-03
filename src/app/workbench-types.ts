@@ -6,6 +6,7 @@ import type {
   SkillSource,
   SyncMode,
   SyncRecord,
+  TuiLanguagePreference,
 } from '../types.js';
 
 export type ContextSkillFilter = 'all' | 'imported' | 'unimported';
@@ -214,4 +215,5 @@ export interface WorkbenchCommands {
   addProject(id: string, projectPath: string): Promise<void>;
   removeProject(projectId: string): Promise<void>;
   restoreProject(snapshot: Record<string, unknown>): void;
+  setTuiLanguagePreference(preference: TuiLanguagePreference): void;
 }

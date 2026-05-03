@@ -12,6 +12,7 @@ import type { StoreApi } from 'zustand';
 
 import type { SkillDetailData } from '../../app/workbench-types.js';
 import type { SyncMode } from '../../types.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import type { OperationResult, SyncOperation } from '../store/uiSlice.js';
 import { inkColors, renderFocusPrefix, selectionMarkers, spacing } from '../theme.js';
@@ -45,8 +46,12 @@ function truncateSelectableLabel(label: string, contentWidth: number): string {
   return truncateText(label, Math.max(contentWidth - 8, 8));
 }
 
-function truncateSummaryList(items: string[], contentWidth: number): string {
-  if (items.length === 0) return '(none)';
+function truncateSummaryList(
+  items: string[],
+  contentWidth: number,
+  text: ReturnType<typeof getTuiText>
+): string {
+  if (items.length === 0) return text.common.none;
   return truncateText(items.join(', '), Math.max(contentWidth - 8, 8));
 }
 
@@ -195,92 +200,95 @@ function buildTargetList(
 function getSyncSteps(
   operation: SyncOperation | null,
   unsyncScope: 'agents' | 'projects' | null,
-  projectMode: 'all' | 'specific' | null
+  projectMode: 'all' | 'specific' | null,
+  text: ReturnType<typeof getTuiText>
 ): string[] {
+  const steps = text.sync.steps;
   switch (operation) {
     case 'sync-agents':
       return [
-        'Select Operation',
-        'Select Skills',
-        'Select Targets',
-        'Select Mode',
-        'Confirm',
-        'Executing',
-        'Results',
+        steps.selectOperation,
+        steps.selectSkills,
+        steps.selectTargets,
+        steps.selectMode,
+        steps.confirm,
+        steps.executing,
+        steps.results,
       ];
     case 'sync-projects':
       return [
-        'Select Operation',
-        'Select Skills',
-        'Select Targets',
-        'Select Agent Types',
-        'Select Mode',
-        'Confirm',
-        'Executing',
-        'Results',
+        steps.selectOperation,
+        steps.selectSkills,
+        steps.selectTargets,
+        steps.selectAgentTypes,
+        steps.selectMode,
+        steps.confirm,
+        steps.executing,
+        steps.results,
       ];
     case 'unsync':
       if (unsyncScope === 'projects' && projectMode === 'specific') {
         return [
-          'Select Operation',
-          'Select Skills',
-          'Select Scope',
-          'Select Targets',
-          'Select Unsync Mode',
-          'Select Agent Types',
-          'Confirm',
-          'Executing',
-          'Results',
+          steps.selectOperation,
+          steps.selectSkills,
+          steps.selectScope,
+          steps.selectTargets,
+          steps.selectUnsyncMode,
+          steps.selectAgentTypes,
+          steps.confirm,
+          steps.executing,
+          steps.results,
         ];
       }
       if (unsyncScope === 'projects') {
         return [
-          'Select Operation',
-          'Select Skills',
-          'Select Scope',
-          'Select Targets',
-          'Select Unsync Mode',
-          'Confirm',
-          'Executing',
-          'Results',
+          steps.selectOperation,
+          steps.selectSkills,
+          steps.selectScope,
+          steps.selectTargets,
+          steps.selectUnsyncMode,
+          steps.confirm,
+          steps.executing,
+          steps.results,
         ];
       }
       return [
-        'Select Operation',
-        'Select Skills',
-        'Select Scope',
-        'Select Targets',
-        'Confirm',
-        'Executing',
-        'Results',
+        steps.selectOperation,
+        steps.selectSkills,
+        steps.selectScope,
+        steps.selectTargets,
+        steps.confirm,
+        steps.executing,
+        steps.results,
       ];
     default:
-      return ['Select Operation'];
+      return [steps.selectOperation];
   }
 }
 
-function stepToLabel(step: string): string {
+function stepToLabel(step: string, text: ReturnType<typeof getTuiText>): string {
+  const labels = text.sync.steps;
   switch (step) {
     case 'select-op':
-      return 'Select Operation';
+      return labels.selectOperation;
     case 'select-skills':
-      return 'Select Skills';
+      return labels.selectSkills;
     case 'select-unsync-scope':
-      return 'Select Scope';
+      return labels.selectScope;
     case 'select-targets':
-      return 'Select Targets';
+      return labels.selectTargets;
     case 'select-unsync-project-mode':
-      return 'Select Unsync Mode';
+      return labels.selectUnsyncMode;
     case 'select-agent-types':
-      return 'Select Agent Types';
+      return labels.selectAgentTypes;
     case 'select-mode':
-      return 'Select Mode';
+      return labels.selectMode;
     case 'confirm':
-      return 'Confirm';
+      return labels.confirm;
     case 'executing':
-      return 'Executing';
+      return labels.executing;
     case 'results':
-      return 'Results';
+      return labels.results;
     default:
       return step;
   }
@@ -412,6 +420,7 @@ function handleSyncBack(storeApi: StoreApi<AppStore>): void {
 export function SyncForm({ store }: SyncFormProps): React.ReactElement {
   const { stdout } = useStdout();
   const syncFormStep = useStore(store, (s) => s.syncWorkflowState.step);
+  const locale = useStore(store, (s) => s.shellState.locale);
   const syncFormOperation = useStore(store, (s) => s.syncWorkflowState.operation);
   const syncFormSelectedSkillNames = useStore(store, (s) => s.syncWorkflowState.selectedSkillNames);
   const syncFormUnsyncScope = useStore(store, (s) => s.syncWorkflowState.unsyncScope);
@@ -433,6 +442,7 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
   const formState = useStore(store, (s) => s.shellState.formState);
   const conflictState = useStore(store, (s) => s.shellState.conflictState);
   const updateProgressItems = useStore(store, (s) => s.shellState.updateProgressItems);
+  const text = getTuiText(locale);
 
   const targetList = buildTargetList(
     syncFormOperation,
@@ -448,8 +458,13 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
     skillDetails,
     agents
   );
-  const syncSteps = getSyncSteps(syncFormOperation, syncFormUnsyncScope, syncFormProjectUnsyncMode);
-  const syncCurrentIndex = syncSteps.indexOf(stepToLabel(syncFormStep));
+  const syncSteps = getSyncSteps(
+    syncFormOperation,
+    syncFormUnsyncScope,
+    syncFormProjectUnsyncMode,
+    text
+  );
+  const syncCurrentIndex = syncSteps.indexOf(stepToLabel(syncFormStep, text));
   const columns = stdout?.columns ?? 120;
   const contentWidth = Math.max(
     columns - STEP_INDICATOR_WIDTH - spacing.paddingX * 4 - 6,
@@ -580,13 +595,13 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
           if (targetList.length === 0) {
             const errorMessage =
               state.syncWorkflowState.operation === 'sync-agents'
-                ? 'No agents configured'
+                ? text.sync.noAgentsConfigured
                 : state.syncWorkflowState.operation === 'sync-projects'
-                  ? 'No projects configured'
+                  ? text.sync.noProjectsConfigured
                   : state.syncWorkflowState.unsyncScope === 'projects'
-                    ? 'No synced projects found'
-                    : 'No synced agents found';
-            state.setSyncFormResults([makeEmptyResult(errorMessage)]);
+                    ? text.sync.noSyncedProjectsFound
+                    : text.sync.noSyncedAgentsFound;
+            state.setSyncFormResults([makeEmptyResult(errorMessage, text)]);
             state.setSyncFormStep('results');
             return;
           }
@@ -733,7 +748,7 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
       />
       <Box flexDirection="column" flexGrow={1} paddingX={spacing.paddingX}>
         {syncFormStep === 'select-op' && (
-          <SelectOp operation={syncFormOperation} contentWidth={contentWidth} />
+          <SelectOp operation={syncFormOperation} contentWidth={contentWidth} text={text} />
         )}
         {syncFormStep === 'select-skills' && (
           <SelectSkills
@@ -741,10 +756,15 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
             selected={syncFormSelectedSkillNames}
             focusedIndex={syncFormFocusedIndex}
             contentWidth={contentWidth}
+            text={text}
           />
         )}
         {syncFormStep === 'select-unsync-scope' && (
-          <SelectUnsyncScope focusedIndex={syncFormFocusedIndex} contentWidth={contentWidth} />
+          <SelectUnsyncScope
+            focusedIndex={syncFormFocusedIndex}
+            contentWidth={contentWidth}
+            text={text}
+          />
         )}
         {syncFormStep === 'select-targets' && (
           <SelectTargets
@@ -755,6 +775,7 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
             targets={targetList}
             loading={syncFormLoadingTargets}
             contentWidth={contentWidth}
+            text={text}
           />
         )}
         {syncFormStep === 'select-unsync-project-mode' && (
@@ -762,6 +783,7 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
             focusedIndex={syncFormFocusedIndex}
             mode={syncFormProjectUnsyncMode}
             contentWidth={contentWidth}
+            text={text}
           />
         )}
         {syncFormStep === 'select-agent-types' && (
@@ -775,14 +797,15 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
             focusedIndex={syncFormFocusedIndex}
             title={
               syncFormOperation === 'unsync'
-                ? 'Select agent types to unsync from selected projects'
-                : 'Select agent types'
+                ? text.sync.selectAgentTypesUnsync
+                : text.sync.selectAgentTypes
             }
             contentWidth={contentWidth}
+            text={text}
           />
         )}
         {syncFormStep === 'select-mode' && (
-          <SelectMode mode={syncFormMode} contentWidth={contentWidth} />
+          <SelectMode mode={syncFormMode} contentWidth={contentWidth} text={text} />
         )}
         {syncFormStep === 'confirm' && (
           <ConfirmStep
@@ -794,14 +817,18 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
             agentTypes={syncFormSelectedAgentTypes}
             mode={syncFormMode}
             contentWidth={contentWidth}
+            text={text}
           />
         )}
-        {syncFormStep === 'executing' && <ExecutingStep progressItems={updateProgressItems} />}
+        {syncFormStep === 'executing' && (
+          <ExecutingStep progressItems={updateProgressItems} text={text} />
+        )}
         {syncFormStep === 'results' && (
           <ResultsStep
             operation={syncFormOperation}
             results={syncFormResults}
             contentWidth={contentWidth}
+            text={text}
           />
         )}
       </Box>
@@ -809,31 +836,33 @@ export function SyncForm({ store }: SyncFormProps): React.ReactElement {
   );
 }
 
-function makeEmptyResult(error: string): OperationResult {
-  return { target: 'Nothing to do', success: false, error, outcome: 'error' };
+function makeEmptyResult(error: string, text: ReturnType<typeof getTuiText>): OperationResult {
+  return { target: text.sync.nothingToDo, success: false, error, outcome: 'error' };
 }
 
 function SelectOp({
   operation,
   contentWidth,
+  text,
 }: {
   operation: SyncOperation | null;
   contentWidth: number;
+  text: ReturnType<typeof getTuiText>;
 }): React.ReactElement {
   const options: Array<{ value: SyncOperation; label: string }> = [
-    { value: 'sync-agents', label: 'Sync to Agents' },
-    { value: 'sync-projects', label: 'Sync to Projects' },
-    { value: 'unsync', label: 'Unsync' },
+    { value: 'sync-agents', label: text.sync.options.syncAgents },
+    { value: 'sync-projects', label: text.sync.options.syncProjects },
+    { value: 'unsync', label: text.sync.options.unsync },
   ];
   const operationIndex = options.findIndex((option) => option.value === operation);
 
   return (
     <Box flexDirection="column">
       <Text bold color={inkColors.accent}>
-        Sync Skills
+        {text.sync.screenTitle}
       </Text>
       <Text> </Text>
-      <Text>Choose operation:</Text>
+      <Text>{text.sync.chooseOperation}</Text>
       {options.map((option, index) => (
         <Text key={option.value}>
           {renderFocusPrefix(index === operationIndex)}
@@ -845,7 +874,7 @@ function SelectOp({
         </Text>
       ))}
       <Text> </Text>
-      <Text dimColor>{truncateText('Up/Down to choose, Enter to continue', contentWidth)}</Text>
+      <Text dimColor>{truncateText(text.common.upDownChooseEnterContinue, contentWidth)}</Text>
     </Box>
   );
 }
@@ -855,16 +884,18 @@ function SelectSkills({
   selected,
   focusedIndex,
   contentWidth,
+  text,
 }: {
   skills: Array<{ name: string }>;
   selected: Set<string>;
   focusedIndex: number;
   contentWidth: number;
+  text: ReturnType<typeof getTuiText>;
 }): React.ReactElement {
   return (
     <Box flexDirection="column">
       <Text bold color={inkColors.accent}>
-        Select skills
+        {text.sync.selectSkills}
       </Text>
       <Text> </Text>
       {skills.map((skill, index) => {
@@ -881,13 +912,11 @@ function SelectSkills({
         );
       })}
       {skills.length === 0 && (
-        <Text dimColor>
-          {truncateText('No skills installed. Use the Skills tab to add skills.', contentWidth)}
-        </Text>
+        <Text dimColor>{truncateText(text.sync.noSkills, contentWidth)}</Text>
       )}
       <Text> </Text>
       <Text dimColor>
-        {truncateText('Up/Down to navigate, Space to toggle, Enter to continue', contentWidth)}
+        {truncateText(text.common.upDownNavigateSpaceToggleEnterContinue, contentWidth)}
       </Text>
     </Box>
   );
@@ -896,15 +925,17 @@ function SelectSkills({
 function SelectUnsyncScope({
   focusedIndex,
   contentWidth,
+  text,
 }: {
   focusedIndex: number;
   contentWidth: number;
+  text: ReturnType<typeof getTuiText>;
 }): React.ReactElement {
-  const options = ['Agents', 'Projects'];
+  const options = [text.sync.options.agents, text.sync.options.projects];
   return (
     <Box flexDirection="column">
       <Text bold color={inkColors.accent}>
-        Select unsync scope
+        {text.sync.selectUnsyncScope}
       </Text>
       <Text> </Text>
       {options.map((option, index) => (
@@ -918,7 +949,7 @@ function SelectUnsyncScope({
         </Text>
       ))}
       <Text> </Text>
-      <Text dimColor>{truncateText('Up/Down to choose, Enter to continue', contentWidth)}</Text>
+      <Text dimColor>{truncateText(text.common.upDownChooseEnterContinue, contentWidth)}</Text>
     </Box>
   );
 }
@@ -931,6 +962,7 @@ function SelectTargets({
   targets,
   loading,
   contentWidth,
+  text,
 }: {
   operation: SyncOperation | null;
   unsyncScope: 'agents' | 'projects' | null;
@@ -939,15 +971,16 @@ function SelectTargets({
   targets: TargetItem[];
   loading: boolean;
   contentWidth: number;
+  text: ReturnType<typeof getTuiText>;
 }): React.ReactElement {
   const title =
     operation === 'sync-agents'
-      ? 'Select agents'
+      ? text.sync.selectAgents
       : operation === 'sync-projects'
-        ? 'Select projects'
+        ? text.sync.selectProjects
         : unsyncScope === 'projects'
-          ? 'Select projects to unsync from'
-          : 'Select agents to unsync from';
+          ? text.sync.selectProjectsUnsync
+          : text.sync.selectAgentsUnsync;
 
   return (
     <Box flexDirection="column">
@@ -956,7 +989,7 @@ function SelectTargets({
       </Text>
       <Text> </Text>
       {loading ? (
-        <Text dimColor>Loading sync relationships...</Text>
+        <Text dimColor>{text.sync.loadingRelationships}</Text>
       ) : (
         targets.map((target, index) => {
           const isSelected = selected.has(target.id);
@@ -973,15 +1006,13 @@ function SelectTargets({
         })
       )}
       {!loading && targets.length === 0 && (
-        <Text dimColor>
-          {truncateText('No matching targets found for the selected skills.', contentWidth)}
-        </Text>
+        <Text dimColor>{truncateText(text.sync.noTargets, contentWidth)}</Text>
       )}
       <Text> </Text>
-      <Text dimColor>{truncateText(`${selected.size} target(s) selected`, contentWidth)}</Text>
+      <Text dimColor>{truncateText(text.sync.targetsSelected(selected.size), contentWidth)}</Text>
       <Text dimColor>
         {truncateText(
-          loading ? 'Please wait...' : 'Up/Down to navigate, Space to toggle, Enter to continue',
+          loading ? text.common.pleaseWait : text.common.upDownNavigateSpaceToggleEnterContinue,
           contentWidth
         )}
       </Text>
@@ -993,14 +1024,16 @@ function SelectUnsyncProjectMode({
   focusedIndex,
   mode,
   contentWidth,
+  text,
 }: {
   focusedIndex: number;
   mode: 'all' | 'specific' | null;
   contentWidth: number;
+  text: ReturnType<typeof getTuiText>;
 }): React.ReactElement {
   const options: Array<{ id: 'all' | 'specific'; label: string }> = [
-    { id: 'all', label: 'All agent types' },
-    { id: 'specific', label: 'Specific agent types' },
+    { id: 'all', label: text.sync.options.allAgentTypes },
+    { id: 'specific', label: text.sync.options.specificAgentTypes },
   ];
   const activeIndex =
     typeof mode === 'string' ? options.findIndex((option) => option.id === mode) : focusedIndex;
@@ -1008,7 +1041,7 @@ function SelectUnsyncProjectMode({
   return (
     <Box flexDirection="column">
       <Text bold color={inkColors.accent}>
-        Choose how to unsync from projects
+        {text.sync.chooseProjectUnsync}
       </Text>
       <Text> </Text>
       {options.map((option, index) => (
@@ -1022,7 +1055,7 @@ function SelectUnsyncProjectMode({
         </Text>
       ))}
       <Text> </Text>
-      <Text dimColor>{truncateText('Up/Down to choose, Enter to continue', contentWidth)}</Text>
+      <Text dimColor>{truncateText(text.common.upDownChooseEnterContinue, contentWidth)}</Text>
     </Box>
   );
 }
@@ -1033,12 +1066,14 @@ function SelectAgentTypes({
   focusedIndex,
   title,
   contentWidth,
+  text,
 }: {
   items: AgentTypeItem[];
   selected: Set<string>;
   focusedIndex: number;
   title: string;
   contentWidth: number;
+  text: ReturnType<typeof getTuiText>;
 }): React.ReactElement {
   return (
     <Box flexDirection="column">
@@ -1060,13 +1095,11 @@ function SelectAgentTypes({
         );
       })}
       {items.length === 0 && (
-        <Text dimColor>
-          {truncateText('No agent types are available for the selected projects.', contentWidth)}
-        </Text>
+        <Text dimColor>{truncateText(text.sync.noAgentTypes, contentWidth)}</Text>
       )}
       <Text> </Text>
       <Text dimColor>
-        {truncateText('Up/Down to navigate, Space to toggle, Enter to continue', contentWidth)}
+        {truncateText(text.common.upDownNavigateSpaceToggleEnterContinue, contentWidth)}
       </Text>
     </Box>
   );
@@ -1075,32 +1108,28 @@ function SelectAgentTypes({
 function SelectMode({
   mode,
   contentWidth,
+  text,
 }: {
   mode: SyncMode;
   contentWidth: number;
+  text: ReturnType<typeof getTuiText>;
 }): React.ReactElement {
   return (
     <Box flexDirection="column">
       <Text bold color={inkColors.accent}>
-        Sync mode
+        {text.sync.modeTitle}
       </Text>
       <Text> </Text>
       <Text>
         {renderFocusPrefix(mode === 'copy')}
-        {truncateText(
-          'Copy - Independent copy, stable and reliable',
-          Math.max(contentWidth - 2, 8)
-        )}
+        {truncateText(text.sync.options.copy, Math.max(contentWidth - 2, 8))}
       </Text>
       <Text>
         {renderFocusPrefix(mode === 'symlink')}
-        {truncateText(
-          'Symlink - Link to source, updates automatically',
-          Math.max(contentWidth - 2, 8)
-        )}
+        {truncateText(text.sync.options.symlink, Math.max(contentWidth - 2, 8))}
       </Text>
       <Text> </Text>
-      <Text dimColor>{truncateText('Up/Down to choose, Enter to continue', contentWidth)}</Text>
+      <Text dimColor>{truncateText(text.common.upDownChooseEnterContinue, contentWidth)}</Text>
     </Box>
   );
 }
@@ -1114,6 +1143,7 @@ function ConfirmStep({
   agentTypes,
   mode,
   contentWidth,
+  text,
 }: {
   operation: SyncOperation | null;
   unsyncScope: 'agents' | 'projects' | null;
@@ -1123,42 +1153,43 @@ function ConfirmStep({
   agentTypes: Set<string>;
   mode: SyncMode;
   contentWidth: number;
+  text: ReturnType<typeof getTuiText>;
 }): React.ReactElement {
-  let description = `Sync ${skillNames.size} skill(s) to ${targetIds.size} target(s) using ${mode} mode.`;
+  let description = text.sync.summarySync(skillNames.size, targetIds.size, mode);
   if (operation === 'unsync' && unsyncScope === 'agents') {
-    description = `Unsync ${skillNames.size} skill(s) from ${targetIds.size} agent target(s).`;
+    description = text.sync.summaryUnsyncAgents(skillNames.size, targetIds.size);
   }
   if (operation === 'unsync' && unsyncScope === 'projects') {
     description =
       projectUnsyncMode === 'specific'
-        ? `Unsync ${skillNames.size} skill(s) from ${targetIds.size} project(s) for ${agentTypes.size} selected agent type(s).`
-        : `Unsync ${skillNames.size} skill(s) from ${targetIds.size} project(s) across all discovered agent types.`;
+        ? text.sync.summaryUnsyncProjectsSpecific(skillNames.size, targetIds.size, agentTypes.size)
+        : text.sync.summaryUnsyncProjectsAll(skillNames.size, targetIds.size);
   }
 
   return (
     <Box flexDirection="column">
       <Text bold color={inkColors.accent}>
-        {operation === 'unsync' ? 'Confirm Unsync' : 'Confirm Sync'}
+        {operation === 'unsync' ? text.sync.confirmUnsync : text.sync.confirmSync}
       </Text>
       <Text> </Text>
       <Text>{truncateText(description, contentWidth)}</Text>
       <Text> </Text>
       <Text dimColor>
         {truncateText(
-          `Skills: ${truncateSummaryList([...skillNames], contentWidth)}`,
+          `${text.sync.skills}: ${truncateSummaryList([...skillNames], contentWidth, text)}`,
           contentWidth
         )}
       </Text>
       <Text dimColor>
         {truncateText(
-          `Targets: ${truncateSummaryList([...targetIds], contentWidth)}`,
+          `${text.sync.targets}: ${truncateSummaryList([...targetIds], contentWidth, text)}`,
           contentWidth
         )}
       </Text>
       {agentTypes.size > 0 && (
         <Text dimColor>
           {truncateText(
-            `Agent types: ${truncateSummaryList([...agentTypes], contentWidth)}`,
+            `${text.sync.agentTypes}: ${truncateSummaryList([...agentTypes], contentWidth, text)}`,
             contentWidth
           )}
         </Text>
@@ -1166,8 +1197,8 @@ function ConfirmStep({
       <Text> </Text>
       <Box flexDirection="row" gap={2}>
         <Text color={inkColors.accent}>[Enter]</Text>
-        <Text>{operation === 'unsync' ? 'Unsync' : 'Sync'}</Text>
-        <Text dimColor>[Esc] Back</Text>
+        <Text>{operation === 'unsync' ? text.status.labels.unsync : text.status.labels.sync}</Text>
+        <Text dimColor>[Esc] {text.common.back}</Text>
       </Box>
     </Box>
   );
@@ -1175,6 +1206,7 @@ function ConfirmStep({
 
 function ExecutingStep({
   progressItems,
+  text,
 }: {
   progressItems: Array<{
     id: string;
@@ -1183,6 +1215,7 @@ function ExecutingStep({
     status: 'pending' | 'running' | 'success' | 'error';
     error?: string;
   }>;
+  text: ReturnType<typeof getTuiText>;
 }): React.ReactElement {
   const totalItems = progressItems.length;
   const completedItems = progressItems.filter((item) => item.status === 'success').length;
@@ -1196,7 +1229,7 @@ function ExecutingStep({
   return (
     <Box flexDirection="column">
       <ProgressBar
-        label="Overall"
+        label={text.sync.overall}
         progress={overallProgress}
         status={overallStatus}
         completed={completedItems}
@@ -1220,15 +1253,17 @@ function ResultsStep({
   operation,
   results,
   contentWidth,
+  text,
 }: {
   operation: SyncOperation | null;
   results: OperationResult[];
   contentWidth: number;
+  text: ReturnType<typeof getTuiText>;
 }): React.ReactElement {
   const successes = results.filter((result) => getOutcome(result) === 'success');
   const skipped = results.filter((result) => getOutcome(result) === 'skipped');
   const failures = results.filter((result) => getOutcome(result) === 'error');
-  const title = operation === 'unsync' ? 'Unsync complete' : 'Sync complete';
+  const title = operation === 'unsync' ? text.sync.completeUnsync : text.sync.completeSync;
 
   return (
     <Box flexDirection="column">
@@ -1240,17 +1275,17 @@ function ResultsStep({
         <Text bold color={inkColors.success}>
           {successes.length}
         </Text>{' '}
-        succeeded
+        {text.sync.succeeded}
         <Text color={inkColors.muted}> | </Text>
         <Text bold color={inkColors.muted}>
           {skipped.length}
         </Text>{' '}
-        skipped
+        {text.common.skipped}
         <Text color={inkColors.muted}> | </Text>
         <Text bold color={failures.length > 0 ? inkColors.error : inkColors.muted}>
           {failures.length}
         </Text>{' '}
-        failed
+        {text.sync.failed}
       </Text>
       {(skipped.length > 0 || failures.length > 0) && <Text> </Text>}
       {skipped.map((result, index) => (
@@ -1272,8 +1307,8 @@ function ResultsStep({
       <Text> </Text>
       <Box flexDirection="row" gap={2}>
         <Text color={inkColors.accent}>[Enter]</Text>
-        <Text>New flow</Text>
-        <Text dimColor>[Esc] Close</Text>
+        <Text>{text.common.newFlow}</Text>
+        <Text dimColor>[Esc] {text.common.close}</Text>
       </Box>
     </Box>
   );

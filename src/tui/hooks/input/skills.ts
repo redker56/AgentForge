@@ -1,4 +1,5 @@
-import { getFocusedVisibleSkill } from '../../utils/skillsView.js';
+import { getTuiText } from '../../i18n.js';
+import { getFocusedVisibleSkill, getVisibleSkillIndices } from '../../utils/skillsView.js';
 
 import { openSkillDetail, openUpdateForm } from './shared.js';
 import type { InputRouteContext } from './types.js';
@@ -16,6 +17,7 @@ function getSelectedOrFocusedSkillNames(state: InputRouteContext['state']): stri
 }
 
 export function handleSkillsTabInput({ store, input, key, state }: InputRouteContext): boolean {
+  const text = getTuiText(state.shellState.locale);
   const focusedVisibleSkill = getFocusedVisibleSkill(
     state.skills,
     state.skillsBrowserState.activeCategoryFilter,
@@ -28,6 +30,18 @@ export function handleSkillsTabInput({ store, input, key, state }: InputRouteCon
   }
   if (key.downArrow) {
     state.moveFocusDown();
+    return true;
+  }
+  if (key.home || key.end) {
+    const visibleIndices = getVisibleSkillIndices(
+      state.skills,
+      state.skillsBrowserState.activeCategoryFilter
+    );
+    if (visibleIndices.length > 0) {
+      state.setFocusedSkillIndex(
+        key.home ? visibleIndices[0] : visibleIndices[visibleIndices.length - 1]
+      );
+    }
     return true;
   }
   if (input === '[') {
@@ -76,8 +90,8 @@ export function handleSkillsTabInput({ store, input, key, state }: InputRouteCon
         0
       );
       state.setConfirmState({
-        title: `Delete ${names.length} skill(s)`,
-        message: `This will remove ${agentSyncCount} user-level sync(s) and ${projectSyncCount} project sync(s). Files on disk will be deleted.`,
+        title: text.mutations.deleteSkillsTitle(names.length),
+        message: text.mutations.deleteSkillsMessage(agentSyncCount, projectSyncCount),
         onConfirm: () => {
           const snapshots = names
             .map((name) => {
@@ -98,7 +112,9 @@ export function handleSkillsTabInput({ store, input, key, state }: InputRouteCon
           }
 
           const message =
-            names.length === 1 ? `Deleted '${names[0]}'` : `Deleted ${names.length} skill(s)`;
+            names.length === 1
+              ? text.mutations.deletedSkill(names[0] ?? '')
+              : text.mutations.deletedSkills(names.length);
           store.getState().pushToast(message, 'success');
         },
       });

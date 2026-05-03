@@ -74,6 +74,20 @@ describe('TabBar', () => {
     expect(frame).toContain('Import');
   });
 
+  it('renders Chinese tab labels when locale is zh', async () => {
+    const { TabBar } = await import('../../../src/tui/components/TabBar.js');
+    const store = makeMockStore({ locale: 'zh' });
+    const { lastFrame } = render(
+      React.createElement(TabBar, { store, band: 'widescreen', columns: 150 })
+    );
+    vi.runAllTimers();
+    const frame = lastFrame() || '';
+    expect(frame).toContain('[Skill]');
+    expect(frame).toContain('项目');
+    expect(frame).toContain('同步');
+    expect(frame).toContain('导入');
+  });
+
   it('renders symbol fallback at compact band', async () => {
     const { TabBar } = await import('../../../src/tui/components/TabBar.js');
     const store = makeMockStore();

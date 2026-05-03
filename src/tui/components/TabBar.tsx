@@ -9,6 +9,7 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore, TabId } from '../store/index.js';
 import { inkColors, spacing } from '../theme.js';
 
@@ -18,27 +19,18 @@ interface TabBarProps {
   columns: number;
 }
 
-const FULL_TABS: Array<{ id: TabId; label: string }> = [
-  { id: 'skills', label: 'Skills' },
-  { id: 'agents', label: 'Agents' },
-  { id: 'projects', label: 'Projects' },
-  { id: 'sync', label: 'Sync' },
-  { id: 'import', label: 'Import' },
-];
-
-const SYMBOL_TABS: Array<{ id: TabId; label: string }> = [
-  { id: 'skills', label: 'S' },
-  { id: 'agents', label: 'A' },
-  { id: 'projects', label: 'P' },
-  { id: 'sync', label: 'Sy' },
-  { id: 'import', label: 'I' },
-];
+const TAB_IDS: TabId[] = ['skills', 'agents', 'projects', 'sync', 'import'];
 
 export function TabBar({ store, band, columns }: TabBarProps): React.ReactElement {
   const activeTab = useStore(store, (s) => s.shellState.activeTab);
+  const locale = useStore(store, (s) => s.shellState.locale);
+  const text = getTuiText(locale);
 
   const useSymbols = band === 'compact' || columns < 60;
-  const tabs = useSymbols ? SYMBOL_TABS : FULL_TABS;
+  const tabs = TAB_IDS.map((id) => ({
+    id,
+    label: useSymbols ? text.shortTabs[id] : text.tabs[id],
+  }));
   const showHints = !useSymbols && columns >= 60;
   const showSubtitle = !useSymbols && columns >= 88;
   const gap = ' '.repeat(spacing.tabGap);
@@ -51,7 +43,7 @@ export function TabBar({ store, band, columns }: TabBarProps): React.ReactElemen
       {showSubtitle && (
         <>
           <Text color={inkColors.muted}> / </Text>
-          <Text color={inkColors.secondary}>skill workbench</Text>
+          <Text color={inkColors.secondary}>{text.subtitle}</Text>
         </>
       )}
       <Text>{`${gap}  `}</Text>

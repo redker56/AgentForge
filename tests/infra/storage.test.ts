@@ -86,5 +86,39 @@ describe('JsonRegistryRepository', () => {
         .filter((name) => name.startsWith('registry.json.tmp-'));
       expect(tempFiles).toEqual([]);
     });
+
+    it('defaults TUI language settings to auto', () => {
+      const forgeDir = path.join(TEST_HOME, '.settings-agentforge');
+      const storage = new JsonRegistryRepository(forgeDir);
+
+      expect(storage.getSettings()).toEqual({ tuiLanguage: 'auto' });
+    });
+
+    it('persists TUI language settings across repository reloads', () => {
+      const forgeDir = path.join(TEST_HOME, '.settings-persist-agentforge');
+      const storage = new JsonRegistryRepository(forgeDir);
+
+      storage.updateSettings({ tuiLanguage: 'zh' });
+
+      const reloaded = new JsonRegistryRepository(forgeDir);
+      expect(reloaded.getSettings()).toEqual({ tuiLanguage: 'zh' });
+    });
+
+    it('migrates legacy registries without settings to auto', async () => {
+      const forgeDir = path.join(TEST_HOME, '.legacy-settings-agentforge');
+      const registryPath = path.join(forgeDir, 'registry.json');
+      await fs.ensureDir(forgeDir);
+      await fs.writeJson(registryPath, {
+        version: '1.0',
+        skills: {},
+        agents: {},
+        projects: {},
+      });
+
+      const storage = new JsonRegistryRepository(forgeDir);
+
+      expect(storage.getSettings()).toEqual({ tuiLanguage: 'auto' });
+      expect((await fs.readJson(registryPath)).settings).toEqual({ tuiLanguage: 'auto' });
+    });
   });
 });

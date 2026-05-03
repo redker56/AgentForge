@@ -8,6 +8,7 @@ import React from 'react';
 import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, selectionMarkers } from '../theme.js';
 import { truncateDisplayText } from '../utils/displayWidth.js';
@@ -23,6 +24,8 @@ function truncateText(text: string, maxWidth = 68): string {
 export function ConflictPanel({ store }: ConflictPanelProps): React.ReactElement {
   const conflictState = useStore(store, (s) => s.shellState.conflictState);
   const focusedConflictIndex = useStore(store, (s) => s.shellState.focusedConflictIndex);
+  const locale = useStore(store, (s) => s.shellState.locale);
+  const text = getTuiText(locale);
 
   if (!conflictState) return <></>;
 
@@ -36,14 +39,10 @@ export function ConflictPanel({ store }: ConflictPanelProps): React.ReactElement
       borderColor={inkColors.border}
     >
       <Text bold color={inkColors.warning}>
-        Auto-Link Detection
+        {text.modal.conflictTitle}
       </Text>
       <Text> </Text>
-      <Text dimColor>
-        {truncateText(
-          `Found same-name skills in Agent directories for "${conflictState.skillName}":`
-        )}
-      </Text>
+      <Text dimColor>{truncateText(text.modal.conflictFound(conflictState.skillName))}</Text>
       <Text> </Text>
       {conflictState.conflicts.map((conflict, i) => (
         <Text
@@ -52,13 +51,13 @@ export function ConflictPanel({ store }: ConflictPanelProps): React.ReactElement
         >
           {truncateText(
             `${conflict.sameContent ? selectionMarkers.selected : conflict.resolution !== 'pending' ? selectionMarkers.selected : selectionMarkers.unselected} ${conflict.agentName} ${
-              conflict.sameContent ? '(same content, auto-linked)' : '(different content)'
+              conflict.sameContent ? text.modal.sameContent : text.modal.differentContent
             }${
               !conflict.sameContent
                 ? conflict.resolution === 'link'
-                  ? ' -> Link'
+                  ? ` -> ${text.common.link}`
                   : conflict.resolution === 'skip'
-                    ? ' -> Skip'
+                    ? ` -> ${text.common.skip}`
                     : ''
                 : ''
             }`
@@ -66,9 +65,7 @@ export function ConflictPanel({ store }: ConflictPanelProps): React.ReactElement
         </Text>
       ))}
       <Text> </Text>
-      <Text dimColor>
-        {truncateText('Up/Down:Navigate Space:Toggle Enter:Confirm Esc:Skip All')}
-      </Text>
+      <Text dimColor>{truncateText(text.modal.navToggleConfirmSkip)}</Text>
     </Box>
   );
 }

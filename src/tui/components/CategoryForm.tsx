@@ -17,6 +17,7 @@ import {
   UNCATEGORIZED_SKILL_CATEGORY_FILTER,
   type SkillMeta,
 } from '../../types.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
 import { truncateDisplayText } from '../utils/displayWidth.js';
@@ -45,25 +46,36 @@ interface CategoryOption {
   count: number;
 }
 
-const MODE_OPTIONS: CategoryModeOption[] = [
-  { id: 'set', label: 'Set categories', description: 'Replace categories with the entered list' },
-  { id: 'add', label: 'Add categories', description: 'Append entered categories to existing ones' },
-  {
-    id: 'remove',
-    label: 'Remove categories',
-    description: 'Remove entered categories from matching skills',
-  },
-  {
-    id: 'clear',
-    label: 'Clear categories',
-    description: 'Remove all categories from selected skills',
-  },
-];
-
 const MAX_VISIBLE_RESULT_ROWS = 8;
 const MAX_VISIBLE_CATEGORY_ROWS = 7;
 const FORM_WIDTH = 76;
 const CONTENT_WIDTH = FORM_WIDTH - 4;
+type TuiText = ReturnType<typeof getTuiText>;
+
+function getModeOptions(text: TuiText): CategoryModeOption[] {
+  return [
+    {
+      id: 'set',
+      label: text.categoryForm.modeOptions.set[0],
+      description: text.categoryForm.modeOptions.set[1],
+    },
+    {
+      id: 'add',
+      label: text.categoryForm.modeOptions.add[0],
+      description: text.categoryForm.modeOptions.add[1],
+    },
+    {
+      id: 'remove',
+      label: text.categoryForm.modeOptions.remove[0],
+      description: text.categoryForm.modeOptions.remove[1],
+    },
+    {
+      id: 'clear',
+      label: text.categoryForm.modeOptions.clear[0],
+      description: text.categoryForm.modeOptions.clear[1],
+    },
+  ];
+}
 
 function parseSkillNames(encoded: string | undefined): string[] {
   if (!encoded) return [];
@@ -89,12 +101,15 @@ function padRows(rows: React.ReactNode[], prefix: string): React.ReactNode[] {
   return visible;
 }
 
-function formatCategories(categories: string[]): string {
-  return categories.length > 0 ? categories.join(', ') : '(none)';
+function formatCategories(categories: string[], text: TuiText): string {
+  return categories.length > 0 ? categories.join(', ') : text.common.none;
 }
 
-function formatCategoryOptions(categories: CategoryOption[]): string {
-  return formatCategories(categories.map((category) => category.name));
+function formatCategoryOptions(categories: CategoryOption[], text: TuiText): string {
+  return formatCategories(
+    categories.map((category) => category.name),
+    text
+  );
 }
 
 function truncateText(text: string, maxWidth = CONTENT_WIDTH): string {
@@ -150,6 +165,9 @@ function getCategoryViewport<T>(
 export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
   const formState = useStore(store, (s) => s.shellState.formState);
   const skills = useStore(store, (s) => s.skills);
+  const locale = useStore(store, (s) => s.shellState.locale);
+  const text = getTuiText(locale);
+  const modeOptions = useMemo(() => getModeOptions(text), [text]);
 
   const isVisible = formState?.formType === 'categorizeSkills';
   const [phase, setPhase] = useState<CategoryPhase>('select-mode');
@@ -176,7 +194,7 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
     [requestedSkillNames, skills]
   );
 
-  const activeMode = MODE_OPTIONS[modeIndex] ?? MODE_OPTIONS[0];
+  const activeMode = modeOptions[modeIndex] ?? modeOptions[0];
   const normalizedInputCategories = useMemo(
     () => normalizeSkillCategories(categoryInput.split(',')),
     [categoryInput]
@@ -246,8 +264,8 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
     if (!focusedCategory) {
       setCategoryWarning(
         activeMode.id === 'remove'
-          ? 'No removable categories are available; press n to type one.'
-          : 'No existing categories yet; press n to type a new one.'
+          ? text.categoryForm.noRemoveAvailable
+          : text.categoryForm.noExistingAvailable
       );
       return;
     }
@@ -270,7 +288,7 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
 
   function continueFromCategoryEdit(): void {
     if (!canContinueCategoryEdit) {
-      setCategoryWarning('Select an existing category or press n to type one.');
+      setCategoryWarning(text.categoryForm.selectOrType);
       return;
     }
 
@@ -290,11 +308,11 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
 
       if (phase === 'select-mode') {
         if (key.upArrow) {
-          setModeIndex((current) => (current > 0 ? current - 1 : MODE_OPTIONS.length - 1));
+          setModeIndex((current) => (current > 0 ? current - 1 : modeOptions.length - 1));
           return;
         }
         if (key.downArrow) {
-          setModeIndex((current) => (current < MODE_OPTIONS.length - 1 ? current + 1 : 0));
+          setModeIndex((current) => (current < modeOptions.length - 1 ? current + 1 : 0));
           return;
         }
         if (key.return) {
@@ -383,7 +401,7 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
     return <></>;
   }
 
-  const modeRows = MODE_OPTIONS.map((option, index) => {
+  const modeRows = modeOptions.map((option, index) => {
     const isFocused = index === modeIndex;
     return (
       <Text key={option.id}>
@@ -429,8 +447,8 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
         {truncateText(
           `${result.success ? '[updated]' : '[error]  '} ${result.skillName}${
             result.success
-              ? ` -> ${formatCategories(result.categories)}`
-              : ` - ${result.error ?? 'Unknown error'}`
+              ? ` -> ${formatCategories(result.categories, text)}`
+              : ` - ${result.error ?? text.categoryForm.unknownError}`
           }`
         )}
       </Text>
@@ -448,26 +466,30 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
       borderColor={inkColors.border}
     >
       <Text bold color={inkColors.accent}>
-        Categorize Skills
+        {text.categoryForm.title}
       </Text>
       <Text color={inkColors.muted}>
-        {requestedSkillNames.length} target{requestedSkillNames.length !== 1 ? 's' : ''}
+        {text.categoryForm.targetSummary(requestedSkillNames.length)}
       </Text>
       <Text color={inkColors.muted}>
-        {truncateText(`Selected: ${requestedSkillNames.join(', ')}`)}
+        {truncateText(`${text.common.selected}: ${requestedSkillNames.join(', ')}`)}
       </Text>
       <Text color={inkColors.muted}>
-        {truncateText(`Available categories: ${formatCategoryOptions(categoryOptions)}`)}
+        {truncateText(
+          `${text.categoryForm.availableCategories}: ${formatCategoryOptions(categoryOptions, text)}`
+        )}
       </Text>
       <Text> </Text>
 
       {phase === 'select-mode' && (
         <>
-          <Text dimColor>Select how to change categories:</Text>
+          <Text dimColor>{text.categoryForm.selectHow}</Text>
           <Text> </Text>
           {modeRows}
           <Text> </Text>
-          <Text dimColor>Up/Down:Choose Enter:Continue Esc:Cancel</Text>
+          <Text dimColor>
+            {text.common.upDownChooseEnterContinue} Esc:{text.common.cancel}
+          </Text>
         </>
       )}
 
@@ -475,35 +497,35 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
         <>
           <Text>
             <Text bold>{activeMode.label}</Text>
-            <Text color={inkColors.muted}> - select existing or add new</Text>
+            <Text color={inkColors.muted}> - {text.categoryForm.selectExistingOrNew}</Text>
           </Text>
           <Text color={inkColors.muted}>
             {activeMode.id === 'remove'
-              ? 'Showing categories currently used by the selected skill(s).'
-              : 'Showing categories from the full skill library.'}
+              ? text.categoryForm.showingTarget
+              : text.categoryForm.showingLibrary}
           </Text>
           <Text> </Text>
 
           {categoryViewport.hiddenAboveCount > 0 && (
-            <Text dimColor>^ {categoryViewport.hiddenAboveCount} more above</Text>
+            <Text dimColor>{text.skillDetail.moreAbove(categoryViewport.hiddenAboveCount)}</Text>
           )}
           {categoryRows.length > 0 ? (
             categoryRows
           ) : (
             <Text dimColor>
               {activeMode.id === 'remove'
-                ? 'No removable categories on the selected skill(s).'
-                : 'No existing categories yet.'}
+                ? text.categoryForm.noRemove
+                : text.categoryForm.noExisting}
             </Text>
           )}
           {categoryViewport.hiddenBelowCount > 0 && (
-            <Text dimColor>v {categoryViewport.hiddenBelowCount} more below</Text>
+            <Text dimColor>{text.skillDetail.moreBelow(categoryViewport.hiddenBelowCount)}</Text>
           )}
           <Text> </Text>
 
           <Text color={categoryInputFocused ? inkColors.accent : inkColors.muted}>
-            New categories
-            <Text color={inkColors.muted}> - comma separated</Text>
+            {text.categoryForm.newCategories}
+            <Text color={inkColors.muted}> - {text.categoryForm.commaSeparated}</Text>
           </Text>
           <Box
             borderStyle="single"
@@ -526,28 +548,32 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
               />
             ) : (
               <Text color={categoryInput ? inkColors.primary : inkColors.muted}>
-                {truncateText(categoryInput || 'Press n to type new categories')}
+                {truncateText(categoryInput || text.categoryForm.typeNew)}
               </Text>
             )}
           </Box>
           <Text color={inkColors.muted}>
-            {truncateText(`Selected: ${formatCategories(combinedCategories)}`)}
+            {truncateText(`${text.common.selected}: ${formatCategories(combinedCategories, text)}`)}
           </Text>
           {categoryWarning && (
             <Text color={inkColors.warning}>{truncateText(categoryWarning)}</Text>
           )}
-          <Text dimColor>Up/Down:Move Space:Select n:New Enter:Continue Esc:Cancel</Text>
+          <Text dimColor>{text.categoryForm.editHint}</Text>
         </>
       )}
 
       {phase === 'confirm' && (
         <>
-          <Text bold>Confirm changes</Text>
-          <Text color={inkColors.muted}>{truncateText(`Mode: ${activeMode.label}`)}</Text>
+          <Text bold>{text.categoryForm.confirmChanges}</Text>
+          <Text color={inkColors.muted}>
+            {truncateText(`${text.categoryForm.mode}: ${activeMode.label}`)}
+          </Text>
           <Text color={inkColors.muted}>
             {truncateText(
-              `Categories: ${
-                activeMode.id === 'clear' ? '(clear all)' : formatCategories(combinedCategories)
+              `${text.categoryForm.categories}: ${
+                activeMode.id === 'clear'
+                  ? text.common.clearAll
+                  : formatCategories(combinedCategories, text)
               }`
             )}
           </Text>
@@ -556,13 +582,13 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
             <Text key={`confirm-${skillName}`}>{truncateText(skillName)}</Text>
           ))}
           <Text> </Text>
-          <Text dimColor>Enter:Apply Esc:Cancel</Text>
+          <Text dimColor>{text.categoryForm.applyHint}</Text>
         </>
       )}
 
       {phase === 'executing' && (
         <>
-          <Text dimColor>Applying category changes...</Text>
+          <Text dimColor>{text.categoryForm.applying}</Text>
           <Text> </Text>
           {requestedSkillNames.map((skillName) => (
             <Text key={`running-${skillName}`} color={inkColors.muted}>
@@ -575,19 +601,23 @@ export function CategoryForm({ store }: CategoryFormProps): React.ReactElement {
       {phase === 'results' && (
         <>
           <Text>
-            <Text color={inkColors.success}>{successCount} updated</Text>
+            <Text color={inkColors.success}>
+              {successCount} {text.common.updated}
+            </Text>
             <Text color={inkColors.muted}> | </Text>
             <Text color={errorCount > 0 ? inkColors.error : inkColors.muted}>
-              {errorCount} errors
+              {errorCount} {text.categoryForm.errors}
             </Text>
           </Text>
           <Text> </Text>
           {resultRows}
           {results.length > MAX_VISIBLE_RESULT_ROWS && (
-            <Text dimColor>... {results.length - MAX_VISIBLE_RESULT_ROWS} more result(s)</Text>
+            <Text dimColor>
+              {text.categoryForm.moreResults(results.length - MAX_VISIBLE_RESULT_ROWS)}
+            </Text>
           )}
           {results.length <= MAX_VISIBLE_RESULT_ROWS && <Text dimColor> </Text>}
-          <Text dimColor>Enter:Close Esc:Close</Text>
+          <Text dimColor>{text.common.enterCloseEscClose}</Text>
         </>
       )}
     </Box>

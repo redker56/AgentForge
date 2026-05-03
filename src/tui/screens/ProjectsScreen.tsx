@@ -12,6 +12,7 @@ import { ProjectTable } from '../components/ProjectTable.js';
 import { SkillDetail } from '../components/SkillDetail.js';
 import { getContextSkillFilterCounts, getVisibleContextSkillRows } from '../contextTypes.js';
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
 
@@ -27,6 +28,7 @@ export function ProjectsScreen({
   columns,
 }: ProjectsScreenProps): React.ReactElement | null {
   const focusedProjectIndex = useStore(store, (s) => s.projectsBrowserState.focusedIndex);
+  const locale = useStore(store, (s) => s.shellState.locale);
   const projects = useStore(store, (s) => s.projects);
   const projectDetails = useStore(store, (s) => s.projectDetails);
   const projectViewMode = useStore(store, (s) => s.projectsBrowserState.viewMode) ?? 'master';
@@ -38,12 +40,16 @@ export function ProjectsScreen({
     useStore(store, (s) => s.projectsBrowserState.activeSkillFilter) ?? 'all';
   const detailOverlayVisible = useStore(store, (s) => s.shellState.detailOverlayVisible);
   const detailSkillName = useStore(store, (s) => s.shellState.detailSkillName);
+  const text = getTuiText(locale);
 
   const focusedProject = projects[focusedProjectIndex];
   const detail = focusedProject ? projectDetails[focusedProject.id] : undefined;
   const sections = detail?.sections ?? [];
   const visibleRows = getVisibleContextSkillRows(sections, activeProjectSkillFilter);
-  const filterCounts = getContextSkillFilterCounts(sections.flatMap((section) => section.rows));
+  const filterCounts = getContextSkillFilterCounts(
+    sections.flatMap((section) => section.rows),
+    locale
+  );
 
   useEffect(() => {
     if (focusedProject && !detail) {
@@ -59,17 +65,17 @@ export function ProjectsScreen({
   const contextPane = (
     <Box flexDirection="column" flexGrow={1} minHeight={0}>
       <Text color={inkColors.muted}>
-        Project:{' '}
+        {text.context.project}:{' '}
         <Text color={inkColors.accent} bold>
-          {focusedProject?.id ?? 'None selected'}
+          {focusedProject?.id ?? text.context.noneSelected}
         </Text>
-        <Text color={inkColors.muted}> / Focus: </Text>
+        <Text color={inkColors.muted}> / {text.common.focus}: </Text>
         <Text color={projectViewMode === 'skills' ? inkColors.accent : inkColors.secondary}>
-          {projectViewMode === 'skills' ? 'Skills' : 'Project'}
+          {projectViewMode === 'skills' ? text.context.skills : text.context.project}
         </Text>
       </Text>
       <Box flexWrap="wrap">
-        <Text color={inkColors.muted}>Browse: </Text>
+        <Text color={inkColors.muted}>{text.skillScreen.browse}</Text>
         {filterCounts.map((entry, index) => {
           const isActive = entry.key === activeProjectSkillFilter;
           return (
@@ -87,40 +93,41 @@ export function ProjectsScreen({
         })}
       </Box>
       <Box flexWrap="wrap">
-        <Text color={inkColors.muted}>Actions: </Text>
+        <Text color={inkColors.muted}>{text.skillScreen.actions}</Text>
         <Text color={inkColors.accent}>Enter</Text>
-        <Text color={inkColors.secondary}> detail</Text>
+        <Text color={inkColors.secondary}> {text.context.detail}</Text>
         <Text color={inkColors.muted}> | </Text>
         <Text color={inkColors.accent}>Space</Text>
-        <Text color={inkColors.secondary}> select</Text>
+        <Text color={inkColors.secondary}> {text.context.select}</Text>
         <Text color={inkColors.muted}> | </Text>
         <Text color={inkColors.accent}>i</Text>
-        <Text color={inkColors.secondary}> import</Text>
+        <Text color={inkColors.secondary}> {text.context.import}</Text>
         <Text color={inkColors.muted}> | </Text>
         <Text color={inkColors.accent}>x</Text>
-        <Text color={inkColors.secondary}> unsync</Text>
+        <Text color={inkColors.secondary}> {text.context.unsync}</Text>
         <Text color={inkColors.muted}> | </Text>
         <Text color={inkColors.accent}>u</Text>
-        <Text color={inkColors.secondary}> update</Text>
+        <Text color={inkColors.secondary}> {text.context.update}</Text>
         <Text color={inkColors.muted}> | </Text>
         <Text color={inkColors.accent}>c</Text>
-        <Text color={inkColors.secondary}> categorize</Text>
+        <Text color={inkColors.secondary}> {text.context.categorize}</Text>
       </Box>
       {detail ? (
         <ContextSkillList
-          title="Project Skills"
+          title={text.context.projectSkills}
           sections={sections}
           filter={activeProjectSkillFilter}
           focusedIndex={focusedProjectSkillIndex}
           selectedRowIds={selectedProjectSkillRowIds}
           columns={band === 'widescreen' ? Math.max(Math.floor(columns * 0.56), 40) : columns}
-          emptyText="No context skills available."
+          emptyText={text.empty.contextSkills}
+          locale={locale}
         />
       ) : (
-        <Text color={inkColors.muted}>Loading skills for this project...</Text>
+        <Text color={inkColors.muted}>{text.context.loadingProjectSkills}</Text>
       )}
       {projectViewMode === 'skills' && visibleRows.length === 0 && detail && (
-        <Text color={inkColors.muted}>No skills match the current filter.</Text>
+        <Text color={inkColors.muted}>{text.empty.noSkillsFilter}</Text>
       )}
     </Box>
   );

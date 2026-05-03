@@ -18,10 +18,13 @@ import fs from 'fs-extra';
 
 import {
   BUILTIN_AGENTS,
+  DEFAULT_REGISTRY_SETTINGS,
   type Agent,
   type RegistryData,
+  type RegistrySettings,
   type SkillMeta,
   normalizeSkillCategories,
+  normalizeTuiLanguagePreference,
   type SkillSource,
   type ProjectConfig,
   type SyncRecord,
@@ -38,6 +41,7 @@ const DEFAULT_REGISTRY: RegistryData = {
   skills: {},
   agents: {},
   projects: {},
+  settings: DEFAULT_REGISTRY_SETTINGS,
 };
 
 export class JsonRegistryRepository implements StorageInterface, RegistryRepository {
@@ -228,6 +232,21 @@ export class JsonRegistryRepository implements StorageInterface, RegistryReposit
     return false;
   }
 
+  getSettings(): RegistrySettings {
+    return { ...this.data.settings };
+  }
+
+  updateSettings(settings: Partial<RegistrySettings>): void {
+    this.data.settings = {
+      ...this.data.settings,
+      ...settings,
+      tuiLanguage: normalizeTuiLanguagePreference(
+        settings.tuiLanguage ?? this.data.settings.tuiLanguage
+      ),
+    };
+    this.schedulePersist();
+  }
+
   runBatch<T>(mutator: (repo: RegistryRepository) => T): T {
     this.batchDepth += 1;
     try {
@@ -286,7 +305,16 @@ export class JsonRegistryRepository implements StorageInterface, RegistryReposit
           skills,
           agents: data.agents ?? {},
           projects: data.projects ?? {},
+          settings: {
+            ...DEFAULT_REGISTRY_SETTINGS,
+            ...(data.settings ?? {}),
+            tuiLanguage: normalizeTuiLanguagePreference(data.settings?.tuiLanguage),
+          },
         };
+
+        if (!data.settings || data.settings.tuiLanguage !== registry.settings.tuiLanguage) {
+          migrated = true;
+        }
 
         if (migrated) {
           this.writeRegistry(registry);

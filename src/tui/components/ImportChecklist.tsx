@@ -1,6 +1,7 @@
 import { Box, Text } from 'ink';
 import React from 'react';
 
+import { getTuiText, type TuiLocale } from '../i18n.js';
 import { inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
 import { truncateDisplayText } from '../utils/displayWidth.js';
 
@@ -19,6 +20,7 @@ interface ImportChecklistProps {
   onUp: () => void;
   onDown: () => void;
   columns?: number;
+  locale?: TuiLocale;
 }
 
 function truncateText(text: string, maxWidth: number): string {
@@ -37,11 +39,14 @@ export function ImportChecklist({
   onUp: _onUp,
   onDown: _onDown,
   columns = 80,
+  locale = 'en',
 }: ImportChecklistProps): React.ReactElement {
+  const text = getTuiText(locale);
+
   return (
     <Box flexDirection="column">
       <Box marginBottom={1}>
-        <Text bold>Select skills to import</Text>
+        <Text bold>{text.importFlow.selectSkillsToImport}</Text>
       </Box>
       {skills.map((skill, index) => {
         const isFocused = index === focusedIndex;
@@ -50,7 +55,7 @@ export function ImportChecklist({
 
         const prefix = renderFocusPrefix(isFocused);
         const checkbox = isAlreadyImported
-          ? '[IMPORTED]'
+          ? text.common.importedLocked
           : isSelected
             ? selectionMarkers.selected
             : selectionMarkers.unselected;
@@ -64,7 +69,7 @@ export function ImportChecklist({
             : skill.path;
         const rowContent = `${checkbox} ${namePart}    ${pathPart}`;
         const totalWidth = Math.max(columns - prefix.length - 1, 12);
-        const suffix = isAlreadyImported ? ' (already imported)' : '';
+        const suffix = isAlreadyImported ? ` ${text.common.alreadyImportedSuffix}` : '';
         const displayContent = suffix
           ? `${truncateText(rowContent, Math.max(totalWidth - suffix.length, 8))}${suffix}`
           : truncateText(rowContent, totalWidth);
@@ -90,9 +95,7 @@ export function ImportChecklist({
         );
       })}
       <Box marginTop={1}>
-        <Text dimColor>
-          {truncateText('Space: toggle | Up/Down: navigate | Enter: confirm', columns - 2)}
-        </Text>
+        <Text dimColor>{truncateText(text.importFlow.hint, columns - 2)}</Text>
       </Box>
     </Box>
   );

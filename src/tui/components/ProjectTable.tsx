@@ -8,8 +8,9 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import { useNavigation } from '../hooks/useNavigation.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
-import { inkColors, renderFocusPrefix, emptyStateText } from '../theme.js';
+import { inkColors, renderFocusPrefix } from '../theme.js';
 import { padDisplayText, truncateDisplayText } from '../utils/displayWidth.js';
 
 import { ScrollIndicator } from './ScrollIndicator.js';
@@ -37,8 +38,11 @@ function formatDate(isoString: string): string {
 
 export function ProjectTable({ store, columns }: ProjectTableProps): React.ReactElement {
   const projects = useStore(store, (s) => s.projects);
+  const isLoading = useStore(store, (s) => s.loading?.projects ?? false);
+  const locale = useStore(store, (s) => s.shellState.locale);
   const focusedProjectIndex = useStore(store, (s) => s.projectsBrowserState.focusedIndex);
   const projectSummaries = useStore(store, (s) => s.projectSummaries);
+  const text = getTuiText(locale);
 
   const { visibleItems, scrollTop, hiddenAbove, hiddenBelow } = useNavigation({
     items: projects,
@@ -54,13 +58,13 @@ export function ProjectTable({ store, columns }: ProjectTableProps): React.React
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Text bold color={inkColors.accent}>
-        Projects <Text color={inkColors.muted}>({projects.length})</Text>
+        {text.tables.projects} <Text color={inkColors.muted}>({projects.length})</Text>
       </Text>
       <Text color={inkColors.muted}>
-        {padDisplayText('ID', idWidth)}
-        {padDisplayText('Path', pathWidth)}
-        {padDisplayText('Added', addedWidth)}
-        Skills
+        {padDisplayText(text.tables.id, idWidth)}
+        {padDisplayText(text.tables.path, pathWidth)}
+        {padDisplayText(text.tables.added, addedWidth)}
+        {text.tables.skills}
       </Text>
       <Text color={inkColors.muted}>{'\u2500'.repeat(Math.max(availableWidth, 10))}</Text>
 
@@ -98,7 +102,11 @@ export function ProjectTable({ store, columns }: ProjectTableProps): React.React
         );
       })}
 
-      {projects.length === 0 && <Text color={inkColors.muted}>{emptyStateText.projects}</Text>}
+      {projects.length === 0 && (
+        <Text color={inkColors.muted}>
+          {isLoading ? text.empty.loadingProjects : text.empty.projects}
+        </Text>
+      )}
 
       {hiddenBelow > 0 && visibleItems.length > 0 && (
         <ScrollIndicator

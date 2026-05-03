@@ -11,15 +11,10 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import { BUILTIN_AGENTS } from '../../types.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors, renderFocusPrefix, selectionMarkers } from '../theme.js';
 import { truncateDisplayText } from '../utils/displayWidth.js';
-import {
-  validateUrl,
-  validateSkillName,
-  validateAgentId,
-  validateNonEmpty,
-} from '../utils/validators.js';
 
 import { BlurValidatedInput } from './BlurValidatedInput.js';
 import { ErrorMessage } from './ErrorMessage.js';
@@ -37,92 +32,127 @@ interface FieldConfig {
   validate?: (value: string) => string | null;
 }
 
-const FORM_TITLES: Record<string, string> = {
-  addSkill: 'Add Skill',
-  addAgent: 'Add Agent',
-  addProject: 'Add Project',
-};
+type TuiText = ReturnType<typeof getTuiText>;
 
-const SKILL_FIELDS: FieldConfig[] = [
-  {
-    key: 'url',
-    label: 'Git URL',
-    placeholder: 'https://github.com/user/skills-repo',
-    validate: validateUrl,
-  },
-  {
-    key: 'name',
-    label: 'Skill Name',
-    placeholder: '(optional, auto-detected)',
-    validate: (v: string) => (v.trim() ? validateSkillName(v) : null),
-  },
-];
+function validateUrl(value: string, text: TuiText): string | null {
+  if (!value.trim()) return text.validation.gitUrlRequired;
+  const urlPattern = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
+  if (!urlPattern.test(value.trim())) return text.validation.validUrl;
+  return null;
+}
 
-const AGENT_FIELDS: FieldConfig[] = [
-  {
-    key: 'id',
-    label: 'Agent ID',
-    placeholder: 'my-agent',
-    validate: (v: string): string | null => {
-      const base = validateAgentId(v);
-      if (base) return base;
-      if (BUILTIN_AGENTS.some((a) => a.id === v.trim())) return 'Cannot use built-in agent ID';
-      return null;
-    },
-  },
-  {
-    key: 'name',
-    label: 'Display Name',
-    placeholder: 'My Agent',
-    validate: (v: string) => validateNonEmpty(v, 'Display name'),
-  },
-  {
-    key: 'basePath',
-    label: 'Skills Path',
-    placeholder: '~/.my-agent/skills',
-    validate: (v: string) => validateNonEmpty(v, 'Skills path'),
-  },
-  { key: 'skillsDirName', label: 'Dir Name', placeholder: '(optional)' },
-];
+function validateSkillName(value: string, text: TuiText): string | null {
+  if (!value.trim()) return text.validation.nameRequired;
+  if (/\s/.test(value)) return text.validation.noSpaces;
+  if (!/^[a-zA-Z0-9-]+$/.test(value)) return text.validation.alphanumericHyphens;
+  return null;
+}
 
-const PROJECT_FIELDS: FieldConfig[] = [
-  { key: 'id', label: 'Project ID', placeholder: 'my-project', validate: validateAgentId },
-  {
-    key: 'path',
-    label: 'Project Path',
-    placeholder: '/path/to/project',
-    validate: (v: string) => validateNonEmpty(v, 'Project path'),
-  },
-];
+function validateIdentifier(value: string, text: TuiText): string | null {
+  if (!value.trim()) return text.validation.idRequired;
+  if (!/^[a-zA-Z0-9-_]+$/.test(value)) return text.validation.identifier;
+  return null;
+}
+
+function validateNonEmpty(value: string, fieldName: string, text: TuiText): string | null {
+  if (!value.trim()) return text.validation.required(fieldName);
+  return null;
+}
 
 function truncateText(text: string, maxWidth = 54): string {
   return truncateDisplayText(text, maxWidth);
 }
 
-function getFields(formType: string): FieldConfig[] {
-  if (formType === 'addSkill') return SKILL_FIELDS;
-  if (formType === 'addAgent') return AGENT_FIELDS;
-  return PROJECT_FIELDS;
+function getFields(formType: string, text: TuiText): FieldConfig[] {
+  const skillFields: FieldConfig[] = [
+    {
+      key: 'url',
+      label: text.addForm.fields.gitUrl,
+      placeholder: 'https://github.com/user/skills-repo',
+      validate: (value) => validateUrl(value, text),
+    },
+    {
+      key: 'name',
+      label: text.addForm.fields.skillName,
+      placeholder: text.addForm.placeholders.skillName,
+      validate: (value) => (value.trim() ? validateSkillName(value, text) : null),
+    },
+  ];
+  const agentFields: FieldConfig[] = [
+    {
+      key: 'id',
+      label: text.addForm.fields.agentId,
+      placeholder: 'my-agent',
+      validate: (value): string | null => {
+        const base = validateIdentifier(value, text);
+        if (base) return base;
+        if (BUILTIN_AGENTS.some((agent) => agent.id === value.trim())) {
+          return text.validation.builtInAgentId;
+        }
+        return null;
+      },
+    },
+    {
+      key: 'name',
+      label: text.addForm.fields.displayName,
+      placeholder: 'My Agent',
+      validate: (value) => validateNonEmpty(value, text.addForm.displayNameField, text),
+    },
+    {
+      key: 'basePath',
+      label: text.addForm.fields.skillsPath,
+      placeholder: '~/.my-agent/skills',
+      validate: (value) => validateNonEmpty(value, text.addForm.skillsPathField, text),
+    },
+    {
+      key: 'skillsDirName',
+      label: text.addForm.fields.dirName,
+      placeholder: text.addForm.placeholders.skillsDirName,
+    },
+  ];
+  const projectFields: FieldConfig[] = [
+    {
+      key: 'id',
+      label: text.addForm.fields.projectId,
+      placeholder: 'my-project',
+      validate: (value) => validateIdentifier(value, text),
+    },
+    {
+      key: 'path',
+      label: text.addForm.fields.projectPath,
+      placeholder: '/path/to/project',
+      validate: (value) => validateNonEmpty(value, text.addForm.projectPathField, text),
+    },
+  ];
+
+  if (formType === 'addSkill') return skillFields;
+  if (formType === 'addAgent') return agentFields;
+  return projectFields;
 }
 
-function validate(formType: string, data: Record<string, string>): Record<string, string> | null {
+function validate(
+  formType: string,
+  data: Record<string, string>,
+  text: TuiText
+): Record<string, string> | null {
   const errors: Record<string, string> = {};
 
   if (formType === 'addSkill') {
-    if (!data.url?.trim()) errors.url = 'Git URL is required';
+    if (!data.url?.trim()) errors.url = text.validation.gitUrlRequired;
   } else if (formType === 'addAgent') {
-    if (!data.id?.trim()) errors.id = 'Agent ID is required';
-    else if (!/^[a-zA-Z0-9-_]+$/.test(data.id))
-      errors.id = 'Only letters, numbers, hyphens, underscores';
-    else if (BUILTIN_AGENTS.some((a) => a.id === data.id))
-      errors.id = 'Cannot use built-in agent ID';
-    if (!data.name?.trim()) errors.name = 'Display name is required';
-    if (!data.basePath?.trim()) errors.basePath = 'Skills path is required';
+    if (!data.id?.trim()) errors.id = text.validation.required(text.addForm.fields.agentId);
+    else if (!/^[a-zA-Z0-9-_]+$/.test(data.id)) errors.id = text.validation.identifier;
+    else if (BUILTIN_AGENTS.some((agent) => agent.id === data.id)) {
+      errors.id = text.validation.builtInAgentId;
+    }
+    if (!data.name?.trim()) errors.name = text.validation.required(text.addForm.displayNameField);
+    if (!data.basePath?.trim()) {
+      errors.basePath = text.validation.required(text.addForm.skillsPathField);
+    }
   } else if (formType === 'addProject') {
-    if (!data.id?.trim()) errors.id = 'Project ID is required';
-    else if (!/^[a-zA-Z0-9-_]+$/.test(data.id))
-      errors.id = 'Only letters, numbers, hyphens, underscores';
-    if (!data.path?.trim()) errors.path = 'Project path is required';
+    if (!data.id?.trim()) errors.id = text.validation.required(text.addForm.fields.projectId);
+    else if (!/^[a-zA-Z0-9-_]+$/.test(data.id)) errors.id = text.validation.identifier;
+    if (!data.path?.trim()) errors.path = text.validation.required(text.addForm.projectPathField);
   }
 
   return Object.keys(errors).length > 0 ? errors : null;
@@ -130,6 +160,8 @@ function validate(formType: string, data: Record<string, string>): Record<string
 
 export function AddForm({ store }: AddFormProps): React.ReactElement {
   const formState = useStore(store, (s) => s.shellState.formState);
+  const locale = useStore(store, (s) => s.shellState.locale);
+  const text = getTuiText(locale);
   const [phase, setPhase] = useState<FormPhase>('input');
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -148,7 +180,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
     (input, key) => {
       // Tab: switch field in input phase
       if (key.tab && phase === 'input') {
-        const fields = getFields(formState?.formType || '');
+        const fields = getFields(formState?.formType || '', text);
         if (key.shift) {
           setFocusedField((prev) => (prev > 0 ? prev - 1 : fields.length - 1));
         } else {
@@ -195,8 +227,9 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
   if (!formState || !formState.formType.startsWith('add')) return <></>;
 
   const formType = formState.formType;
-  const fields = getFields(formType);
-  const title = FORM_TITLES[formType] || 'Add';
+  const fields = getFields(formType, text);
+  const title =
+    text.addForm.titles[formType as keyof typeof text.addForm.titles] || text.addForm.titles.add;
 
   // Handle discovery phase from skillActions (multi-skill selection)
   useEffect(() => {
@@ -220,7 +253,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
     }
 
     // Run inline validation as well (covers fields without BlurValidatedInput validators)
-    const inlineErrors = validate(formType, fieldValues);
+    const inlineErrors = validate(formType, fieldValues, text);
 
     const allErrors = { ...validationErrors, ...(inlineErrors ?? {}) };
     if (Object.keys(allErrors).length > 0) {
@@ -272,7 +305,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
           setPhase('result');
         });
     }
-  }, [fieldValues, fields, formType, store]);
+  }, [fieldValues, fields, formType, store, text]);
 
   const handleDiscoverSubmit = useCallback(() => {
     const state = store.getState();
@@ -284,7 +317,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
 
     const selected = discovered.filter((_: unknown, i: number) => selectedDiscover.has(i));
     if (selected.length === 0) {
-      setResultError('No skills selected');
+      setResultError(text.addForm.noSkillsSelected);
       return;
     }
 
@@ -293,7 +326,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
       setResultError(e instanceof Error ? e.message : String(e));
       setPhase('result');
     });
-  }, [selectedDiscover, store]);
+  }, [selectedDiscover, store, text]);
 
   return (
     <Box
@@ -313,9 +346,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
         <>
           {Object.keys(fieldErrors).length > 0 && (
             <Text color={inkColors.error}>
-              {truncateText(
-                `Please fix ${Object.keys(fieldErrors).length} error(s) before submitting.`
-              )}
+              {truncateText(text.addForm.fixErrors(Object.keys(fieldErrors).length))}
             </Text>
           )}
           {fields.map((field, i) => {
@@ -351,7 +382,8 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
                       }}
                       validate={
                         field.validate ??
-                        ((v: string): string | null => (v.trim() ? null : 'Required'))
+                        ((value: string): string | null =>
+                          value.trim() ? null : text.validation.required(field.label))
                       }
                       onSubmit={() => {
                         if (i < fields.length - 1) {
@@ -412,7 +444,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
             );
           })}
           <Text> </Text>
-          <Text dimColor>Tab:Next Field Enter:Submit Esc:Cancel</Text>
+          <Text dimColor>{text.common.tabNextEnterSubmitEscCancel}</Text>
         </>
       )}
 
@@ -421,7 +453,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
           <Text color={inkColors.accent}>
             <Spinner type="dots" />
           </Text>
-          <Text> Processing...</Text>
+          <Text> {text.common.processing}</Text>
         </Box>
       )}
 
@@ -430,10 +462,10 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
           {resultError ? (
             <ErrorMessage message={resultError} />
           ) : (
-            <Text color={inkColors.success}>Operation completed successfully.</Text>
+            <Text color={inkColors.success}>{text.common.operationCompleted}</Text>
           )}
           <Text> </Text>
-          <Text dimColor>Press Esc to close</Text>
+          <Text dimColor>{text.common.pressEscToClose}</Text>
         </>
       )}
 
@@ -445,7 +477,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
           );
           return (
             <>
-              <Text dimColor>Multiple skills found in repository:</Text>
+              <Text dimColor>{text.addForm.multiSkillsFound}</Text>
               <Text> </Text>
               {discovered.map((skill, i) => {
                 const isFocused = i === discoverFocusedIndex;
@@ -464,7 +496,7 @@ export function AddForm({ store }: AddFormProps): React.ReactElement {
                 );
               })}
               <Text> </Text>
-              <Text dimColor>Space:Toggle Enter:Confirm Esc:Cancel</Text>
+              <Text dimColor>{text.addForm.discoveredHint}</Text>
             </>
           );
         })()}

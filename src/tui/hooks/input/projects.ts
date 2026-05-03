@@ -1,4 +1,5 @@
 import { cycleContextSkillFilter, getVisibleContextSkillRows } from '../../contextTypes.js';
+import { getTuiText } from '../../i18n.js';
 
 import {
   getFocusedContextRow,
@@ -10,6 +11,7 @@ import {
 import type { InputRouteContext } from './types.js';
 
 export function handleProjectsTabInput({ store, input, key, state }: InputRouteContext): boolean {
+  const text = getTuiText(state.shellState.locale);
   const sections = getProjectContextSections(state);
   const visibleRows = getVisibleContextSkillRows(
     sections,
@@ -25,6 +27,12 @@ export function handleProjectsTabInput({ store, input, key, state }: InputRouteC
     if (key.downArrow) {
       const index = state.projectsBrowserState.focusedSkillIndex;
       if (index < visibleRows.length - 1) state.setFocusedProjectSkillIndex(index + 1);
+      return true;
+    }
+    if (key.home || key.end) {
+      if (visibleRows.length > 0) {
+        state.setFocusedProjectSkillIndex(key.home ? 0 : visibleRows.length - 1);
+      }
       return true;
     }
     if (input === '[') {
@@ -160,6 +168,12 @@ export function handleProjectsTabInput({ store, input, key, state }: InputRouteC
     if (index < state.projects.length - 1) state.setFocusedProjectIndex(index + 1);
     return true;
   }
+  if (key.home || key.end) {
+    if (state.projects.length > 0) {
+      state.setFocusedProjectIndex(key.home ? 0 : state.projects.length - 1);
+    }
+    return true;
+  }
   if (key.return) {
     const focusedProject = state.projects[state.projectsBrowserState.focusedIndex];
     if (focusedProject) {
@@ -181,14 +195,13 @@ export function handleProjectsTabInput({ store, input, key, state }: InputRouteC
     if (!project) return true;
     const projectSnapshot = { id: project.id, path: project.path, addedAt: project.addedAt };
     state.setConfirmState({
-      title: `Remove Project "${project.id}"`,
-      message:
-        'Files stay on disk. AgentForge will forget the project and its recorded sync references.',
+      title: text.mutations.removeProjectTitle(project.id),
+      message: text.mutations.removeProjectMessage,
       onConfirm: () => {
         void store.getState().removeProject(project.id);
         store.getState().setConfirmState(null);
         store.getState().pushUndo('remove-project', projectSnapshot);
-        store.getState().pushToast(`Removed project '${project.id}'`, 'success');
+        store.getState().pushToast(text.mutations.removedProject(project.id), 'success');
       },
     });
     return true;

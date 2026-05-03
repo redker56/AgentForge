@@ -13,6 +13,9 @@ import { render } from 'ink-testing-library';
 import React from 'react';
 import { describe, expect, it, vi, beforeAll } from 'vitest';
 
+import { createAppStore } from '../../../src/tui/store/index.js';
+import { createMockServiceContext } from '../store/actions/mockContext.js';
+
 // Module references populated by beforeAll
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let SyncForm: any;
@@ -91,6 +94,33 @@ describe('SyncForm', () => {
   it('renders a React element', () => {
     const element = React.createElement(SyncForm, { store: createMockStore() });
     expect(element.type).toBe(SyncForm);
+  });
+
+  it('renders the operation step in Chinese when locale is zh', () => {
+    const store = createAppStore(createMockServiceContext(), 'zh');
+    store.setState((state) => ({
+      shellState: {
+        ...state.shellState,
+        activeTab: 'sync',
+      },
+      syncWorkflowState: {
+        ...state.syncWorkflowState,
+        step: 'select-op',
+        operation: 'sync-agents',
+      },
+    }));
+
+    const { lastFrame } = render(React.createElement(SyncForm, { store }));
+    const output = lastFrame() ?? '';
+
+    expect(output).toContain('同步 Skill');
+    expect(output).toContain('选择操作');
+    expect(output).toContain('同步到 Agent');
+    expect(output).toContain('同步到项目');
+    expect(output).toContain('取消同步');
+    expect(output).toContain('↑/↓ 选择，Enter 继续');
+    expect(output).not.toContain('Choose operation');
+    expect(output).not.toContain('Sync to Agents');
   });
 
   // Sprint 3: ResultsStep compact summary tests

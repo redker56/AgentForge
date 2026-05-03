@@ -12,6 +12,7 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import { inkColors } from '../theme.js';
 import { truncateDisplayText } from '../utils/displayWidth.js';
@@ -57,8 +58,8 @@ function blankLines(count: number, prefix: string): DetailLine[] {
   }));
 }
 
-function formatTimestamp(value?: string): string {
-  return value ?? 'Never';
+function formatTimestamp(value: string | undefined, text: ReturnType<typeof getTuiText>): string {
+  return value ?? text.common.never;
 }
 
 export function SkillDetail({
@@ -68,12 +69,14 @@ export function SkillDetail({
   skillName,
 }: SkillDetailProps): React.ReactElement {
   const focusedIndex = useStore(store, (s) => s.skillsBrowserState.focusedIndex);
+  const locale = useStore(store, (s) => s.shellState.locale);
   const skills = useStore(store, (s) => s.skills);
   const activeSkillCategoryFilter = useStore(
     store,
     (s) => s.skillsBrowserState.activeCategoryFilter
   );
   const skillDetails = useStore(store, (s) => s.skillDetails);
+  const text = getTuiText(locale);
 
   const focusedSkill =
     skillName != null
@@ -103,7 +106,7 @@ export function SkillDetail({
       return [
         {
           key: 'empty',
-          text: truncateDisplayText('Select a skill to view details.', contentWidth),
+          text: truncateDisplayText(text.skillDetail.selectSkill, contentWidth),
           color: inkColors.muted,
         },
       ];
@@ -111,7 +114,7 @@ export function SkillDetail({
 
     lines.push({
       key: 'kicker',
-      text: truncateDisplayText('Skill dossier', contentWidth),
+      text: truncateDisplayText(text.skillDetail.dossier, contentWidth),
       color: inkColors.muted,
     });
     lines.push({
@@ -124,7 +127,7 @@ export function SkillDetail({
     if (!detail) {
       lines.push({
         key: 'loading',
-        text: truncateDisplayText('Loading skill details...', contentWidth),
+        text: truncateDisplayText(text.skillDetail.loading, contentWidth),
         color: inkColors.muted,
       });
       return lines;
@@ -133,11 +136,11 @@ export function SkillDetail({
     lines.push({
       key: 'source',
       text: truncateDisplayText(
-        `Source: [${detail.source.type}] ${
+        `${text.skillDetail.source}: [${detail.source.type}] ${
           detail.source.type === 'git'
             ? detail.source.url
             : detail.source.type === 'local'
-              ? 'local'
+              ? text.common.local
               : detail.source.projectId
         }`,
         contentWidth
@@ -146,18 +149,26 @@ export function SkillDetail({
     });
     lines.push({
       key: 'created',
-      text: truncateDisplayText(`Created: ${formatTimestamp(detail.createdAt)}`, contentWidth),
+      text: truncateDisplayText(
+        `${text.skillDetail.created}: ${formatTimestamp(detail.createdAt, text)}`,
+        contentWidth
+      ),
       color: inkColors.secondary,
     });
     lines.push({
       key: 'updated',
-      text: truncateDisplayText(`Updated: ${formatTimestamp(detail.updatedAt)}`, contentWidth),
+      text: truncateDisplayText(
+        `${text.skillDetail.updated}: ${formatTimestamp(detail.updatedAt, text)}`,
+        contentWidth
+      ),
       color: inkColors.secondary,
     });
     lines.push({
       key: 'categories',
       text: truncateDisplayText(
-        `Categories: ${detail.categories.length > 0 ? detail.categories.join(', ') : '(none)'}`,
+        `${text.skillDetail.categories}: ${
+          detail.categories.length > 0 ? detail.categories.join(', ') : text.common.none
+        }`,
         contentWidth
       ),
       color: inkColors.secondary,
@@ -166,14 +177,14 @@ export function SkillDetail({
 
     lines.push({
       key: 'sync-header',
-      text: 'Synced to:',
+      text: text.skillDetail.syncedTo,
       color: inkColors.accent,
       bold: true,
     });
     if (detail.syncStatus.length === 0) {
       lines.push({
         key: 'sync-empty',
-        text: truncateDisplayText('  Not synced to any agent', contentWidth),
+        text: truncateDisplayText(text.skillDetail.notSynced, contentWidth),
         color: inkColors.muted,
       });
     } else {
@@ -192,14 +203,14 @@ export function SkillDetail({
     lines.push({ key: 'blank-2', text: ' ' });
     lines.push({
       key: 'projects-header',
-      text: 'Projects:',
+      text: text.skillDetail.projects,
       color: inkColors.accent,
       bold: true,
     });
     if (detail.projectDistribution.length === 0) {
       lines.push({
         key: 'projects-empty',
-        text: truncateDisplayText('  Not distributed to any project', contentWidth),
+        text: truncateDisplayText(text.skillDetail.notDistributed, contentWidth),
         color: inkColors.muted,
       });
     } else {
@@ -213,7 +224,11 @@ export function SkillDetail({
           lines.push({
             key: `project-${project.projectId}-${agent.id}`,
             text: truncateDisplayText(
-              `    ${agent.name} (${agent.isDifferentVersion ? 'different version' : 'synced'})`,
+              `    ${agent.name} (${
+                agent.isDifferentVersion
+                  ? text.skillDetail.differentVersion
+                  : text.skillDetail.synced
+              })`,
               contentWidth
             ),
             color: agent.isDifferentVersion ? inkColors.warning : inkColors.success,
@@ -226,7 +241,7 @@ export function SkillDetail({
       lines.push({ key: 'blank-3', text: ' ' });
       lines.push({
         key: 'preview-header',
-        text: 'SKILL.md preview:',
+        text: text.skillDetail.preview,
         color: inkColors.accent,
         bold: true,
       });
@@ -240,7 +255,7 @@ export function SkillDetail({
     }
 
     return lines;
-  }, [contentWidth, detail, focusedSkill]);
+  }, [contentWidth, detail, focusedSkill, text]);
 
   const [scrollTop, setScrollTop] = useState(0);
 
@@ -295,18 +310,18 @@ export function SkillDetail({
         <Box flexDirection="column" paddingX={1}>
           <Text color={inkColors.muted}>
             {hiddenAbove > 0
-              ? truncateDisplayText(`^ ${hiddenAbove} more above`, contentWidth)
+              ? truncateDisplayText(text.skillDetail.moreAbove(hiddenAbove), contentWidth)
               : ' '}
           </Text>
           {paddedLines.map(renderLine)}
           <Text color={inkColors.muted}>
             {hiddenBelow > 0
-              ? truncateDisplayText(`v ${hiddenBelow} more below`, contentWidth)
+              ? truncateDisplayText(text.skillDetail.moreBelow(hiddenBelow), contentWidth)
               : ' '}
           </Text>
           <Text color={inkColors.muted}>{'-'.repeat(Math.max(contentWidth, 1))}</Text>
           <Text color={inkColors.muted}>
-            {truncateDisplayText('Up/Down:Scroll  PgUp/PgDn:Jump  Esc:Back', contentWidth)}
+            {truncateDisplayText(text.skillDetail.scrollHint, contentWidth)}
           </Text>
         </Box>
       </Box>
@@ -324,7 +339,7 @@ export function SkillDetail({
           {
             key: 'overflow',
             text: truncateDisplayText(
-              `... ${detailLines.length - WIDESCREEN_VISIBLE_LINES + 1} more lines`,
+              text.skillDetail.moreLines(detailLines.length - WIDESCREEN_VISIBLE_LINES + 1),
               contentWidth
             ),
             color: inkColors.muted,

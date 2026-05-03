@@ -4,6 +4,7 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import type { ContextSkillRow } from '../contextTypes.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore } from '../store/index.js';
 import type { OperationResult } from '../store/uiSlice.js';
 import { inkColors } from '../theme.js';
@@ -21,6 +22,8 @@ function truncateText(text: string, maxWidth = 64): string {
 
 export function ContextImportForm({ store }: ContextImportFormProps): React.ReactElement {
   const formState = useStore(store, (s) => s.shellState.formState);
+  const locale = useStore(store, (s) => s.shellState.locale);
+  const text = getTuiText(locale);
   const [phase, setPhase] = useState<Phase>('preview');
   const [results, setResults] = useState<OperationResult[]>([]);
 
@@ -82,17 +85,20 @@ export function ContextImportForm({ store }: ContextImportFormProps): React.Reac
       borderColor={inkColors.borderActive}
     >
       <Text bold color={inkColors.accent}>
-        Import Selected Context Skills
+        {text.contextImport.title}
       </Text>
       <Text color={inkColors.muted}>
-        {requestedCount} requested | {Math.max(requestedCount - alreadyImportedCount, 0)} importable
+        {text.contextImport.summary(
+          requestedCount,
+          Math.max(requestedCount - alreadyImportedCount, 0)
+        )}
       </Text>
       <Text> </Text>
 
       {phase === 'preview' && (
         <>
           {rows.length === 0 ? (
-            <Text color={inkColors.warning}>No context skills selected.</Text>
+            <Text color={inkColors.warning}>{text.contextImport.noSelected}</Text>
           ) : (
             rows.map((row) => (
               <Text
@@ -103,27 +109,33 @@ export function ContextImportForm({ store }: ContextImportFormProps): React.Reac
               >
                 {truncateText(
                   `${row.projectId ? `[${row.projectId}] ` : `[${row.agentName ?? row.agentId ?? 'agent'}] `}${row.name}${
-                    row.registrySkillName || row.isImported ? ' (already imported)' : ''
+                    row.registrySkillName || row.isImported
+                      ? ` ${text.common.alreadyImportedSuffix}`
+                      : ''
                   }`
                 )}
               </Text>
             ))
           )}
           <Text> </Text>
-          <Text color={inkColors.muted}>Enter:Import Esc:Cancel</Text>
+          <Text color={inkColors.muted}>
+            Enter:{text.status.labels.import} Esc:{text.common.cancel}
+          </Text>
         </>
       )}
 
       {phase === 'executing' && (
-        <Text color={inkColors.secondary}>Importing selected context skills...</Text>
+        <Text color={inkColors.secondary}>{text.contextImport.executing}</Text>
       )}
 
       {phase === 'results' && (
         <>
           <Text color={inkColors.muted}>
-            {results.filter((result) => result.outcome === 'success').length} imported |{' '}
-            {results.filter((result) => result.outcome === 'skipped').length} skipped |{' '}
-            {results.filter((result) => result.outcome === 'error').length} errors
+            {text.contextImport.resultSummary(
+              results.filter((result) => result.outcome === 'success').length,
+              results.filter((result) => result.outcome === 'skipped').length,
+              results.filter((result) => result.outcome === 'error').length
+            )}
           </Text>
           <Text> </Text>
           {results.map((result, index) => {
@@ -136,15 +148,15 @@ export function ContextImportForm({ store }: ContextImportFormProps): React.Reac
             return (
               <Text key={`${result.target}-${index}`} color={color}>
                 {truncateText(
-                  `[${result.outcome ?? (result.success ? 'success' : 'error')}] ${result.target}${
-                    result.error ? ` - ${result.error}` : ''
-                  }`
+                  `[${result.outcome ?? (result.success ? text.common.success : text.common.error)}] ${
+                    result.target
+                  }${result.error ? ` - ${result.error}` : ''}`
                 )}
               </Text>
             );
           })}
           <Text> </Text>
-          <Text color={inkColors.muted}>Enter:Close Esc:Close</Text>
+          <Text color={inkColors.muted}>{text.common.enterCloseEscClose}</Text>
         </>
       )}
     </Box>

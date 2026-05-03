@@ -9,14 +9,15 @@ import { inkColors } from '../theme.js';
 
 interface BreadcrumbBarProps {
   segments: string[];
+  label: string;
 }
 
-export function BreadcrumbBar({ segments }: BreadcrumbBarProps): React.ReactElement | null {
+export function BreadcrumbBar({ segments, label }: BreadcrumbBarProps): React.ReactElement | null {
   if (segments.length === 0) return null;
 
   return (
     <Box>
-      <Text color={inkColors.subtle}>Context</Text>
+      <Text color={inkColors.subtle}>{label}</Text>
       {segments.map((segment, index) => (
         <React.Fragment key={`${segment}-${index}`}>
           <Text color={inkColors.muted}> / </Text>

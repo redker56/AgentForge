@@ -81,6 +81,7 @@ describe('SkillList', () => {
       selectedSkillNames: new Set<string>(),
       detailOverlayVisible: false,
       skillDetails: {},
+      loading: { skills: false },
       loadSkillDetail: vi.fn(),
       ...overrides,
     };
@@ -104,6 +105,16 @@ describe('SkillList', () => {
     vi.runAllTimers();
     const frame = lastFrame() || '';
     expect(frame).toContain('No skills installed');
+  });
+
+  it('shows loading copy instead of empty state during initial skill load', async () => {
+    const { SkillList } = await import('../../../src/tui/components/SkillList.js');
+    const store = makeMockStore({ skills: [], loading: { skills: true } });
+    const { lastFrame } = render(React.createElement(SkillList, { store, columns: 100 }));
+    vi.runAllTimers();
+    const frame = lastFrame() || '';
+    expect(frame).toContain('Loading Skills');
+    expect(frame).not.toContain('No skills installed');
   });
 
   it('renders skill names', async () => {

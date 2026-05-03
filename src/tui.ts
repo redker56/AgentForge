@@ -17,6 +17,7 @@ import { DefaultWorkbenchCommands } from './app/workbench-commands.js';
 import { DefaultWorkbenchQueries } from './app/workbench-queries.js';
 import { JsonRegistryRepository } from './infra/storage.js';
 import { App } from './tui/App.js';
+import { resolveTuiLocale } from './tui/i18n.js';
 import { createAppStore } from './tui/store/index.js';
 import type { WorkbenchContext } from './tui/store/workbenchContext.js';
 
@@ -46,7 +47,8 @@ export function launchTUI(): void {
     commands,
   };
 
-  const store = createAppStore(ctx);
+  const languagePreference = storage.getSettings().tuiLanguage;
+  const store = createAppStore(ctx, resolveTuiLocale(languagePreference), languagePreference);
 
   void store.getState().loadAllData();
 

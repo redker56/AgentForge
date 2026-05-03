@@ -9,8 +9,10 @@ import { useStore } from 'zustand';
 import type { StoreApi } from 'zustand';
 
 import type { WidthBand } from '../hooks/useTerminalDimensions.js';
+import { getTuiText } from '../i18n.js';
 import type { AppStore, TabId } from '../store/index.js';
 import { inkColors, symbols } from '../theme.js';
+import { getDisplayWidth } from '../utils/displayWidth.js';
 import { dedupeHints, rankAndTruncateHints, type HintSpec } from '../utils/hintPriority.js';
 
 interface StatusBarProps {
@@ -21,44 +23,60 @@ interface StatusBarProps {
 
 type CountSummaryMode = 'full' | 'medium' | 'compact' | 'micro';
 
-const CONTEXT_HINTS: Record<TabId, HintSpec[]> = {
-  skills: [
-    { key: 'd', label: 'Delete', priority: 1, category: 'destructive' },
-    { key: 'a', label: 'Add', priority: 3, category: 'creation' },
-    { key: 'i', label: 'Import', priority: 4, category: 'creation' },
-    { key: 's', label: 'Sync', priority: 5, category: 'utility' },
-    { key: 'p', label: 'ProjSync', priority: 5, category: 'utility' },
-    { key: 'u', label: 'Update', priority: 6, category: 'utility' },
-    { key: 'U', label: 'UpdateAll', priority: 7, category: 'utility' },
-    { key: 'x', label: 'Unsync', priority: 8, category: 'utility' },
-    { key: 'c', label: 'Categorize', priority: 8, category: 'utility' },
-    { key: '[ ]', label: 'Category', priority: 9, category: 'utility' },
-  ],
-  agents: [
-    { key: 'r', label: 'Remove', priority: 1, category: 'destructive' },
-    { key: 'a', label: 'Add', priority: 3, category: 'creation' },
-    { key: 'Enter', label: 'Open', priority: 10, category: 'utility' },
-  ],
-  projects: [
-    { key: 'r', label: 'Remove', priority: 1, category: 'destructive' },
-    { key: 'a', label: 'Add', priority: 3, category: 'creation' },
-    { key: 'i', label: 'Import', priority: 4, category: 'creation' },
-    { key: 'Enter', label: 'Open', priority: 10, category: 'utility' },
-  ],
-  sync: [
-    { key: 'Space', label: 'Toggle', priority: 5, category: 'utility' },
-    { key: 'Enter', label: 'Confirm', priority: 3, category: 'utility' },
-    { key: 'Esc', label: 'Back', priority: 10, category: 'utility' },
-  ],
-  import: [
-    { key: 'Space', label: 'Toggle', priority: 5, category: 'utility' },
-    { key: 'Enter', label: 'Confirm', priority: 3, category: 'utility' },
-    { key: 'Esc', label: 'Back', priority: 10, category: 'utility' },
-  ],
-};
+type TuiText = ReturnType<typeof getTuiText>;
+
+function buildContextHints(activeTab: TabId, text: TuiText): HintSpec[] {
+  const labels = text.status.labels;
+  const sharedFlowHints: HintSpec[] = [
+    { key: 'Space', label: labels.toggle, priority: 5, category: 'utility' },
+    { key: 'Enter', label: labels.confirm, priority: 3, category: 'utility' },
+    { key: 'Esc', label: labels.back, priority: 10, category: 'utility' },
+  ];
+
+  switch (activeTab) {
+    case 'skills':
+      return [
+        { key: 'd', label: labels.delete, priority: 1, category: 'destructive' },
+        { key: 'a', label: labels.add, priority: 3, category: 'creation' },
+        { key: 'i', label: labels.import, priority: 4, category: 'creation' },
+        { key: 's', label: labels.sync, priority: 5, category: 'utility' },
+        { key: 'p', label: labels.projectSync, priority: 5, category: 'utility' },
+        { key: 'u', label: labels.update, priority: 6, category: 'utility' },
+        { key: 'U', label: labels.updateAll, priority: 7, category: 'utility' },
+        { key: 'x', label: labels.unsync, priority: 8, category: 'utility' },
+        { key: 'c', label: labels.categorize, priority: 8, category: 'utility' },
+        { key: '[ ]', label: labels.category, priority: 9, category: 'utility' },
+      ];
+    case 'agents':
+      return [
+        { key: 'r', label: labels.remove, priority: 1, category: 'destructive' },
+        { key: 'a', label: labels.add, priority: 3, category: 'creation' },
+        { key: 'Enter', label: labels.open, priority: 10, category: 'utility' },
+      ];
+    case 'projects':
+      return [
+        { key: 'r', label: labels.remove, priority: 1, category: 'destructive' },
+        { key: 'a', label: labels.add, priority: 3, category: 'creation' },
+        { key: 'i', label: labels.import, priority: 4, category: 'creation' },
+        { key: 'Enter', label: labels.open, priority: 10, category: 'utility' },
+      ];
+    case 'sync':
+    case 'import':
+      return sharedFlowHints;
+  }
+}
+
+function buildGlobalHints(text: TuiText): HintSpec[] {
+  const labels = text.status.labels;
+  return [
+    { key: '/', label: labels.search, priority: 10, category: 'utility' },
+    { key: '?', label: labels.help, priority: 11, category: 'utility' },
+    { key: 'q', label: labels.quit, priority: 1, category: 'utility' },
+  ];
+}
 
 function estimateWidth(text: string): number {
-  return Array.from(text).length;
+  return getDisplayWidth(text);
 }
 
 function buildCountSummaryText(
@@ -66,27 +84,10 @@ function buildCountSummaryText(
   skillsCount: number,
   agentsCount: number,
   projectsCount: number,
-  selectedCount: number
+  selectedCount: number,
+  text: TuiText
 ): string {
-  const selectedSuffix =
-    selectedCount > 0
-      ? mode === 'micro'
-        ? ` / ${selectedCount}`
-        : mode === 'full'
-          ? ` / ${selectedCount} selected`
-          : ` / ${selectedCount} sel`
-      : '';
-
-  switch (mode) {
-    case 'full':
-      return `Library ${skillsCount} skills / ${agentsCount} agents / ${projectsCount} projects${selectedSuffix}`;
-    case 'medium':
-      return `Library ${skillsCount} sk / ${agentsCount} ag / ${projectsCount} proj${selectedSuffix}`;
-    case 'compact':
-      return `${skillsCount} sk / ${agentsCount} ag / ${projectsCount} pr${selectedSuffix}`;
-    case 'micro':
-      return `${skillsCount}/${agentsCount}/${projectsCount}${selectedSuffix}`;
-  }
+  return text.status.countSummary(mode, skillsCount, agentsCount, projectsCount, selectedCount);
 }
 
 function chooseCountSummaryMode(
@@ -95,7 +96,8 @@ function chooseCountSummaryMode(
   skillsCount: number,
   agentsCount: number,
   projectsCount: number,
-  selectedCount: number
+  selectedCount: number,
+  text: TuiText
 ): CountSummaryMode {
   const reserveForHints = band === 'compact' ? 12 : band === 'standard' ? 24 : 42;
   const maxSummaryWidth = Math.max(columns - reserveForHints, 10);
@@ -104,7 +106,7 @@ function chooseCountSummaryMode(
   for (const mode of modes) {
     if (
       estimateWidth(
-        buildCountSummaryText(mode, skillsCount, agentsCount, projectsCount, selectedCount)
+        buildCountSummaryText(mode, skillsCount, agentsCount, projectsCount, selectedCount, text)
       ) <= maxSummaryWidth
     ) {
       return mode;
@@ -119,19 +121,33 @@ function renderCountSummary(
   skillsCount: number,
   agentsCount: number,
   projectsCount: number,
-  selectedCount: number
+  selectedCount: number,
+  text: TuiText
 ): React.ReactElement {
   const separator = <Text color={inkColors.muted}> / </Text>;
   const showLibrary = mode === 'full' || mode === 'medium';
-  const skillLabel = mode === 'full' ? ' skills' : mode === 'micro' ? '' : ' sk';
-  const agentLabel = mode === 'full' ? ' agents' : mode === 'micro' ? '' : ' ag';
+  const skillLabel =
+    mode === 'full' ? text.status.skillsFull : mode === 'micro' ? '' : text.status.skillsCompact;
+  const agentLabel =
+    mode === 'full' ? text.status.agentsFull : mode === 'micro' ? '' : text.status.agentsCompact;
   const projectLabel =
-    mode === 'full' ? ' projects' : mode === 'medium' ? ' proj' : mode === 'compact' ? ' pr' : '';
-  const selectedLabel = mode === 'full' ? ' selected' : mode === 'micro' ? '' : ' sel';
+    mode === 'full'
+      ? text.status.projectsFull
+      : mode === 'medium'
+        ? text.status.projectsMedium
+        : mode === 'compact'
+          ? text.status.projectsCompact
+          : '';
+  const selectedLabel =
+    mode === 'full'
+      ? text.status.selectedFull
+      : mode === 'micro'
+        ? ''
+        : text.status.selectedCompact;
 
   return (
     <Text>
-      {showLibrary && <Text color={inkColors.muted}>Library </Text>}
+      {showLibrary && <Text color={inkColors.muted}>{text.status.library}</Text>}
       <Text bold color={inkColors.accent}>
         {skillsCount}
       </Text>
@@ -176,6 +192,8 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
   const undoActive = useStore(store, (s) => s.shellState.undoActive);
   const undoBuffer = useStore(store, (s) => s.shellState.undoBuffer);
   const activeToast = useStore(store, (s) => s.shellState.activeToast);
+  const locale = useStore(store, (s) => s.shellState.locale);
+  const text = getTuiText(locale);
   const selectedCount =
     activeTab === 'skills'
       ? selectedSkillNames.size
@@ -185,37 +203,39 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
           ? selectedProjectSkillRowIds.size
           : 0;
 
-  let contextHints = CONTEXT_HINTS[activeTab];
+  let contextHints = buildContextHints(activeTab, text);
 
   if (activeTab === 'agents' && agentViewMode === 'skills') {
+    const labels = text.status.labels;
     contextHints = [
-      { key: 'Space', label: 'Toggle', priority: 3, category: 'utility' },
-      { key: 'Enter', label: 'Detail', priority: 4, category: 'utility' },
-      { key: 'i', label: 'Import', priority: 5, category: 'creation' },
-      { key: 'x', label: 'Unsync', priority: 6, category: 'utility' },
-      { key: 'u', label: 'Update', priority: 7, category: 'utility' },
-      { key: 'c', label: 'Categorize', priority: 8, category: 'utility' },
-      { key: '[ ]', label: 'Browse', priority: 9, category: 'utility' },
-      { key: 'Esc', label: 'Back', priority: 10, category: 'utility' },
+      { key: 'Space', label: labels.toggle, priority: 3, category: 'utility' },
+      { key: 'Enter', label: labels.detail, priority: 4, category: 'utility' },
+      { key: 'i', label: labels.import, priority: 5, category: 'creation' },
+      { key: 'x', label: labels.unsync, priority: 6, category: 'utility' },
+      { key: 'u', label: labels.update, priority: 7, category: 'utility' },
+      { key: 'c', label: labels.categorize, priority: 8, category: 'utility' },
+      { key: '[ ]', label: labels.browse, priority: 9, category: 'utility' },
+      { key: 'Esc', label: labels.back, priority: 10, category: 'utility' },
     ];
   }
 
   if (activeTab === 'projects' && projectViewMode === 'skills') {
+    const labels = text.status.labels;
     contextHints = [
-      { key: 'Space', label: 'Toggle', priority: 3, category: 'utility' },
-      { key: 'Enter', label: 'Detail', priority: 4, category: 'utility' },
-      { key: 'i', label: 'Import', priority: 5, category: 'creation' },
-      { key: 'x', label: 'Unsync', priority: 6, category: 'utility' },
-      { key: 'u', label: 'Update', priority: 7, category: 'utility' },
-      { key: 'c', label: 'Categorize', priority: 8, category: 'utility' },
-      { key: '[ ]', label: 'Browse', priority: 9, category: 'utility' },
-      { key: 'Esc', label: 'Back', priority: 10, category: 'utility' },
+      { key: 'Space', label: labels.toggle, priority: 3, category: 'utility' },
+      { key: 'Enter', label: labels.detail, priority: 4, category: 'utility' },
+      { key: 'i', label: labels.import, priority: 5, category: 'creation' },
+      { key: 'x', label: labels.unsync, priority: 6, category: 'utility' },
+      { key: 'u', label: labels.update, priority: 7, category: 'utility' },
+      { key: 'c', label: labels.categorize, priority: 8, category: 'utility' },
+      { key: '[ ]', label: labels.browse, priority: 9, category: 'utility' },
+      { key: 'Esc', label: labels.back, priority: 10, category: 'utility' },
     ];
   }
 
   if (detailOverlayVisible) {
     contextHints = dedupeHints([
-      { key: 'Esc', label: 'Back', priority: 0, category: 'utility' as const },
+      { key: 'Esc', label: text.status.labels.back, priority: 0, category: 'utility' as const },
       ...contextHints,
     ]);
   }
@@ -229,7 +249,7 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
       (undoBuffer.snapshot as Record<string, string>)?.name ||
       (undoBuffer.snapshot as Record<string, string>)?.id ||
       'item';
-    leftSectionText = `${symbols.crossMark} Deleted '${entityName}' - Undo (${remainingSeconds}s)`;
+    leftSectionText = `${symbols.crossMark} ${text.status.deletedUndo(entityName, remainingSeconds)}`;
     leftSection = <Text color={inkColors.warning}>{leftSectionText}</Text>;
   } else if (activeToast) {
     const toastSymbol =
@@ -253,28 +273,36 @@ export function StatusBar({ store, band, columns }: StatusBarProps): React.React
       skillsCount,
       agentsCount,
       projectsCount,
-      selectedCount
+      selectedCount,
+      text
     );
     leftSectionText = buildCountSummaryText(
       summaryMode,
       skillsCount,
       agentsCount,
       projectsCount,
-      selectedCount
+      selectedCount,
+      text
     );
     leftSection = renderCountSummary(
       summaryMode,
       skillsCount,
       agentsCount,
       projectsCount,
-      selectedCount
+      selectedCount,
+      text
     );
   }
 
   const contentWidth = Math.max(columns - 2, 0);
   const minimumGap = 1;
   const availableWidth = Math.max(contentWidth - estimateWidth(leftSectionText) - minimumGap, 0);
-  const { segments } = rankAndTruncateHints(contextHints, band, availableWidth);
+  const { segments } = rankAndTruncateHints(
+    contextHints,
+    band,
+    availableWidth,
+    buildGlobalHints(text)
+  );
 
   return (
     <Box

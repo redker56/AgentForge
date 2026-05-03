@@ -12,6 +12,22 @@
 
 export type SyncMode = 'copy' | 'symlink';
 
+// ========== TUI Settings ==========
+
+export type TuiLanguagePreference = 'auto' | 'zh' | 'en';
+
+export interface RegistrySettings {
+  tuiLanguage: TuiLanguagePreference;
+}
+
+export const DEFAULT_REGISTRY_SETTINGS: RegistrySettings = {
+  tuiLanguage: 'auto',
+};
+
+export function normalizeTuiLanguagePreference(value: unknown): TuiLanguagePreference {
+  return value === 'zh' || value === 'en' || value === 'auto' ? value : 'auto';
+}
+
 // ========== Agent ID ==========
 
 export type AgentId =
@@ -190,6 +206,7 @@ export interface RegistryData {
   skills: Record<string, SkillMeta>;
   agents: Record<string, { name: string; basePath: string; skillsDirName?: string }>;
   projects: Record<string, ProjectConfig>; // Project configurations
+  settings: RegistrySettings;
 }
 
 // ========== Built-in Agents ==========
@@ -282,4 +299,6 @@ export interface StorageInterface {
   getProject(id: string): ProjectConfig | undefined;
   addProject(id: string, projectPath: string, addedAt?: string): void;
   removeProject(id: string): boolean;
+  getSettings(): RegistrySettings;
+  updateSettings(settings: Partial<RegistrySettings>): void;
 }

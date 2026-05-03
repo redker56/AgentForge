@@ -1,5 +1,7 @@
 import type { SyncMode } from '../types.js';
 
+import { getTuiText, type TuiLocale } from './i18n.js';
+
 export type ContextSkillFilter = 'all' | 'imported' | 'unimported';
 
 export interface ContextSkillRow {
@@ -46,15 +48,17 @@ export function matchesContextSkillFilter(
 }
 
 export function getContextSkillFilterCounts(
-  rows: Array<Pick<ContextSkillRow, 'isImported'>>
+  rows: Array<Pick<ContextSkillRow, 'isImported'>>,
+  locale: TuiLocale = 'en'
 ): ContextSkillFilterCount[] {
   const importedCount = rows.filter((row) => row.isImported).length;
   const unimportedCount = rows.length - importedCount;
+  const text = getTuiText(locale);
 
   return [
-    { key: 'all', label: 'All', count: rows.length },
-    { key: 'imported', label: 'Imported', count: importedCount },
-    { key: 'unimported', label: 'Unimported', count: unimportedCount },
+    { key: 'all', label: text.common.all, count: rows.length },
+    { key: 'imported', label: text.common.imported, count: importedCount },
+    { key: 'unimported', label: text.common.unimported, count: unimportedCount },
   ];
 }
 
